@@ -1,0 +1,54 @@
+#!/usr/bin/python
+#
+# telepathy-butterfly - an MSN connection manager for Telepathy
+#
+# Copyright (C) 2006-2007 Ali Sabil <ali.sabil@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+import gobject
+import dbus.glib
+import signal
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+from telepathy_butterfly import ButterflyConnectionManager
+
+logger = logging.getLogger('telepathy-butterfly')
+
+if __name__ == '__main__':
+    try: # change process name for killall
+       import ctypes
+       libc = ctypes.CDLL('libc.so.6')
+       libc.prctl(15, 'telepathy-butterfly', 0, 0, 0)
+    except Exception, e:
+       logger.warning('Unable to set processName: %s" % e')
+
+    manager = ButterflyConnectionManager()
+    mainloop = gobject.MainLoop(is_running=True)
+    
+    def quit_cb():
+        manager.quit()
+        mainloop.quit()
+        return False
+
+    signal.signal(signal.SIGTERM, lambda : gobject.idle_add(quit_cb))
+    
+    try:
+        mainloop.run()
+    except KeyboardInterrupt:
+        quit_cb()

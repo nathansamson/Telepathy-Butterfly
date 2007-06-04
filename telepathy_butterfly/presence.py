@@ -109,8 +109,12 @@ class ButterflyConnectionPresence(
             contact = self._pymsn_client.address_book.contacts.\
                     search_by_account(account).get_first()
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
-            arguments = {'message' : contact.personal_message.decode("utf-8")}
-            
+            personal_message = contact.personal_message.decode("utf-8")
+
+            arguments = {}
+            if personal_message:
+                arguments = {'message' : personal_message}
+
             presences[handle] = (0, {presence : arguments}) # TODO: Timestamp
 
         self.PresenceUpdate(presences)
@@ -133,7 +137,11 @@ class ButterflyConnectionPresence(
 
     def contact_presence_changed(self, contact):
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
-            arguments = {'message' : contact.personal_message.decode("utf-8")}
+            personal_message = contact.personal_message.decode("utf-8")
+            
+            arguments = {}
+            if personal_message:
+                arguments = {'message' : personal_message}
             
             handle = self._handle_manager.handle_for_contact(contact.account)
             self.PresenceUpdate({handle: (0, {presence:arguments})}) 

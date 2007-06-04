@@ -33,7 +33,7 @@ class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
         self._telepathy_connection.contact_presence_changed(contact)
 
     def on_contact_display_name_changed(self, contact):
-        pass
+        self._telepathy_connection.contact_alias_changed(contact)
 
     def on_contact_personal_message_changed(self, contact):
         self._telepathy_connection.contact_presence_changed(contact)

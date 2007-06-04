@@ -26,6 +26,7 @@ import weakref
 import telepathy_butterfly.handler as event
 from telepathy_butterfly.channel import *
 from telepathy_butterfly.presence import ButterflyConnectionPresence
+from telepathy_butterfly.aliasing import ButterflyConnectionAliasing
 
 __all__ = ['ButterflyConnection']
 
@@ -111,7 +112,8 @@ class ChannelManager(object):
         return channel
 
 class ButterflyConnection(telepathy.server.Connection,
-        ButterflyConnectionPresence):
+        ButterflyConnectionPresence,
+        ButterflyConnectionAliasing):
 
     _mandatory_parameters = {
             'account' : 's',
@@ -152,6 +154,7 @@ class ButterflyConnection(telepathy.server.Connection,
 
             telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
             ButterflyConnectionPresence.__init__(self)
+            ButterflyConnectionAliasing.__init__(self)
             self._handle_manager = HandleManager(self)
             self._channel_manager = ChannelManager(self)
             

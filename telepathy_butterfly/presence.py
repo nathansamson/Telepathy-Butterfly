@@ -131,3 +131,10 @@ class ButterflyConnectionPresence(
             self._pymsn_client.profile.personal_message = message
             self._pymsn_client.profile.presence = presence
 
+    def contact_presence_changed(self, contact):
+            presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
+            arguments = {'message' : contact.personal_message.decode("utf-8")}
+            
+            handle = self._handle_manager.handle_for_contact(contact.account)
+            self.PresenceUpdate({handle: (0, {presence:arguments})}) 
+

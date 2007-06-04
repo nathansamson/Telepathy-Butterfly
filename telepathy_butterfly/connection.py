@@ -17,6 +17,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import telepathy
+import pymsn
 import gobject
 import dbus
 import logging
@@ -83,10 +84,11 @@ class HandleManager(object):
         return handle
 
 class ChannelManager(object):
-    def __init__(self):
+    def __init__(self, connection):
+        self._connection = connection
         self._list_channels = weakref.WeakValueDictionary()
 
-    def channel_for_list(self, list_type, handle):
+    def channel_for_list(self, list_type, handle, suppress_handler=False):
         if handle in self._list_channels:
             channel = self._list_channels[handle]
         else:
@@ -102,11 +104,10 @@ class ChannelManager(object):
             #    channel_class = ButterflyDenyListChannel
             else:
                 raise AssertionError("Unknown list type : " + list_type)
-
-            
-            channel = channel_class(self, handle)
+            channel = channel_class(self._connection, handle)
             self._list_channels[handle] = channel
-            self.add_channel(channel, handle, suppress_handler=False)
+            self._connection.add_channel(channel, handle,
+                    suppress_handler=suppress_handler)
         return channel
 
 class ButterflyConnection(telepathy.server.Connection,
@@ -135,32 +136,37 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def __init__(self, manager, parameters):
         self.check_parameters(parameters)
-        
-        account = unicode(parameters['account'])
-        server = (parameters['server'], parameters['port'])
+        try: 
+            account = unicode(parameters['account'])
+            server = (parameters['server'], parameters['port'])
 
-        proxies = {}
+            proxies = {}
 
-        proxy = build_proxy_infos(parameters, 'http')
-        if proxy is not None:
-            proxies['http'] = proxy
+            proxy = build_proxy_infos(parameters, 'http')
+            if proxy is not None:
+                proxies['http'] = proxy
 
-        proxy = build_proxy_infos(parameters, 'https')
-        if proxy is not None:
-            proxies['https'] = proxy
+            proxy = build_proxy_infos(parameters, 'https')
+            if proxy is not None:
+                proxies['https'] = proxy
 
-        telepathy.server.Connection.__init__(self, 'msn', account)
-        self._handle_manager = HandleManager(self)
-        self._channel_manager = ChannelManager(self)
-        
-        self._account = (parameters['account'], parameters['password'])
-        self._initial_presence = pymsn.Presence.ONLINE
-        self._initial_personal_message = ""
+            telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
+            ButterflyConnectionPresence.__init__(self)
+            self._handle_manager = HandleManager(self)
+            self._channel_manager = ChannelManager(self)
+            
+            self._account = (parameters['account'], parameters['password'])
+            self._initial_presence = pymsn.Presence.ONLINE
+            self._initial_personal_message = ""
 
-        self._manager = manager
-        self._pymsn_client = pymsn.Client(server, proxies)
-        event.ButterflyClientEventsHandler(self._pymsn_client, self)
-        logger.info("Connection to the account %s created" % account)
+            self._manager = manager
+            self._pymsn_client = pymsn.Client(server, proxies)
+            event.ButterflyClientEventsHandler(self._pymsn_client, self)
+            event.ButterflyContactEventsHandler(self._pymsn_client, self)
+            logger.info("Connection to the account %s created" % account)
+        except Exception, e:
+            print e
+
     
     def Connect(self):
         logger.info("Connecting")
@@ -213,7 +219,7 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def _create_contact_list(self):
         handle = self._handle_manager.handle_for_list('subscribe')
-        self._channel_manager._channel_for_list('subscribe', handle)
+        self._channel_manager.channel_for_list('subscribe', handle)
         handle = self._handle_manager.handle_for_list('publish')
-        self._channel_manager._channel_for_list('publish', handle)
+        self._channel_manager.channel_for_list('publish', handle)
 

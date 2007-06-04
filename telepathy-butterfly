@@ -31,12 +31,12 @@ from telepathy_butterfly import ButterflyConnectionManager
 logger = logging.getLogger('telepathy-butterfly')
 
 if __name__ == '__main__':
-    try: # change process name for killall
-       import ctypes
-       libc = ctypes.CDLL('libc.so.6')
-       libc.prctl(15, 'telepathy-butterfly', 0, 0, 0)
-    except Exception, e:
-       logger.warning('Unable to set processName: %s" % e')
+    #try: # change process name for killall
+    #   import ctypes
+    #   libc = ctypes.CDLL('libc.so.6')
+    #   libc.prctl(15, 'telepathy-butterfly', 0, 0, 0)
+    #except Exception, e:
+    #   logger.warning('Unable to set processName: %s" % e')
 
     manager = ButterflyConnectionManager()
     mainloop = gobject.MainLoop(is_running=True)

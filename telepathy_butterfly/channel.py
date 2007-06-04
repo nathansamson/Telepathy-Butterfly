@@ -18,6 +18,7 @@
 
 
 import telepathy
+import pymsn
 import gobject
 
 __all__ = ['ButterflySubscribeListChannel', 'ButterflyPublishListChannel']

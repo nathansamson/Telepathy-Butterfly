@@ -18,6 +18,9 @@
 
 import pymsn
 import pymsn.event
+import telepathy
+
+__all__ = ['ButterflyClientEventsHandler']
 
 class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
     def __init__(self, client, telepathy_connection):
@@ -25,12 +28,12 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
         pymsn.event.ClientEventInterface.__init__(self, client)
 
     def on_client_state_changed(self, state):
-        if state == pymsn.event.ClientState.OPENING:
+        if state == pymsn.event.ClientState.CONNECTING:
             self._telepathy_connection.StatusChanged(
                     telepathy.CONNECTION_STATUS_CONNECTING,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
         elif state == pymsn.event.ClientState.SYNCHRONIZED:
-            pass
+            self._telepathy_connection._create_contact_list()
         elif state == pymsn.event.ClientState.OPEN:
             self._telepathy_connection.StatusChanged(
                     telepathy.CONNECTION_STATUS_CONNECTED,
@@ -39,11 +42,10 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
                     self._telepathy_connection._initial_presence
             self._client.profile.personal_message = \
                     self._telepathy_connection._initial_personal_message
-            self._telepathy_connection._create_contact_list()
-
-    def __create_contact_list(self):
-        subscribe_handle = self._telepathy_connection._handle_manager.\
-                handle_for_list('subscribe')
+        elif state == pymsn.event.ClientState.CLOSED:
+            self._telepathy_connection.StatusChanged(
+                    telepathy.CONNECTION_STATUS_DISCONNECTED,
+                    telepathy.CONNECTION_STATUS_REASON_REQUESTED)
 
     def on_client_error(self, type, error):
         if type == pymsn.event.ClientErrorType.NETWORK:

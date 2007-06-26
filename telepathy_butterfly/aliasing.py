@@ -34,8 +34,11 @@ class ButterflyConnectionAliasing(
             handle = self._handle_manager.handle_for_handle_id(
                     telepathy.CONNECTION_HANDLE_TYPE_CONTACT, handle_id)
             if handle == self.GetSelfHandle():
-                result.append(unicode(self._pymsn_client.profile.display_name,
-                    'utf-8'))
+                display_name = self._pymsn_client.profile.display_name
+                if display_name == "":
+                    display_name = handle.get_name().split('@', 1)[0]
+                    display_name = display_name.replace("_", " ")
+                result.append(unicode(display_name, 'utf-8'))
             else:
                 contact = self._pymsn_client.address_book.contacts.\
                         search_by_account(handle.get_name()).get_first()

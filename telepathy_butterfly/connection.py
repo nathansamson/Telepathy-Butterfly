@@ -88,6 +88,7 @@ class ChannelManager(object):
     def __init__(self, connection):
         self._connection = connection
         self._list_channels = weakref.WeakValueDictionary()
+        self._text_channels = weakref.WeakValueDictionary()
 
     def channel_for_list(self, list_type, handle, suppress_handler=False):
         if handle in self._list_channels:
@@ -110,6 +111,20 @@ class ChannelManager(object):
             self._connection.add_channel(channel, handle,
                     suppress_handler=suppress_handler)
         return channel
+
+    def channel_for_text(self, handle):
+        if handle in self._text_channels:
+            channel = self._text_channels[handle]
+        else:
+            account = handle.get_name()
+            contact = self._connection._pymsn_client.address_book.contacts.\
+                    search_by_account(account).get_first()
+            if contact.presence == pymsn.Presence.OFFLINE:
+                    raise telepathy.NotAvailable('Contact not available')
+            channel = ButterflyTextChannel(self._connection, None, [contact])
+            self._text_channels[handle] = channel
+        return channel
+
 
 class ButterflyConnection(telepathy.server.Connection,
         ButterflyConnectionPresence,
@@ -166,6 +181,9 @@ class ButterflyConnection(telepathy.server.Connection,
             self._pymsn_client = pymsn.Client(server, proxies)
             event.ButterflyClientEventsHandler(self._pymsn_client, self)
             event.ButterflyContactEventsHandler(self._pymsn_client, self)
+
+            self_handle = self._handle_manager.handle_for_contact(self._account[0])
+            self.set_self_handle(self_handle)
             logger.info("Connection to the account %s created" % account)
         except Exception, e:
             print e
@@ -206,8 +224,17 @@ class ButterflyConnection(telepathy.server.Connection,
             self.check_handle_type(handle_type)
             handle = self._handle_manager.\
                     handle_for_handle_id(handle_type, handle_id)
+            channel = self._channel_manager.channel_for_list(handle)
+        elif type == telepathy.CHANNEL_TYPE_TEXT:
+            # FIXME: Also accept Group Handles
+            if handle_type != telepathy.CONNECTION_HANDLE_TYPE_CONTACT:
+                raise telepathy.NotImplemented("Only Contacts are allowed currently")
+
+            handle = self._handle_manager.\
+                    handle_for_handle_id(handle_type, handle_id)
+            channel = self._channel_manager.channel_for_text(handle)
         else:
-            raise telepathy.NotImplemented('unknown channel type %s' % type)
+            raise telepathy.NotImplemented("unknown channel type %s" % type)
 
         return channel._object_path
 

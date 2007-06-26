@@ -19,9 +19,14 @@
 
 import telepathy
 import pymsn
+import pymsn.event
 import gobject
+import time
+import logging
+from gettext import gettext as _
 
-__all__ = ['ButterflySubscribeListChannel', 'ButterflyPublishListChannel']
+__all__ = ['ButterflySubscribeListChannel', 'ButterflyPublishListChannel',
+        'ButterflyTextChannel']
 
 class ButterflyListChannel(
         telepathy.server.ChannelTypeContactList,
@@ -79,3 +84,69 @@ class ButterflyPublishListChannel(ButterflyListChannel):
         if added:
             self.MembersChanged('', added, (), local_pending, (), 0,
                                 telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+
+class ButterflyTextChannel(
+        telepathy.server.ChannelTypeText,
+        telepathy.server.ChannelInterfaceGroup,
+        pymsn.event.ConversationEventInterface):
+    
+    logger = logging.getLogger('telepathy-butterfly:text-channel')
+
+    def __init__(self, connection, conversation=None, contacts=[]):
+        self._recv_id = 0
+        telepathy.server.ChannelTypeText.__init__(self, connection, None)
+        telepathy.server.ChannelInterfaceGroup.__init__(self)
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
+        if conversation is None:
+            self._conversation = pymsn.Conversation(connection._pymsn_client,
+                    contacts)
+        else:
+            self._conversation = conversation
+        pymsn.event.ConversationEventInterface.__init__(self,
+                self._conversation)
+
+    def on_conversation_user_joined(self, contact):
+        self.logger.debug("user joined : %s" % contact.account)
+        handle = self._conn._handle_manager.handle_for_contact(contact.account)
+        self.MembersChanged('', [handle], [], [], [],
+                handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
+
+    def on_conversation_user_left(self, contact):
+        self.logger.debug("user left : %s" % contact.account)
+        handle = self._conn._handle_manager.handle_for_contact(contact.account)
+        self.MembersChanged('', [], [handle], [], [],
+                handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+    def on_conversation_message_received(self, sender, message, formatting):
+        id = self._recv_id
+        timestamp = int(time.time())
+        sender = self._conn._handle_manager.handle_for_contact(sender.account)
+        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
+
+        self.Received(id, timestamp, sender, type, 0, message)
+        self._recv_id += 1
+    
+    def on_conversation_nudge_received(self, sender):
+        id = self._recv_id
+        timestamp = int(time.time())
+        sender = self._conn._handle_manager.handle_for_contact(sender.account)
+        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
+        text = unicode(_("sends you a nudge"), "utf-8")
+
+        self.Received(id, timestamp, sender, type, 0, text)
+        self._recv_id += 1
+    
+    def Send(self, message_type, text):
+        if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+            self._conversation.send_text_message(text)
+        elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
+                text == u"nudge":
+            self._conversation.send_nudge()
+        else:
+            raise telepathy.NotImplemented("Unhandled message type")
+        self.Sent(int(time.time()), message_type, text) 
+
+    def Close(self):
+        self._conversation.leave()
+        telepathy.server.ChannelTypeText.Close(self)

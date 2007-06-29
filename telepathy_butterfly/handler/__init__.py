@@ -18,3 +18,4 @@
 
 from client import *
 from contact import *
+from invite import *

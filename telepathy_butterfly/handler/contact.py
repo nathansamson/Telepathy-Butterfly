@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 #
+# telepathy-butterfly - an MSN connection manager for Telepathy
+#
 # Copyright (C) 2007  Ali Sabil <ali.sabil@gmail.com>
 # Copyright (C) 2007  Ole André Vadla Ravnås <oleavr@gmail.com>
 #

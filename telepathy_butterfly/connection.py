@@ -112,7 +112,7 @@ class ChannelManager(object):
                     suppress_handler=suppress_handler)
         return channel
 
-    def channel_for_text(self, handle):
+    def channel_for_text(self, handle, conversation=None):
         if handle in self._text_channels:
             channel = self._text_channels[handle]
         else:
@@ -121,8 +121,14 @@ class ChannelManager(object):
                     search_by_account(account).get_first()
             if contact.presence == pymsn.Presence.OFFLINE:
                     raise telepathy.NotAvailable('Contact not available')
-            channel = ButterflyTextChannel(self._connection, None, [contact])
+            if conversation is None:
+                contacts = [contact]
+            else:
+                contacts = []
+            channel = ButterflyTextChannel(self._connection,
+                    conversation, contacts)
             self._text_channels[handle] = channel
+            self._connection.add_channel(channel, handle, False)
         return channel
 
 
@@ -181,6 +187,7 @@ class ButterflyConnection(telepathy.server.Connection,
             self._pymsn_client = pymsn.Client(server, proxies)
             event.ButterflyClientEventsHandler(self._pymsn_client, self)
             event.ButterflyContactEventsHandler(self._pymsn_client, self)
+            event.ButterflyInviteEventsHandler(self._pymsn_client, self)
 
             self_handle = self._handle_manager.handle_for_contact(self._account[0])
             self.set_self_handle(self_handle)

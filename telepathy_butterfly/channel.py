@@ -103,8 +103,19 @@ class ButterflyTextChannel(
                     contacts)
         else:
             self._conversation = conversation
+            gobject.idle_add(self.__add_initial_participants)
         pymsn.event.ConversationEventInterface.__init__(self,
                 self._conversation)
+
+    def __add_initial_participants(self):
+        handles = []
+        for participant in self._conversation.participants:
+            handle = self._conn._handle_manager.\
+                    handle_for_contact(participant.account)
+            handles.append(handle)
+        self.MembersChanged('', handles, [], [], [],
+                0, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
+        return False
 
     def on_conversation_user_joined(self, contact):
         self.logger.debug("user joined : %s" % contact.account)

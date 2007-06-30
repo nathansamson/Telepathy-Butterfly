@@ -159,5 +159,11 @@ class ButterflyTextChannel(
         self.Sent(int(time.time()), message_type, text) 
 
     def Close(self):
+        # FIXME: figure out why we leak a reference
+        for handle, channel in self._conn._channel_manager.\
+                _text_channels.items():
+            if channel is self:
+                del self._conn._channel_manager._text_channels[handle]
+
         self._conversation.leave()
         telepathy.server.ChannelTypeText.Close(self)

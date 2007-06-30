@@ -19,8 +19,11 @@
 import pymsn
 import pymsn.event
 import telepathy
+import logging
 
 __all__ = ['ButterflyInviteEventsHandler']
+
+logger = logging.getLogger('telepathy-butterfly:event:invite')
 
 class ButterflyInviteEventsHandler(pymsn.event.InviteEventInterface):
     def __init__(self, client, telepathy_connection):
@@ -28,6 +31,7 @@ class ButterflyInviteEventsHandler(pymsn.event.InviteEventInterface):
         pymsn.event.InviteEventInterface.__init__(self, client)
 
     def on_invite_conversation(self, conversation):
+        logger.debug("conversation invite")
         #FIXME: get rid of this crap and implement group support
         participants = conversation.participants 
         for p in participants:

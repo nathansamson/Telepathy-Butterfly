@@ -112,10 +112,12 @@ class ChannelManager(object):
                     suppress_handler=suppress_handler)
         return channel
 
-    def channel_for_text(self, handle, conversation=None):
+    def channel_for_text(self, handle, conversation=None, suppress_handler=False):
         if handle in self._text_channels:
+            logger.debug("Requesting already available text channel")
             channel = self._text_channels[handle]
         else:
+            logger.debug("Requesting new text channel")
             account = handle.get_name()
             contact = self._connection._pymsn_client.address_book.contacts.\
                     search_by_account(account).get_first()
@@ -128,7 +130,7 @@ class ChannelManager(object):
             channel = ButterflyTextChannel(self._connection,
                     conversation, contacts)
             self._text_channels[handle] = channel
-            self._connection.add_channel(channel, handle, False)
+            self._connection.add_channel(channel, handle, suppress_handler)
         return channel
 
 
@@ -231,7 +233,8 @@ class ButterflyConnection(telepathy.server.Connection,
             self.check_handle_type(handle_type)
             handle = self._handle_manager.\
                     handle_for_handle_id(handle_type, handle_id)
-            channel = self._channel_manager.channel_for_list(handle)
+            channel = self._channel_manager.\
+                    channel_for_list(handle, suppress_handler)
         elif type == telepathy.CHANNEL_TYPE_TEXT:
             # FIXME: Also accept Group Handles
             if handle_type != telepathy.CONNECTION_HANDLE_TYPE_CONTACT:
@@ -239,7 +242,8 @@ class ButterflyConnection(telepathy.server.Connection,
 
             handle = self._handle_manager.\
                     handle_for_handle_id(handle_type, handle_id)
-            channel = self._channel_manager.channel_for_text(handle)
+            channel = self._channel_manager.\
+                    channel_for_text(handle, None, suppress_handler)
         else:
             raise telepathy.NotImplemented("unknown channel type %s" % type)
 

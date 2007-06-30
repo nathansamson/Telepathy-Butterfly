@@ -174,8 +174,12 @@ class ButterflyConnection(telepathy.server.Connection,
             proxy = build_proxy_infos(parameters, 'https')
             if proxy is not None:
                 proxies['https'] = proxy
+            
+            try:
+                telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
+            except TypeError: # handle old versions of tp-python
+                telepathy.server.Connection.__init__(self, 'msn', account)
 
-            telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
             ButterflyConnectionPresence.__init__(self)
             ButterflyConnectionAliasing.__init__(self)
             self._handle_manager = HandleManager(self)

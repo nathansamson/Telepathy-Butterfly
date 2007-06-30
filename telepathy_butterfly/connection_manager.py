@@ -35,10 +35,7 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
 
     def __init__(self):
         "Initializer"
-        try:
-            telepathy.server.ConnectionManager.__init__(self, 'butterfly')
-        except TypeError: # old versions of tp-python
-            telepathy.server.ConnectionManager.__init__(self)
+        telepathy.server.ConnectionManager.__init__(self, 'butterfly')
 
         self._protos['msn'] = ButterflyConnection
         logger.info("Connection manager created")

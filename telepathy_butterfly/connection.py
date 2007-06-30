@@ -259,8 +259,9 @@ class ButterflyConnection(telepathy.server.Connection,
         return False
 
     def _disconnect(self):
-        self._manager.disconnected(self)
-        self._pymsn_client.logout()
+        if self._status != telepathy.CONNECTION_STATUS_DISCONNECTED:
+            self._manager.disconnected(self)
+            self._pymsn_client.logout()
         return False
 
     def _create_contact_list(self):

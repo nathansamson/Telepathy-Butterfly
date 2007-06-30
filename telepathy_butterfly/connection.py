@@ -259,6 +259,7 @@ class ButterflyConnection(telepathy.server.Connection,
         return False
 
     def _disconnect(self):
+        self._manager.disconnected(self)
         self._pymsn_client.logout()
         return False
 

@@ -46,6 +46,7 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
             self._telepathy_connection.StatusChanged(
                     telepathy.CONNECTION_STATUS_DISCONNECTED,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
+            self._telepathy_connection._manager.disconnected(self._telepathy_connection)
 
     def on_client_error(self, type, error):
         if type == pymsn.event.ClientErrorType.NETWORK:

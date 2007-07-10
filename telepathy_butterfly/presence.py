@@ -125,7 +125,7 @@ class ButterflyConnectionPresence(
             self.Disconnect()
 
         presence = ButterflyPresence.telepathy_to_pymsn[status]
-        message = arguments['message'].decode("utf-8")
+        message = arguments.get('message', u'').decode("utf-8")
 
         logger.debug("SetStatus: presence='%s', message='%s'" % (presence, message))
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:

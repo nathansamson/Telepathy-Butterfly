@@ -107,9 +107,9 @@ class ButterflyConnectionPresence(
             account = handle.get_name()
 
             contact = self._pymsn_client.address_book.contacts.\
-                    search_by_account(account).get_first()
+                    search_by_account(account)[0]
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
-            personal_message = contact.personal_message.decode("utf-8")
+            personal_message = unicode(contact.personal_message, "utf-8")
 
             arguments = {}
             if personal_message:
@@ -125,7 +125,7 @@ class ButterflyConnectionPresence(
             self.Disconnect()
 
         presence = ButterflyPresence.telepathy_to_pymsn[status]
-        message = arguments.get('message', u'').decode("utf-8")
+        message = arguments.get('message', u'').encode("utf-8")
 
         logger.debug("SetStatus: presence='%s', message='%s'" % (presence, message))
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:
@@ -137,7 +137,7 @@ class ButterflyConnectionPresence(
 
     def contact_presence_changed(self, contact):
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
-            personal_message = contact.personal_message.decode("utf-8")
+            personal_message = unicode(contact.personal_message, "utf-8")
             
             arguments = {}
             if personal_message:

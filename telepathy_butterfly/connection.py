@@ -120,7 +120,7 @@ class ChannelManager(object):
             logger.debug("Requesting new text channel")
             account = handle.get_name()
             contact = self._connection._pymsn_client.address_book.contacts.\
-                    search_by_account(account).get_first()
+                    search_by_account(account)[0]
             if contact.presence == pymsn.Presence.OFFLINE:
                     raise telepathy.NotAvailable('Contact not available')
             if conversation is None:

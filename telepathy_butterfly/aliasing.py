@@ -41,7 +41,7 @@ class ButterflyConnectionAliasing(
                 result.append(unicode(display_name, 'utf-8'))
             else:
                 contact = self._pymsn_client.address_book.contacts.\
-                        search_by_account(handle.get_name()).get_first()
+                        search_by_account(handle.get_name())[0]
                 result.append(unicode(contact.display_name, 'utf-8'))
         return result
             
@@ -52,7 +52,7 @@ class ButterflyConnectionAliasing(
             if handle != self.GetSelfHandle():
                 raise telepathy.PermissionDenied("MSN doesn't allow setting"\
                         "aliases for contacts")
-            self._pymsn_client.profile.display_name = alias.decode('utf-8')
+            self._pymsn_client.profile.display_name = alias.encode('utf-8')
 
     def contact_alias_changed(self, contact):
         handle = self._handle_manager.handle_for_contact(contact.account)

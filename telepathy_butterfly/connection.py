@@ -70,14 +70,14 @@ class HandleManager(object):
                     (handle.get_id(), handle.get_name()))
         return handle
     
-    def handle_for_list(self, lst):
-        if lst in self._list_handles:
-            handle = self._list_handles[lst]
+    def handle_for_list(self, list_name):
+        if list_name in self._list_handles:
+            handle = self._list_handles[list_name]
         else:
             handle = telepathy.server.Handle(self._connection.get_handle_id(),
                     telepathy.CONNECTION_HANDLE_TYPE_LIST,
-                    lst)
-            self._list_handles[lst] = handle
+                    list_name)
+            self._list_handles[list_name] = handle
             self._connection._handles[handle.get_type(), handle.get_id()] = \
                     handle
             logger.debug("New list handle %u %s" % \
@@ -90,22 +90,22 @@ class ChannelManager(object):
         self._list_channels = weakref.WeakValueDictionary()
         self._text_channels = weakref.WeakValueDictionary()
 
-    def channel_for_list(self, list_type, handle, suppress_handler=False):
+    def channel_for_list(self, handle, suppress_handler=False):
         if handle in self._list_channels:
             channel = self._list_channels[handle]
         else:
-            if list_type == 'subscribe':
+            if handle.get_name() == 'subscribe':
                 channel_class = ButterflySubscribeListChannel
-            elif list_type == 'publish':
+            elif handle.get_name() == 'publish':
                 channel_class = ButterflyPublishListChannel
-            #elif list_type == 'hide':
+            #elif handle.get_name() == 'hide':
             #    channel_class = ButterflyHideListChannel
-            #elif list_type == 'allow':
+            #elif handle.get_name() == 'allow':
             #    channel_class = ButterflyAllowListChannel
-            #elif list_type == 'deny':
+            #elif handle.get_name() == 'deny':
             #    channel_class = ButterflyDenyListChannel
             else:
-                raise AssertionError("Unknown list type : " + list_type)
+                raise AssertionError("Unknown list type : " + handle.get_name())
             channel = channel_class(self._connection, handle)
             self._list_channels[handle] = channel
             self._connection.add_channel(channel, handle,
@@ -264,7 +264,7 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def _create_contact_list(self):
         handle = self._handle_manager.handle_for_list('subscribe')
-        self._channel_manager.channel_for_list('subscribe', handle)
+        self._channel_manager.channel_for_list(handle)
         handle = self._handle_manager.handle_for_list('publish')
-        self._channel_manager.channel_for_list('publish', handle)
+        self._channel_manager.channel_for_list(handle)
 

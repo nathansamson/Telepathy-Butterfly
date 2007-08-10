@@ -19,6 +19,16 @@
 import pymsn
 import pymsn.event
 import telepathy
+import gobject
+def do_later(function, *args, **kwargs):
+    timeout=10000 
+    #we reckon it takes about 10 seconds to synchronise the contact list
+    def do(*args, **kwargs):
+        return_value = function(*args, **kwargs)
+        if return_value is not None:
+            print out
+        return False
+    gobject.timeout_add(timeout, do, *args, **kwargs)
 
 __all__ = ['ButterflyClientEventsHandler']
 
@@ -35,9 +45,11 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
         elif state == pymsn.event.ClientState.SYNCHRONIZED:
             self._telepathy_connection._create_contact_list()
         elif state == pymsn.event.ClientState.OPEN:
-            self._telepathy_connection.StatusChanged(
-                    telepathy.CONNECTION_STATUS_CONNECTED,
-                    telepathy.CONNECTION_STATUS_REASON_REQUESTED)
+            #FIXME: Find a better way to decide whether we're connected
+            #       and have a completely updated contact list.
+            do_later(self._telepathy_connection.StatusChanged,
+                        telepathy.CONNECTION_STATUS_CONNECTED,
+                        telepathy.CONNECTION_STATUS_REASON_REQUESTED)
             self._client.profile.presence = \
                     self._telepathy_connection._initial_presence
             self._client.profile.personal_message = \

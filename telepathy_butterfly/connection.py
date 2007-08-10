@@ -177,7 +177,8 @@ class ButterflyConnection(telepathy.server.Connection,
             
             try:
                 telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
-            except TypeError: # handle old versions of tp-python
+            except TypeError, e: # handle old versions of tp-python
+                print e
                 telepathy.server.Connection.__init__(self, 'msn', account)
 
             ButterflyConnectionPresence.__init__(self)
@@ -198,8 +199,9 @@ class ButterflyConnection(telepathy.server.Connection,
             self_handle = self._handle_manager.handle_for_contact(self._account[0])
             self.set_self_handle(self_handle)
             logger.info("Connection to the account %s created" % account)
-        except Exception, e:
-            print e
+        except Exception, e:# Some versions of tp don't like exceptions in init
+            print e         # so we need to print it ourselves
+            raise e         # and throw it anyway :D
 
     
     def Connect(self):

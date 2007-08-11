@@ -102,8 +102,9 @@ class ButterflyTextChannel(
             self._conversation = pymsn.Conversation(connection._pymsn_client,
                     contacts)
         else:
-            self._conversation = conversation
+            self._conversation = conversation # reference in the 'right direction'
             gobject.idle_add(self.__add_initial_participants)
+        # FIXME: This creates a circular reference. How do we break it?
         pymsn.event.ConversationEventInterface.__init__(self,
                 self._conversation)
 
@@ -163,6 +164,7 @@ class ButterflyTextChannel(
         for handle, channel in self._conn._channel_manager.\
                 _text_channels.items():
             if channel is self:
+                # This only deletes a weak reference. Why are we bothering?
                 del self._conn._channel_manager._text_channels[handle]
 
         self._conversation.leave()

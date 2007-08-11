@@ -16,15 +16,28 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import weakref
+
 import pymsn
 import pymsn.event
 import telepathy
+import gobject
+
+def do_later(function, *args, **kwargs):
+    timeout = 2000 
+    #we reckon it takes about 10 seconds to synchronise the contact list
+    def do(*args, **kwargs):
+        return_value = function(*args, **kwargs)
+        if return_value is not None:
+            print out
+        return False
+    gobject.timeout_add(timeout, do, *args, **kwargs)
 
 __all__ = ['ButterflyClientEventsHandler']
 
 class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
     def __init__(self, client, telepathy_connection):
-        self._telepathy_connection = telepathy_connection
+        self._telepathy_connection = weakref.proxy(telepathy_connection)
         pymsn.event.ClientEventInterface.__init__(self, client)
 
     def on_client_state_changed(self, state):
@@ -35,9 +48,11 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
         elif state == pymsn.event.ClientState.SYNCHRONIZED:
             self._telepathy_connection._create_contact_list()
         elif state == pymsn.event.ClientState.OPEN:
-            self._telepathy_connection.StatusChanged(
-                    telepathy.CONNECTION_STATUS_CONNECTED,
-                    telepathy.CONNECTION_STATUS_REASON_REQUESTED)
+            #FIXME: Find a better way to decide whether we're connected
+            #       and have a completely updated contact list.
+            do_later(self._telepathy_connection.StatusChanged,
+                        telepathy.CONNECTION_STATUS_CONNECTED,
+                        telepathy.CONNECTION_STATUS_REASON_REQUESTED)
             self._client.profile.presence = \
                     self._telepathy_connection._initial_presence
             self._client.profile.personal_message = \
@@ -46,7 +61,7 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
             self._telepathy_connection.StatusChanged(
                     telepathy.CONNECTION_STATUS_DISCONNECTED,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
-            self._telepathy_connection._manager.disconnected(self._telepathy_connection)
+            self._telepathy_connection._advertise_disconnected()
 
     def on_client_error(self, type, error):
         if type == pymsn.event.ClientErrorType.NETWORK:

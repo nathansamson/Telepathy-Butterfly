@@ -84,14 +84,14 @@ class HandleManager(object):
                     (handle.get_id(), handle.get_name()))
         return handle
     
-    def handle_for_list(self, lst):
-        if lst in self._list_handles:
-            handle = self._list_handles[lst]
+    def handle_for_list(self, list_name):
+        if list_name in self._list_handles:
+            handle = self._list_handles[list_name]
         else:
             handle = telepathy.server.Handle(self._connection.get_handle_id(),
                     telepathy.CONNECTION_HANDLE_TYPE_LIST,
-                    lst)
-            self._list_handles[lst] = handle
+                    list_name)
+            self._list_handles[list_name] = handle
             self._connection._handles[handle.get_type(), handle.get_id()] = \
                     handle
             logger.debug("New list handle %u %s" % \
@@ -100,26 +100,26 @@ class HandleManager(object):
 
 class ChannelManager(object):
     def __init__(self, connection):
-        self._connection = connection
+        self._connection = weakref.proxy(connection)
         self._list_channels = weakref.WeakValueDictionary()
         self._text_channels = weakref.WeakValueDictionary()
 
-    def channel_for_list(self, list_type, handle, suppress_handler=False):
+    def channel_for_list(self, handle, suppress_handler=False):
         if handle in self._list_channels:
             channel = self._list_channels[handle]
         else:
-            if list_type == 'subscribe':
+            if handle.get_name() == 'subscribe':
                 channel_class = ButterflySubscribeListChannel
-            elif list_type == 'publish':
+            elif handle.get_name() == 'publish':
                 channel_class = ButterflyPublishListChannel
-            #elif list_type == 'hide':
+            #elif handle.get_name() == 'hide':
             #    channel_class = ButterflyHideListChannel
-            #elif list_type == 'allow':
+            #elif handle.get_name() == 'allow':
             #    channel_class = ButterflyAllowListChannel
-            #elif list_type == 'deny':
+            #elif handle.get_name() == 'deny':
             #    channel_class = ButterflyDenyListChannel
             else:
-                raise AssertionError("Unknown list type : " + list_type)
+                raise AssertionError("Unknown list type : " + handle.get_name())
             channel = channel_class(self._connection, handle)
             self._list_channels[handle] = channel
             self._connection.add_channel(channel, handle,
@@ -175,45 +175,45 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def __init__(self, manager, parameters):
         self.check_parameters(parameters)
-        try: 
-            account = unicode(parameters['account'])
-            server = (parameters['server'], parameters['port'])
-
-            proxies = {}
-
-            proxy = build_proxy_infos(parameters, 'http')
-            if proxy is not None:
-                proxies['http'] = proxy
-
-            proxy = build_proxy_infos(parameters, 'https')
-            if proxy is not None:
-                proxies['https'] = proxy
-            
-            try:
-                telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
-            except TypeError: # handle old versions of tp-python
-                telepathy.server.Connection.__init__(self, 'msn', account)
-
-            ButterflyConnectionPresence.__init__(self)
-            ButterflyConnectionAliasing.__init__(self)
-            self._handle_manager = HandleManager(self)
-            self._channel_manager = ChannelManager(self)
-            
-            self._account = (parameters['account'], parameters['password'])
-            self._initial_presence = pymsn.Presence.ONLINE
-            self._initial_personal_message = ""
-
-            self._manager = manager
-            self._pymsn_client = pymsn.Client(server, proxies)
-            event.ButterflyClientEventsHandler(self._pymsn_client, self)
-            event.ButterflyContactEventsHandler(self._pymsn_client, self)
-            event.ButterflyInviteEventsHandler(self._pymsn_client, self)
-
-            self_handle = self._handle_manager.handle_for_self(self._account[0])
-            self.set_self_handle(self_handle)
-            logger.info("Connection to the account %s created" % account)
-        except Exception, e:
+        
+        account = unicode(parameters['account'])
+        server = (parameters['server'], parameters['port'])
+        
+        proxies = {}
+        
+        proxy = build_proxy_infos(parameters, 'http')
+        if proxy is not None:
+            proxies['http'] = proxy
+        
+        proxy = build_proxy_infos(parameters, 'https')
+        if proxy is not None:
+            proxies['https'] = proxy
+        
+        try:
+            telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
+        except TypeError, e: # handle old versions of tp-python
             print e
+            telepathy.server.Connection.__init__(self, 'msn', account)
+        
+        ButterflyConnectionPresence.__init__(self)
+        ButterflyConnectionAliasing.__init__(self)
+        self._handle_manager = HandleManager(self)
+        self._channel_manager = ChannelManager(self)
+        
+        self._account = (parameters['account'], parameters['password'])
+        self._initial_presence = pymsn.Presence.ONLINE
+        self._initial_personal_message = ""
+        
+        self._manager = weakref.proxy(manager)
+        self._pymsn_client = pymsn.Client(server, proxies)
+        event.ButterflyClientEventsHandler(self._pymsn_client, self)
+        event.ButterflyContactEventsHandler(self._pymsn_client, self)
+        event.ButterflyInviteEventsHandler(self._pymsn_client, self)
+        
+        self_handle = self._handle_manager.handle_for_contact(self._account[0])
+        self.set_self_handle(self_handle)
+        logger.info("Connection to the account %s created" % account)
+
 
     
     def Connect(self):
@@ -276,9 +276,12 @@ class ButterflyConnection(telepathy.server.Connection,
         self._pymsn_client.logout()
         return False
 
+    def _advertise_disconnected(self):
+        self._manager.disconnected(self)
+
     def _create_contact_list(self):
         handle = self._handle_manager.handle_for_list('subscribe')
-        self._channel_manager.channel_for_list('subscribe', handle)
+        self._channel_manager.channel_for_list(handle)
         handle = self._handle_manager.handle_for_list('publish')
-        self._channel_manager.channel_for_list('publish', handle)
+        self._channel_manager.channel_for_list(handle)
 

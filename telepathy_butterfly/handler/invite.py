@@ -16,10 +16,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import weakref
+import logging
+
 import pymsn
 import pymsn.event
 import telepathy
-import logging
 
 __all__ = ['ButterflyInviteEventsHandler']
 
@@ -27,7 +29,7 @@ logger = logging.getLogger('telepathy-butterfly:event:invite')
 
 class ButterflyInviteEventsHandler(pymsn.event.InviteEventInterface):
     def __init__(self, client, telepathy_connection):
-        self._telepathy_connection = telepathy_connection
+        self._telepathy_connection = weakref.proxy(telepathy_connection)
         pymsn.event.InviteEventInterface.__init__(self, client)
 
     def on_invite_conversation(self, conversation):

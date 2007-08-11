@@ -20,6 +20,8 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
+import weakref
+
 import pymsn
 import pymsn.event
 import telepathy
@@ -28,7 +30,7 @@ __all__ = ['ButterflyContactEventsHandler']
 
 class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
     def __init__(self, client, telepathy_connection):
-        self._telepathy_connection = telepathy_connection
+        self._telepathy_connection = weakref.proxy(telepathy_connection)
         pymsn.event.ContactEventInterface.__init__(self, client)
 
     def on_contact_presence_changed(self, contact):

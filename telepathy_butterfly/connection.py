@@ -48,13 +48,27 @@ def build_proxy_infos(self, parameters, proxy_type='http'):
 
 class HandleManager(object):
     def __init__(self, connection):
-        self._connection = connection
+        self._connection = weakref.proxy(connection)
+        self._self_handle = None
         self._contacts_handles = weakref.WeakValueDictionary()
         self._list_handles = weakref.WeakValueDictionary()
 
     def handle_for_handle_id(self, handle_type, handle_id):
         self._connection.check_handle(handle_type, handle_id)
         return self._connection._handles[handle_type, handle_id]
+
+    def handle_for_self(self, account):
+        if self._self_handle is None:
+            handle = telepathy.server.Handle(
+                    self._connection.get_handle_id(),
+                    telepathy.CONNECTION_HANDLE_TYPE_CONTACT,
+                    account)
+            self._connection._handles[handle.get_type(), handle.get_id()] = \
+                    handle
+            logger.debug("New self handle %u %s" % \
+                    (handle.get_id(), handle.get_name()))
+            self._self_handle = weakref.proxy(handle)
+        return self._self_handle
 
     def handle_for_contact(self, account):
         if account in self._contacts_handles:
@@ -195,7 +209,7 @@ class ButterflyConnection(telepathy.server.Connection,
             event.ButterflyContactEventsHandler(self._pymsn_client, self)
             event.ButterflyInviteEventsHandler(self._pymsn_client, self)
 
-            self_handle = self._handle_manager.handle_for_contact(self._account[0])
+            self_handle = self._handle_manager.handle_for_self(self._account[0])
             self.set_self_handle(self_handle)
             logger.info("Connection to the account %s created" % account)
         except Exception, e:

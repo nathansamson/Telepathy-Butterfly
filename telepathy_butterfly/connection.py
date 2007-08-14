@@ -101,8 +101,14 @@ class HandleManager(object):
 class ChannelManager(object):
     def __init__(self, connection):
         self._connection = weakref.proxy(connection)
-        self._list_channels = weakref.WeakValueDictionary()
-        self._text_channels = weakref.WeakValueDictionary()
+        self._list_channels = {}
+        self._text_channels = {}
+    
+    def close(self):
+        for channel in self._list_channels.values():
+            channel.remove_from_connection()# so that dbus lets it die.
+        for channel in self._text_channels.values():
+            channel.Close()
 
     def channel_for_list(self, handle, suppress_handler=False):
         if handle in self._list_channels:
@@ -222,6 +228,7 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def Disconnect(self):
         logger.info("Disconnecting")
+        self._channel_manager.close()
         gobject.idle_add(self._disconnect)
 
     def RequestHandles(self, handle_type, names, sender):

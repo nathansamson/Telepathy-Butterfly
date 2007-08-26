@@ -16,14 +16,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import time
+import logging
+from gettext import gettext as _
+import weakref
 
 import telepathy
 import pymsn
 import pymsn.event
 import gobject
-import time
-import logging
-from gettext import gettext as _
 
 __all__ = ['ButterflySubscribeListChannel', 'ButterflyPublishListChannel',
         'ButterflyTextChannel']
@@ -85,11 +86,26 @@ class ButterflyPublishListChannel(ButterflyListChannel):
             self.MembersChanged('', added, (), local_pending, (), 0,
                                 telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
+class ConversationEventForwarder(pymsn.event.ConversationEventInterface):
+    """Used for forwarding events to ButterflyTextChannel so that it doesn't
+    have to subclass ConversationEventInterface, which would create circular
+    references"""
+    def __init__(self, conversation, text_channel):
+        self._text_channel = weakref.proxy(text_channel)
+        pymsn.event.ConversationEventInterface.__init__(self, conversation)
+        
+    def on_conversation_user_joined(self, contact):
+        self._text_channel.on_conversation_user_joined(contact)
+    def on_conversation_user_left(self, contact):
+        self._text_channel.on_conversation_user_left(contact)
+    def on_conversation_message_received(self, *args):
+        self._text_channel.on_conversation_message_received(*args)    
+    def on_conversation_nudge_received(self, sender):
+        self._text_channel.on_conversation_nudge_received(sender)
 
 class ButterflyTextChannel(
         telepathy.server.ChannelTypeText,
-        telepathy.server.ChannelInterfaceGroup,
-        pymsn.event.ConversationEventInterface):
+        telepathy.server.ChannelInterfaceGroup):
     
     logger = logging.getLogger('telepathy-butterfly:text-channel')
 
@@ -102,11 +118,11 @@ class ButterflyTextChannel(
             self._conversation = pymsn.Conversation(connection._pymsn_client,
                     contacts)
         else:
-            self._conversation = conversation # reference in the 'right direction'
+            self._conversation = conversation 
             gobject.idle_add(self.__add_initial_participants)
-        # FIXME: This creates a circular reference. How do we break it?
-        pymsn.event.ConversationEventInterface.__init__(self,
-                self._conversation)
+        # Forwarder is kept alive by conversation, and holds a weakref to self.
+        # Ugly, I know.
+        ConversationEventForwarder(self._conversation, self)
 
     def __add_initial_participants(self):
         handles = []
@@ -160,12 +176,11 @@ class ButterflyTextChannel(
         self.Sent(int(time.time()), message_type, text) 
 
     def Close(self):
-        # FIXME: figure out why we leak a reference
         for handle, channel in self._conn._channel_manager.\
                 _text_channels.items():
             if channel is self:
-                # This only deletes a weak reference. Why are we bothering?
                 del self._conn._channel_manager._text_channels[handle]
-
+        #FIXME: find out why this isn't working
         self._conversation.leave()
         telepathy.server.ChannelTypeText.Close(self)
+        self.remove_from_connection()

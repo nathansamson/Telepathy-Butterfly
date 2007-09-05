@@ -41,8 +41,8 @@ class ButterflyListChannel(
 
     def __populate(self, connection):
         for contact in connection._pymsn_client.address_book.contacts:
-            account = contact.account
-            handle = connection._handle_manager.handle_for_contact(account)
+            full_account = "/".join([contact.account, str(contact.network_id)])
+            handle = connection._handle_manager.handle_for_contact(full_account)
             self.contact_added(handle, contact)
         return False
 
@@ -127,29 +127,32 @@ class ButterflyTextChannel(
     def __add_initial_participants(self):
         handles = []
         for participant in self._conversation.participants:
-            handle = self._conn._handle_manager.\
-                    handle_for_contact(participant.account)
+            full_account = "/".join([participant.account, str(participant.network_id)])
+            handle = self._conn._handle_manager.handle_for_contact(full_account)
             handles.append(handle)
         self.MembersChanged('', handles, [], [], [],
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
         return False
 
     def on_conversation_user_joined(self, contact):
-        self.logger.debug("user joined : %s" % contact.account)
-        handle = self._conn._handle_manager.handle_for_contact(contact.account)
+        full_account = "/".join([contact.account, str(contact.network_id)])
+        self.logger.debug("user joined : %s" % full_account)
+        handle = self._conn._handle_manager.handle_for_contact(full_account)
         self.MembersChanged('', [handle], [], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
     def on_conversation_user_left(self, contact):
-        self.logger.debug("user left : %s" % contact.account)
-        handle = self._conn._handle_manager.handle_for_contact(contact.account)
+        full_account = "/".join([contact.account, str(contact.network_id)])
+        self.logger.debug("user left : %s" % full_account)
+        handle = self._conn._handle_manager.handle_for_contact(full_account)
         self.MembersChanged('', [], [handle], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
     def on_conversation_message_received(self, sender, message, formatting):
         id = self._recv_id
         timestamp = int(time.time())
-        sender = self._conn._handle_manager.handle_for_contact(sender.account)
+        full_account = "/".join([sender.account, str(sender.network_id)])
+        sender = self._conn._handle_manager.handle_for_contact(full_account)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
 
         self.Received(id, timestamp, sender, type, 0, message)
@@ -158,7 +161,8 @@ class ButterflyTextChannel(
     def on_conversation_nudge_received(self, sender):
         id = self._recv_id
         timestamp = int(time.time())
-        sender = self._conn._handle_manager.handle_for_contact(sender.account)
+        full_account = "/".join([sender.account, str(sender.network_id)])
+        sender = self._conn._handle_manager.handle_for_contact(full_account)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
         text = unicode(_("sends you a nudge"), "utf-8")
 

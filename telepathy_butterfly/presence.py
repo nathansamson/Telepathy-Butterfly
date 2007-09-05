@@ -103,11 +103,12 @@ class ButterflyConnectionPresence(
         presences = {}
         for handle_id in contacts:
             handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.CONNECTION_HANDLE_TYPE_CONTACT, handle_id)
-            account = handle.get_name()
+                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
+            account, network = handle.get_name().split("/")
 
             contact = self._pymsn_client.address_book.contacts.\
-                    search_by_account(account)[0]
+                    search_by_account(account).\
+                    search_by_network_id(int(network))[0]
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
             personal_message = unicode(contact.personal_message, "utf-8")
 
@@ -142,7 +143,8 @@ class ButterflyConnectionPresence(
             arguments = {}
             if personal_message:
                 arguments = {'message' : personal_message}
-            
-            handle = self._handle_manager.handle_for_contact(contact.account)
+                
+            full_account = "/".join([contact.account, str(contact.network_id)])
+            handle = self._handle_manager.handle_for_contact(full_account)
             self.PresenceUpdate({handle: (0, {presence:arguments})}) 
 

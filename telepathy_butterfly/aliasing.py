@@ -32,7 +32,7 @@ class ButterflyConnectionAliasing(
         result = []
         for handle_id in contacts:
             handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.CONNECTION_HANDLE_TYPE_CONTACT, handle_id)
+                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle == self.GetSelfHandle():
                 display_name = self._pymsn_client.profile.display_name
                 if display_name == "":
@@ -40,22 +40,25 @@ class ButterflyConnectionAliasing(
                     display_name = display_name.replace("_", " ")
                 result.append(unicode(display_name, 'utf-8'))
             else:
+                account, network = handle.get_name().split("/")
                 contact = self._pymsn_client.address_book.contacts.\
-                        search_by_account(handle.get_name())[0]
+                        search_by_account(account).\
+                        search_by_network_id(int(network))[0]
                 result.append(unicode(contact.display_name, 'utf-8'))
         return result
             
     def SetAliases(self, aliases):
         for handle_id, alias in aliases.iteritems():
             handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.CONNECTION_HANDLE_TYPE_CONTACT, handle_id)
+                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle != self.GetSelfHandle():
                 raise telepathy.PermissionDenied("MSN doesn't allow setting"\
                         "aliases for contacts")
             self._pymsn_client.profile.display_name = alias.encode('utf-8')
 
     def contact_alias_changed(self, contact):
-        handle = self._handle_manager.handle_for_contact(contact.account)
+        full_account = "/".join([contact.account, str(contact.network_id)])
+        handle = self._handle_manager.handle_for_contact(full_account)
         alias = unicode(contact.display_name, 'utf-8')
         self.AliasesChanged(((handle, alias), ))
 

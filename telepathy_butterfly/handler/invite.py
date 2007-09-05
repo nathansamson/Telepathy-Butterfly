@@ -39,7 +39,9 @@ class ButterflyInviteEventsHandler(pymsn.event.InviteEventInterface):
         for p in participants:
             participant = p
             break
+        full_account = "/".join([participant.account, 
+                                 str(participant.network_id)])
         handle = self._telepathy_connection._handle_manager.\
-                handle_for_contact(participant.account)
+                handle_for_contact(full_account)
         channel = self._telepathy_connection._channel_manager.\
                 channel_for_text(handle, conversation)

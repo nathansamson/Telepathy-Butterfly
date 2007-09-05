@@ -61,7 +61,7 @@ class HandleManager(object):
         if self._self_handle is None:
             handle = telepathy.server.Handle(
                     self._connection.get_handle_id(),
-                    telepathy.CONNECTION_HANDLE_TYPE_CONTACT,
+                    telepathy.HANDLE_TYPE_CONTACT,
                     account)
             self._connection._handles[handle.get_type(), handle.get_id()] = \
                     handle
@@ -75,7 +75,7 @@ class HandleManager(object):
             handle = self._contacts_handles[account]
         else:
             handle = telepathy.server.Handle(self._connection.get_handle_id(),
-                    telepathy.CONNECTION_HANDLE_TYPE_CONTACT,
+                    telepathy.HANDLE_TYPE_CONTACT,
                     account)
             self._contacts_handles[account] = handle
             self._connection._handles[handle.get_type(), handle.get_id()] = \
@@ -89,7 +89,7 @@ class HandleManager(object):
             handle = self._list_handles[list_name]
         else:
             handle = telepathy.server.Handle(self._connection.get_handle_id(),
-                    telepathy.CONNECTION_HANDLE_TYPE_LIST,
+                    telepathy.HANDLE_TYPE_LIST,
                     list_name)
             self._list_handles[list_name] = handle
             self._connection._handles[handle.get_type(), handle.get_id()] = \
@@ -138,9 +138,11 @@ class ChannelManager(object):
             channel = self._text_channels[handle]
         else:
             logger.debug("Requesting new text channel")
-            account = handle.get_name()
+            account, network = handle.get_name().split("/")
             contact = self._connection._pymsn_client.address_book.contacts.\
-                    search_by_account(account)[0]
+                                        search_by_account(account).\
+                                        search_by_network_id(int(network))[0]
+
             if contact.presence == pymsn.Presence.OFFLINE:
                     raise telepathy.NotAvailable('Contact not available')
             if conversation is None:
@@ -216,7 +218,8 @@ class ButterflyConnection(telepathy.server.Connection,
         event.ButterflyContactEventsHandler(self._pymsn_client, self)
         event.ButterflyInviteEventsHandler(self._pymsn_client, self)
         
-        self_handle = self._handle_manager.handle_for_contact(self._account[0])
+        full_account = "/".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
+        self_handle = self._handle_manager.handle_for_contact(full_account)
         self.set_self_handle(self_handle)
         logger.info("Connection to the account %s created" % account)
 
@@ -235,9 +238,9 @@ class ButterflyConnection(telepathy.server.Connection,
         self.check_connected()
         self.check_handle_type(handle_type)
         handles = []
-        if handle_type == telepathy.CONNECTION_HANDLE_TYPE_CONTACT:
+        if handle_type == telepathy.HANDLE_TYPE_CONTACT:
             get_handle = self._handle_manager.handle_for_contact
-        elif handle_type == telepathy.CONNECTION_HANDLE_TYPE_LIST:
+        elif handle_type == telepathy.HANDLE_TYPE_LIST:
             get_handle = self._handle_manager.handle_for_list
         else:
             raise telepathy.NotAvailable('Handle type unsupported %d' % 
@@ -262,7 +265,7 @@ class ButterflyConnection(telepathy.server.Connection,
                     channel_for_list(handle, suppress_handler)
         elif type == telepathy.CHANNEL_TYPE_TEXT:
             # FIXME: Also accept Group Handles
-            if handle_type != telepathy.CONNECTION_HANDLE_TYPE_CONTACT:
+            if handle_type != telepathy.HANDLE_TYPE_CONTACT:
                 raise telepathy.NotImplemented("Only Contacts are allowed currently")
 
             handle = self._handle_manager.\

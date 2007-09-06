@@ -1,6 +1,7 @@
 # telepathy-butterfly - an MSN connection manager for Telepathy
 #
 # Copyright (C) 2006-2007 Ali Sabil <ali.sabil@gmail.com>
+# Copyright (C) 2007 Johann Prieur <johann.prieur@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,8 +27,10 @@ import pymsn
 import pymsn.event
 import gobject
 
-__all__ = ['ButterflySubscribeListChannel', 'ButterflyPublishListChannel',
-        'ButterflyTextChannel']
+import telepathy_butterfly.handler as event
+
+__all__ = ['ButterflyGroupChannel', 'ButterflySubscribeListChannel',
+           'ButterflyPublishListChannel', 'ButterflyTextChannel']
 
 class ButterflyListChannel(
         telepathy.server.ChannelTypeContactList,
@@ -37,6 +40,7 @@ class ButterflyListChannel(
         telepathy.server.ChannelTypeContactList.__init__(self,
                 connection, handle)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
+
         gobject.idle_add(self.__populate, connection)
 
     def __populate(self, connection):
@@ -49,7 +53,69 @@ class ButterflyListChannel(
     def contact_added(self, handle, contact):
         pass
 
+class ButterflyGroupChannel(ButterflyListChannel):
 
+    def __init__(self, connection, handle):
+        self.__pending_add = self.__pending_remove = []
+
+        ButterflyListChannel.__init__(self, connection, handle)
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD | \
+                               telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
+
+    def _release_pendings(self):
+        self.AddMembers(self.__pending_add, None)
+        self.__pending_add = []
+        self.RemoveMembers(self.__pending_remove, None)
+        self.__pending_remove = []
+
+    def contact_added(self, handle, contact):
+        added = set()
+        for group in contact.groups:
+            if group.name == self._handle.get_name():
+                added.add(handle)
+                break
+
+        if added:
+            self.MembersChanged('', added, (), (), (), 0,
+                                telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+    def AddMembers(self, contacts, message):
+        ab = self._conn._pymsn_client.address_book
+
+        if ab.get_group(self._handle.get_name()) is None:
+            self.__pending_add.extend(contacts)
+            return
+
+        else:
+            for h in contacts:
+                handle = self._conn._handle_manager.\
+                    handle_for_handle_id(telepathy.HANDLE_TYPE_CONTACT, h)
+                account, network = handle.get_name().split("/")
+                contact = ab.contacts.search_by_account(account).\
+                    search_by_network_id(int(network))[0]
+                group = ab.get_group(self._handle.get_name())
+                ab.add_contact_to_group(group, contact)
+
+    def RemoveMembers(self, contacts, message):
+        ab = self._conn._pymsn_client.address_book
+        
+        if ab.get_group(self._handle.get_name()) is None:
+            self.__pending_remove.extend(contacts)
+            return
+        else:
+            for h in contacts:
+                handle = self._conn._handle_manager.\
+                    handle_for_handle_id(telepathy.HANDLE_TYPE_CONTACT, h)
+                account, network = handle.get_name().split("/")
+                contact = ab.contacts.search_by_account(account).\
+                    search_by_network_id(int(network))[0]
+                group = ab.get_group(self._handle.get_name())
+                ab.delete_contact_from_group(group, contact)
+
+    def Close(self):
+        ab = self._conn._pymsn_client.address_book
+        group = ab.get_group(self._handle.get_name())
+        ab.delete_group(group)
 
 class ButterflySubscribeListChannel(ButterflyListChannel):
 

@@ -1,6 +1,7 @@
 # telepathy-butterfly - an MSN connection manager for Telepathy
 #
 # Copyright (C) 2006-2007 Ali Sabil <ali.sabil@gmail.com>
+# Copyright (C) 2007 Johann Prieur <johann.prieur@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,6 +53,7 @@ class HandleManager(object):
         self._self_handle = None
         self._contacts_handles = weakref.WeakValueDictionary()
         self._list_handles = weakref.WeakValueDictionary()
+        self._group_handles = weakref.WeakValueDictionary()
 
     def handle_for_handle_id(self, handle_type, handle_id):
         self._connection.check_handle(handle_type, handle_id)
@@ -98,6 +100,26 @@ class HandleManager(object):
                     (handle.get_id(), handle.get_name()))
         return handle
 
+    def handle_for_group(self, group_name):
+        if group_name in self._group_handles:
+            handle = self._group_handles[group_name]
+        else:
+            group = self._connection._pymsn_client.address_book.get_group(group_name)
+            if group is None:
+                self._connection._pymsn_client.address_book.\
+                    add_group(group_name)
+            
+            handle = telepathy.server.Handle(self._connection.get_handle_id(),
+                    telepathy.HANDLE_TYPE_GROUP,
+                    group_name)
+            self._group_handles[group_name] = handle
+            self._connection._handles[handle.get_type(), handle.get_id()] = \
+                    handle
+            logger.debug("New group handle %u %s" % \
+                    (handle.get_id(), handle.get_name()))
+        return handle
+
+
 class ChannelManager(object):
     def __init__(self, connection):
         self._connection = weakref.proxy(connection)
@@ -114,7 +136,9 @@ class ChannelManager(object):
         if handle in self._list_channels:
             channel = self._list_channels[handle]
         else:
-            if handle.get_name() == 'subscribe':
+            if handle.get_type() == telepathy.HANDLE_TYPE_GROUP:
+                channel_class = ButterflyGroupChannel
+            elif handle.get_name() == 'subscribe':
                 channel_class = ButterflySubscribeListChannel
             elif handle.get_name() == 'publish':
                 channel_class = ButterflyPublishListChannel
@@ -217,6 +241,7 @@ class ButterflyConnection(telepathy.server.Connection,
         event.ButterflyClientEventsHandler(self._pymsn_client, self)
         event.ButterflyContactEventsHandler(self._pymsn_client, self)
         event.ButterflyInviteEventsHandler(self._pymsn_client, self)
+        event.ButterflyAddressBookEventsHandler(self._pymsn_client, self)
         
         full_account = "/".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
         self_handle = self._handle_manager.handle_for_contact(full_account)
@@ -242,6 +267,8 @@ class ButterflyConnection(telepathy.server.Connection,
             get_handle = self._handle_manager.handle_for_contact
         elif handle_type == telepathy.HANDLE_TYPE_LIST:
             get_handle = self._handle_manager.handle_for_list
+        elif handle_type == telepathy.HANDLE_TYPE_GROUP:
+            get_handle = self._handle_manager.handle_for_group
         else:
             raise telepathy.NotAvailable('Handle type unsupported %d' % 
                     handle_type)
@@ -277,7 +304,6 @@ class ButterflyConnection(telepathy.server.Connection,
 
         return channel._object_path
 
-    #
     def _connect(self):
         self._pymsn_client.login(*self._account)
         return False
@@ -294,4 +320,7 @@ class ButterflyConnection(telepathy.server.Connection,
         self._channel_manager.channel_for_list(handle)
         handle = self._handle_manager.handle_for_list('publish')
         self._channel_manager.channel_for_list(handle)
-
+        
+        for group in self._pymsn_client.address_book.groups:
+            handle = self._handle_manager.handle_for_group(group.name)
+            self._channel_manager.channel_for_list(handle)

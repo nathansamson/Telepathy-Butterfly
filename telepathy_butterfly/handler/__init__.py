@@ -19,3 +19,4 @@
 from client import *
 from contact import *
 from invite import *
+from address_book import *

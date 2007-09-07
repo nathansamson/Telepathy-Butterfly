@@ -40,10 +40,7 @@ class ButterflyConnectionAliasing(
                     display_name = display_name.replace("_", " ")
                 result.append(unicode(display_name, 'utf-8'))
             else:
-                account, network = handle.get_name().split("/")
-                contact = self._pymsn_client.address_book.contacts.\
-                        search_by_account(account).\
-                        search_by_network_id(int(network))[0]
+                contact = self._contact_for_handle(handle)
                 result.append(unicode(contact.display_name, 'utf-8'))
         return result
             
@@ -57,8 +54,7 @@ class ButterflyConnectionAliasing(
             self._pymsn_client.profile.display_name = alias.encode('utf-8')
 
     def contact_alias_changed(self, contact):
-        full_account = "/".join([contact.account, str(contact.network_id)])
-        handle = self._handle_manager.handle_for_contact(full_account)
+        handle = self._handle_for_contact(contact)
         alias = unicode(contact.display_name, 'utf-8')
         self.AliasesChanged(((handle, alias), ))
 

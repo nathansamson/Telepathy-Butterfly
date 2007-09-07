@@ -27,10 +27,10 @@ import pymsn
 import pymsn.event
 import gobject
 
-import telepathy_butterfly.handler as event
-
 __all__ = ['ButterflyGroupChannel', 'ButterflySubscribeListChannel',
-           'ButterflyPublishListChannel', 'ButterflyTextChannel']
+           'ButterflyPublishListChannel', 'ButterflyHideListChannel',
+           'ButterflyAllowListChannel','ButterflyDenyListChannel',
+           'ButterflyTextChannel']
 
 class ButterflyListChannel(
         telepathy.server.ChannelTypeContactList,
@@ -40,13 +40,11 @@ class ButterflyListChannel(
         telepathy.server.ChannelTypeContactList.__init__(self,
                 connection, handle)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
-
         gobject.idle_add(self.__populate, connection)
 
     def __populate(self, connection):
         for contact in connection._pymsn_client.address_book.contacts:
-            full_account = "/".join([contact.account, str(contact.network_id)])
-            handle = connection._handle_manager.handle_for_contact(full_account)
+            handle = connection._handle_for_contact(contact)
             self.contact_added(handle, contact)
         return False
 
@@ -57,7 +55,6 @@ class ButterflyGroupChannel(ButterflyListChannel):
 
     def __init__(self, connection, handle):
         self.__pending_add = self.__pending_remove = []
-
         ButterflyListChannel.__init__(self, connection, handle)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD | \
                                telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
@@ -82,7 +79,7 @@ class ButterflyGroupChannel(ButterflyListChannel):
     def AddMembers(self, contacts, message):
         ab = self._conn._pymsn_client.address_book
 
-        if ab.get_group(self._handle.get_name()) is None:
+        if self._conn._group_for_handle(self._handle) is None:
             self.__pending_add.extend(contacts)
             return
 
@@ -90,31 +87,28 @@ class ButterflyGroupChannel(ButterflyListChannel):
             for h in contacts:
                 handle = self._conn._handle_manager.\
                     handle_for_handle_id(telepathy.HANDLE_TYPE_CONTACT, h)
-                account, network = handle.get_name().split("/")
-                contact = ab.contacts.search_by_account(account).\
-                    search_by_network_id(int(network))[0]
-                group = ab.get_group(self._handle.get_name())
+                contact = self._conn._contact_for_handle(handle)
+                group = self._conn._group_for_handle(self._handle)
                 ab.add_contact_to_group(group, contact)
 
     def RemoveMembers(self, contacts, message):
         ab = self._conn._pymsn_client.address_book
         
-        if ab.get_group(self._handle.get_name()) is None:
+        if self._conn._group_for_handle(self._handle) is None:
             self.__pending_remove.extend(contacts)
             return
         else:
             for h in contacts:
                 handle = self._conn._handle_manager.\
                     handle_for_handle_id(telepathy.HANDLE_TYPE_CONTACT, h)
-                account, network = handle.get_name().split("/")
-                contact = ab.contacts.search_by_account(account).\
-                    search_by_network_id(int(network))[0]
-                group = ab.get_group(self._handle.get_name())
+                contact = self._conn._contact_for_handle(handle)
+                group = self._conn._group_for_handle(self._handle)
                 ab.delete_contact_from_group(group, contact)
 
     def Close(self):
         ab = self._conn._pymsn_client.address_book
-        group = ab.get_group(self._handle.get_name())
+
+        group = self._conn._group_for_handle(self._handle)
         ab.delete_group(group)
 
 class ButterflySubscribeListChannel(ButterflyListChannel):
@@ -151,6 +145,58 @@ class ButterflyPublishListChannel(ButterflyListChannel):
         if added:
             self.MembersChanged('', added, (), local_pending, (), 0,
                                 telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+class ButterflyHideListChannel(ButterflyListChannel):
+
+    def __init__(self, connection, handle):
+        ButterflyListChannel.__init__(self, connection, handle)
+        self.GroupFlagsChanged(0, 0) # no contact Management for now
+
+    def contact_added(self, handle, contact):
+        added = set()
+        local_pending = set()
+
+        if contact.is_member(pymsn.Membership.BLOCK):
+            added.add(handle)
+
+        if added:
+            self.MembersChanged('', added, (), (), (), 0,
+                                telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+class ButterflyAllowListChannel(ButterflyListChannel):
+
+    def __init__(self, connection, handle):
+        ButterflyListChannel.__init__(self, connection, handle)
+        self.GroupFlagsChanged(0, 0) # no contact Management for now
+
+    def contact_added(self, handle, contact):
+        added = set()
+        local_pending = set()
+
+        if contact.is_member(pymsn.Membership.ALLOW):
+            added.add(handle)
+
+        if added:
+            self.MembersChanged('', added, (), (), (), 0,
+                                telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+class ButterflyDenyListChannel(ButterflyListChannel):
+
+    def __init__(self, connection, handle):
+        ButterflyListChannel.__init__(self, connection, handle)
+        self.GroupFlagsChanged(0, 0) # no contact Management for now
+
+    def contact_added(self, handle, contact):
+        added = set()
+        local_pending = set()
+
+        if contact.is_member(pymsn.Membership.BLOCK):
+            added.add(handle)
+
+        if added:
+            self.MembersChanged('', added, (), (), (), 0,
+                                telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
 
 class ConversationEventForwarder(pymsn.event.ConversationEventInterface):
     """Used for forwarding events to ButterflyTextChannel so that it doesn't
@@ -193,32 +239,27 @@ class ButterflyTextChannel(
     def __add_initial_participants(self):
         handles = []
         for participant in self._conversation.participants:
-            full_account = "/".join([participant.account, str(participant.network_id)])
-            handle = self._conn._handle_manager.handle_for_contact(full_account)
-            handles.append(handle)
+            handles.append(self._conn._handle_for_contact(participant))
         self.MembersChanged('', handles, [], [], [],
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
         return False
 
     def on_conversation_user_joined(self, contact):
-        full_account = "/".join([contact.account, str(contact.network_id)])
         self.logger.debug("user joined : %s" % full_account)
-        handle = self._conn._handle_manager.handle_for_contact(full_account)
+        handle = self._conn._handle_for_contact(contact)
         self.MembersChanged('', [handle], [], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
     def on_conversation_user_left(self, contact):
-        full_account = "/".join([contact.account, str(contact.network_id)])
         self.logger.debug("user left : %s" % full_account)
-        handle = self._conn._handle_manager.handle_for_contact(full_account)
+        handle = self._conn._handle_for_contact(contact)
         self.MembersChanged('', [], [handle], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
     def on_conversation_message_received(self, sender, message, formatting):
         id = self._recv_id
         timestamp = int(time.time())
-        full_account = "/".join([sender.account, str(sender.network_id)])
-        sender = self._conn._handle_manager.handle_for_contact(full_account)
+        sender = self._conn._handle_for_contact(sender)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
 
         self.Received(id, timestamp, sender, type, 0, message)
@@ -227,8 +268,7 @@ class ButterflyTextChannel(
     def on_conversation_nudge_received(self, sender):
         id = self._recv_id
         timestamp = int(time.time())
-        full_account = "/".join([sender.account, str(sender.network_id)])
-        sender = self._conn._handle_manager.handle_for_contact(full_account)
+        sender = self._conn._handle_for_contact(sender)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
         text = unicode(_("sends you a nudge"), "utf-8")
 

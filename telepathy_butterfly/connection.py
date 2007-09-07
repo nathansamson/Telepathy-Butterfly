@@ -104,11 +104,12 @@ class HandleManager(object):
         if group_name in self._group_handles:
             handle = self._group_handles[group_name]
         else:
-            group = self._connection._pymsn_client.address_book.get_group(group_name)
+            group = self._connection._group_for_name(group_name)
             if group is None:
                 self._connection._pymsn_client.address_book.\
                     add_group(group_name)
-            
+            # FIXME : something better should be done with dbus contexts
+
             handle = telepathy.server.Handle(self._connection.get_handle_id(),
                     telepathy.HANDLE_TYPE_GROUP,
                     group_name)
@@ -142,12 +143,12 @@ class ChannelManager(object):
                 channel_class = ButterflySubscribeListChannel
             elif handle.get_name() == 'publish':
                 channel_class = ButterflyPublishListChannel
-            #elif handle.get_name() == 'hide':
-            #    channel_class = ButterflyHideListChannel
-            #elif handle.get_name() == 'allow':
-            #    channel_class = ButterflyAllowListChannel
-            #elif handle.get_name() == 'deny':
-            #    channel_class = ButterflyDenyListChannel
+            elif handle.get_name() == 'hide':
+                channel_class = ButterflyHideListChannel
+            elif handle.get_name() == 'allow':
+                channel_class = ButterflyAllowListChannel
+            elif handle.get_name() == 'deny':
+                channel_class = ButterflyDenyListChannel
             else:
                 raise AssertionError("Unknown list type : " + handle.get_name())
             channel = channel_class(self._connection, handle)
@@ -247,8 +248,6 @@ class ButterflyConnection(telepathy.server.Connection,
         self_handle = self._handle_manager.handle_for_contact(full_account)
         self.set_self_handle(self_handle)
         logger.info("Connection to the account %s created" % account)
-
-
     
     def Connect(self):
         logger.info("Connecting")
@@ -320,7 +319,34 @@ class ButterflyConnection(telepathy.server.Connection,
         self._channel_manager.channel_for_list(handle)
         handle = self._handle_manager.handle_for_list('publish')
         self._channel_manager.channel_for_list(handle)
+        handle = self._handle_manager.handle_for_list('hide')
+        self._channel_manager.channel_for_list(handle)
+        handle = self._handle_manager.handle_for_list('allow')
+        self._channel_manager.channel_for_list(handle)
+        handle = self._handle_manager.handle_for_list('deny')
+        self._channel_manager.channel_for_list(handle)
         
         for group in self._pymsn_client.address_book.groups:
             handle = self._handle_manager.handle_for_group(group.name)
             self._channel_manager.channel_for_list(handle)
+
+    # Utility methods
+    def _group_for_handle(self, handle):
+        return self._group_for_name(handle.get_name())
+
+    def _group_for_name(self, group_name):
+        for group in self._pymsn_client.address_book.groups:
+            if group.name == group_name:
+                return group
+        return None
+
+    def _contact_for_handle(self, handle):
+        account, network = handle.get_name().split("/")
+        return self._pymsn_client.address_book.contacts.\
+            search_by_account(account).search_by_network_id(int(network))[0]
+
+    def _handle_for_contact(self, contact):
+        full_account = "/".join([contact.account, str(contact.network_id)])
+        return self._handle_manager.handle_for_contact(full_account)
+        
+    

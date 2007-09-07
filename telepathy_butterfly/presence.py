@@ -100,21 +100,11 @@ class ButterflyConnectionPresence(
         }
 
     def RequestPresence(self, contacts):
-        presences = {}
-        for handle_id in contacts:
-            handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            contact = self._contact_for_handle(handle)
-            presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
-            personal_message = unicode(contact.personal_message, "utf-8")
-
-            arguments = {}
-            if personal_message:
-                arguments = {'message' : personal_message}
-
-            presences[handle] = (0, {presence : arguments}) # TODO: Timestamp
-
+        presences = self.get_presences(contacts)
         self.PresenceUpdate(presences)
+
+    def GetPresence(self, contacts):
+        return self.get_presences(contacts)
 
     def SetStatus(self, statuses):
         status, arguments = statuses.items()[0]
@@ -132,14 +122,30 @@ class ButterflyConnectionPresence(
             self._pymsn_client.profile.personal_message = message
             self._pymsn_client.profile.presence = presence
 
-    def contact_presence_changed(self, contact):
+    def get_presences(self, contacts):
+        presences = {}
+        for handle_id in contacts:
+            handle = self._handle_manager.handle_for_handle_id(
+                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
+            contact = self._contact_for_handle(handle)
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
             personal_message = unicode(contact.personal_message, "utf-8")
-            
+
             arguments = {}
             if personal_message:
                 arguments = {'message' : personal_message}
+
+            presences[handle] = (0, {presence : arguments}) # TODO: Timestamp
+        return presences
+
+    def contact_presence_changed(self, contact):
+        presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
+        personal_message = unicode(contact.personal_message, "utf-8")
+            
+        arguments = {}
+        if personal_message:
+            arguments = {'message' : personal_message}
                 
-            handle = self._handle_for_contact(contact)
-            self.PresenceUpdate({handle: (0, {presence:arguments})}) 
+        handle = self._handle_for_contact(contact)
+        self.PresenceUpdate({handle: (0, {presence:arguments})}) 
 

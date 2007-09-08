@@ -105,11 +105,16 @@ class ButterflyGroupChannel(ButterflyListChannel):
                 group = self._conn._group_for_handle(self._handle)
                 ab.delete_contact_from_group(group, contact)
 
+    def _close(self):
+        self.Closed()
+        self._conn.remove_channel(self)
+
     def Close(self):
         ab = self._conn._pymsn_client.address_book
 
         group = self._conn._group_for_handle(self._handle)
         ab.delete_group(group)
+
 
 class ButterflySubscribeListChannel(ButterflyListChannel):
 
@@ -210,6 +215,8 @@ class ConversationEventForwarder(pymsn.event.ConversationEventInterface):
         self._text_channel.on_conversation_user_joined(contact)
     def on_conversation_user_left(self, contact):
         self._text_channel.on_conversation_user_left(contact)
+    def on_conversation_user_typing(self, contact):
+        self._text_channel.on_conversation_user_typing(contact)
     def on_conversation_message_received(self, *args):
         self._text_channel.on_conversation_message_received(*args)    
     def on_conversation_nudge_received(self, sender):
@@ -217,7 +224,8 @@ class ConversationEventForwarder(pymsn.event.ConversationEventInterface):
 
 class ButterflyTextChannel(
         telepathy.server.ChannelTypeText,
-        telepathy.server.ChannelInterfaceGroup):
+        telepathy.server.ChannelInterfaceGroup,
+        telepathy.server.ChannelInterfaceChatState):
     
     logger = logging.getLogger('telepathy-butterfly:text-channel')
 
@@ -225,6 +233,7 @@ class ButterflyTextChannel(
         self._recv_id = 0
         telepathy.server.ChannelTypeText.__init__(self, connection, None)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
+        telepathy.server.ChannelInterfaceChatState.__init__(self)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
         if conversation is None:
             self._conversation = pymsn.Conversation(connection._pymsn_client,
@@ -245,21 +254,30 @@ class ButterflyTextChannel(
         return False
 
     def on_conversation_user_joined(self, contact):
-        self.logger.debug("user joined : %s" % full_account)
+        self.logger.debug("user joined : %s/%s" % (contact.account,
+                                                   str(contact.network_id)))
         handle = self._conn._handle_for_contact(contact)
         self.MembersChanged('', [handle], [], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
     def on_conversation_user_left(self, contact):
-        self.logger.debug("user left : %s" % full_account)
+        self.logger.debug("user left : %s/%s" % (contact.account,
+                                                 str(contact.network_id)))
         handle = self._conn._handle_for_contact(contact)
         self.MembersChanged('', [], [handle], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+    
+    def on_conversation_user_typing(self, contact):
+        handle = self._conn._handle_for_contact(contact)
+        self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
-    def on_conversation_message_received(self, sender, message, formatting):
+    def on_conversation_message_received(self, sender, message, 
+                                         formatting=None, timestamp=None):
         id = self._recv_id
-        timestamp = int(time.time())
+        if timestamp is None:
+            timestamp = int(time.time())
         sender = self._conn._handle_for_contact(sender)
+
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
 
         self.Received(id, timestamp, sender, type, 0, message)
@@ -274,8 +292,13 @@ class ButterflyTextChannel(
 
         self.Received(id, timestamp, sender, type, 0, text)
         self._recv_id += 1
+
+    def SetChatState(self, state):
+        if state == telepathy.CHANNEL_CHAT_STATE_COMPOSING:
+            self._conversation.send_typing_notification()
+        self.ChatStateChanged(self._conn.GetSelfHandle(), state)
     
-    def Send(self, message_type, text):
+    def Send(self, message_type, text):        
         if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
             self._conversation.send_text_message(text)
         elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \

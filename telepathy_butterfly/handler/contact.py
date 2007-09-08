@@ -26,6 +26,9 @@ import pymsn
 import pymsn.event
 import telepathy
 
+from pymsn.service.description.AB.constants import \
+    ContactGeneral, ContactAnnotations
+
 __all__ = ['ButterflyContactEventsHandler']
 
 class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
@@ -44,6 +47,12 @@ class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
 
     def on_contact_display_picture_changed(self, contact):
         pass
+
+    def on_contact_infos_changed(self, contact, updated_infos):
+        alias = updated_infos.get(ContactGeneral.ANNOTATIONS, {}).\
+            get(ContactAnnotations.NICKNAME, None)
+        if alias is not None:
+            self._telepathy_connection.contact_alias_changed(contact)
 
     def on_contact_client_capabilities_changed(self, contact):
         pass

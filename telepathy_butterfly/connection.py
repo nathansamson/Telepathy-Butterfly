@@ -126,6 +126,7 @@ class ChannelManager(object):
         self._connection = weakref.proxy(connection)
         self._list_channels = {}
         self._text_channels = {}
+        self._offline_text_channels = {}
     
     def close(self):
         for channel in self._list_channels.values():
@@ -163,23 +164,20 @@ class ChannelManager(object):
             channel = self._text_channels[handle]
         else:
             logger.debug("Requesting new text channel")
-            account, network = handle.get_name().split("/")
-            contact = self._connection._pymsn_client.address_book.contacts.\
-                                        search_by_account(account).\
-                                        search_by_network_id(int(network))[0]
+            contact = self._connection._contact_for_handle(handle)
 
             if contact.presence == pymsn.Presence.OFFLINE:
-                    raise telepathy.NotAvailable('Contact not available')
+                raise telepathy.NotAvailable('Contact not available')
+
             if conversation is None:
                 contacts = [contact]
             else:
                 contacts = []
             channel = ButterflyTextChannel(self._connection,
-                    conversation, contacts)
+                                           conversation, contacts)
             self._text_channels[handle] = channel
             self._connection.add_channel(channel, handle, suppress_handler)
         return channel
-
 
 class ButterflyConnection(telepathy.server.Connection,
         ButterflyConnectionPresence,
@@ -243,7 +241,8 @@ class ButterflyConnection(telepathy.server.Connection,
         event.ButterflyContactEventsHandler(self._pymsn_client, self)
         event.ButterflyInviteEventsHandler(self._pymsn_client, self)
         event.ButterflyAddressBookEventsHandler(self._pymsn_client, self)
-        
+        #event.ButterflyOfflineMessagesEventsHandler(self._pymsn_client, self)
+
         full_account = "/".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
         self_handle = self._handle_manager.handle_for_contact(full_account)
         self.set_self_handle(self_handle)

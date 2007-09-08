@@ -58,8 +58,7 @@ class ButterflyAddressBookEventsHandler(pymsn.event.AddressBookEventInterface):
         channel = self._telepathy_connection._channel_manager.\
             channel_for_list(self._telepathy_connection._handle_manager.\
                                  handle_for_group(group.name))
-        channel.Closed()
-        self._telepathy_connection.remove_channel(channel)
+        channel._close()
 
     def on_addressbook_group_renamed(self, group):
         pass

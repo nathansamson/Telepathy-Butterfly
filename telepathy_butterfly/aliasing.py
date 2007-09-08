@@ -21,6 +21,9 @@ import telepathy
 import pymsn
 import logging
 
+from pymsn.service.description.AB.constants import \
+    ContactGeneral, ContactAnnotations
+
 __all__ = ['ButterflyConnectionAliasing']
 
 logger = logging.getLogger('telepathy-butterfly:aliasing')
@@ -38,10 +41,14 @@ class ButterflyConnectionAliasing(
                 if display_name == "":
                     display_name = handle.get_name().split('@', 1)[0]
                     display_name = display_name.replace("_", " ")
-                result.append(unicode(display_name, 'utf-8'))
+                result.append(display_name.encode('utf-8'))
             else:
                 contact = self._contact_for_handle(handle)
-                result.append(unicode(contact.display_name, 'utf-8'))
+                alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
+                    get(ContactAnnotations.NICKNAME, "").encode('utf-8')
+                if alias == "":
+                    alias = contact.display_name.encode('utf-8')
+                result.append(alias)
         return result
             
     def SetAliases(self, aliases):
@@ -49,12 +56,21 @@ class ButterflyConnectionAliasing(
             handle = self._handle_manager.handle_for_handle_id(
                     telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle != self.GetSelfHandle():
-                raise telepathy.PermissionDenied("MSN doesn't allow setting"\
-                        "aliases for contacts")
-            self._pymsn_client.profile.display_name = alias.encode('utf-8')
+                contact = self._contact_for_handle(handle)
+                infos = { ContactGeneral.ANNOTATIONS : \
+                     { ContactAnnotations.NICKNAME : alias.encode('utf-8')}}
+                self._pymsn_client.address_book.\
+                    update_contact_infos(contact, infos)
+            else:
+                self._pymsn_client.profile.display_name = alias.encode('utf-8')
 
     def contact_alias_changed(self, contact):
         handle = self._handle_for_contact(contact)
-        alias = unicode(contact.display_name, 'utf-8')
+
+        alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
+            get(ContactAnnotations.NICKNAME, "").encode('utf-8')
+        if alias == "":
+            alias = contact.display_name.encode('utf-8')
+
         self.AliasesChanged(((handle, alias), ))
 

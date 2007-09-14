@@ -126,7 +126,6 @@ class ChannelManager(object):
         self._connection = weakref.proxy(connection)
         self._list_channels = {}
         self._text_channels = {}
-        self._offline_text_channels = {}
     
     def close(self):
         for channel in self._list_channels.values():
@@ -241,7 +240,6 @@ class ButterflyConnection(telepathy.server.Connection,
         event.ButterflyContactEventsHandler(self._pymsn_client, self)
         event.ButterflyInviteEventsHandler(self._pymsn_client, self)
         event.ButterflyAddressBookEventsHandler(self._pymsn_client, self)
-        #event.ButterflyOfflineMessagesEventsHandler(self._pymsn_client, self)
 
         full_account = "/".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
         self_handle = self._handle_manager.handle_for_contact(full_account)

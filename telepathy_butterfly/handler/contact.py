@@ -51,7 +51,8 @@ class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
     def on_contact_infos_changed(self, contact, updated_infos):
         alias = updated_infos.get(ContactGeneral.ANNOTATIONS, {}).\
             get(ContactAnnotations.NICKNAME, None)
-        if alias is not None:
+
+        if alias is not None or alias != "":
             self._telepathy_connection.contact_alias_changed(contact)
 
     def on_contact_client_capabilities_changed(self, contact):

@@ -59,5 +59,5 @@ class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
     def on_contact_client_capabilities_changed(self, contact):
         pass
 
-    def on_contact_client_msn_object_changed(self, contact):
+    def on_contact_msn_object_changed(self, contact):
         self._telepathy_connection.contact_msn_object_changed(contact)

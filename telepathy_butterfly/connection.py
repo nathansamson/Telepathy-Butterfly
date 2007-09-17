@@ -28,6 +28,7 @@ import telepathy_butterfly.handler as event
 from telepathy_butterfly.channel import *
 from telepathy_butterfly.presence import ButterflyConnectionPresence
 from telepathy_butterfly.aliasing import ButterflyConnectionAliasing
+from telepathy_butterfly.avatars import ButterflyConnectionAvatars
 
 __all__ = ['ButterflyConnection']
 
@@ -180,7 +181,8 @@ class ChannelManager(object):
 
 class ButterflyConnection(telepathy.server.Connection,
         ButterflyConnectionPresence,
-        ButterflyConnectionAliasing):
+        ButterflyConnectionAliasing,
+        ButterflyConnectionAvatars):
 
     _mandatory_parameters = {
             'account' : 's',
@@ -227,6 +229,7 @@ class ButterflyConnection(telepathy.server.Connection,
         
         ButterflyConnectionPresence.__init__(self)
         ButterflyConnectionAliasing.__init__(self)
+        ButterflyConnectionAvatars.__init__(self)
         self._handle_manager = HandleManager(self)
         self._channel_manager = ChannelManager(self)
         

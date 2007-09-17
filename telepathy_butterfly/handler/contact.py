@@ -3,7 +3,8 @@
 # telepathy-butterfly - an MSN connection manager for Telepathy
 #
 # Copyright (C) 2007  Ali Sabil <ali.sabil@gmail.com>
-# Copyright (C) 2007  Ole André Vadla Ravnås <oleavr@gmail.com>
+# Copyright (C) 2007  Ole André Vadla Ravnås <oleavr@gmail.com
+# Copyright (C) 2007  Johann Prieur <johann.prieur@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,5 +59,5 @@ class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
     def on_contact_client_capabilities_changed(self, contact):
         pass
 
-    def on_contact_details_changed(self, contact, details_flag):
-        pass
+    def on_contact_client_msn_object_changed(self, contact):
+        self._telepathy_connection.contact_msn_object_changed(contact)

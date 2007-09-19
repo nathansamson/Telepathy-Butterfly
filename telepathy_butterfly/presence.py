@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # telepathy-butterfly - an MSN connection manager for Telepathy
 #
 # Copyright (C) 2006-2007 Ali Sabil <ali.sabil@gmail.com>
@@ -130,9 +131,13 @@ class ButterflyConnectionPresence(
             contact = self._contact_for_handle(handle)
             presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
             personal_message = unicode(contact.personal_message, "utf-8")
+            current_media = contact.current_media
 
             arguments = {}
-            if personal_message:
+            if current_media is not None:
+                current_media = unicode("♪ %s - %s" % current_media, "utf-8")
+                arguments = {'message' : current_media}
+            elif personal_message:
                 arguments = {'message' : personal_message}
 
             presences[handle] = (0, {presence : arguments}) # TODO: Timestamp
@@ -141,9 +146,13 @@ class ButterflyConnectionPresence(
     def contact_presence_changed(self, contact):
         presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
         personal_message = unicode(contact.personal_message, "utf-8")
-            
+        current_media = contact.current_media
+
         arguments = {}
-        if personal_message:
+        if current_media is not None:
+            current_media = unicode("♪ %s - %s" % current_media, "utf-8")
+            arguments = {'message' : current_media}
+        elif personal_message:
             arguments = {'message' : personal_message}
                 
         handle = self._handle_for_contact(contact)

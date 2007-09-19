@@ -46,8 +46,8 @@ class ButterflyContactEventsHandler(pymsn.event.ContactEventInterface):
     def on_contact_personal_message_changed(self, contact):
         self._telepathy_connection.contact_presence_changed(contact)
 
-    def on_contact_display_picture_changed(self, contact):
-        pass
+    def on_contact_current_media_changed(self, contact):
+        self._telepathy_connection.contact_presence_changed(contact)
 
     def on_contact_infos_changed(self, contact, updated_infos):
         alias = updated_infos.get(ContactGeneral.ANNOTATIONS, {}).\

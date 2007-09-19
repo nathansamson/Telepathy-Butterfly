@@ -271,8 +271,9 @@ class ButterflyTextChannel(
         handle = self._conn._handle_for_contact(contact)
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
-    def on_conversation_message_received(self, sender, message, 
-                                         formatting=None, timestamp=None):
+    def on_conversation_message_received(self, sender, message, timestamp=None):
+        message = message.content
+
         id = self._recv_id
         if timestamp is None:
             timestamp = int(time.time())
@@ -300,7 +301,7 @@ class ButterflyTextChannel(
     
     def Send(self, message_type, text):        
         if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
-            self._conversation.send_text_message(text)
+            self._conversation.send_text_message(pymsn.ConversationMessage(text))
         elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
                 text == u"nudge":
             self._conversation.send_nudge()

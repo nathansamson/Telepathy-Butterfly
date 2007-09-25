@@ -341,6 +341,9 @@ class ButterflyConnection(telepathy.server.Connection,
         return None
 
     def _contact_for_handle(self, handle):
+        if handle == self.GetSelfHandle():
+            return self._pymsn_client.profile
+
         account, network = handle.get_name().split("/")
         return self._pymsn_client.address_book.contacts.\
             search_by_account(account).search_by_network_id(int(network))[0]

@@ -202,30 +202,11 @@ class ButterflyDenyListChannel(ButterflyListChannel):
             self.MembersChanged('', added, (), (), (), 0,
                                 telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
-
-class ConversationEventForwarder(pymsn.event.ConversationEventInterface):
-    """Used for forwarding events to ButterflyTextChannel so that it doesn't
-    have to subclass ConversationEventInterface, which would create circular
-    references"""
-    def __init__(self, conversation, text_channel):
-        self._text_channel = weakref.proxy(text_channel)
-        pymsn.event.ConversationEventInterface.__init__(self, conversation)
-        
-    def on_conversation_user_joined(self, contact):
-        self._text_channel.on_conversation_user_joined(contact)
-    def on_conversation_user_left(self, contact):
-        self._text_channel.on_conversation_user_left(contact)
-    def on_conversation_user_typing(self, contact):
-        self._text_channel.on_conversation_user_typing(contact)
-    def on_conversation_message_received(self, *args):
-        self._text_channel.on_conversation_message_received(*args)    
-    def on_conversation_nudge_received(self, sender):
-        self._text_channel.on_conversation_nudge_received(sender)
-
 class ButterflyTextChannel(
         telepathy.server.ChannelTypeText,
         telepathy.server.ChannelInterfaceGroup,
-        telepathy.server.ChannelInterfaceChatState):
+        telepathy.server.ChannelInterfaceChatState,
+        pymsn.event.ConversationEventInterface):
     
     logger = logging.getLogger('telepathy-butterfly:text-channel')
 
@@ -241,9 +222,7 @@ class ButterflyTextChannel(
         else:
             self._conversation = conversation 
             gobject.idle_add(self.__add_initial_participants)
-        # Forwarder is kept alive by conversation, and holds a weakref to self.
-        # Ugly, I know.
-        ConversationEventForwarder(self._conversation, self)
+        pymsn.event.ConversationEventInterface.__init__(self, self._conversation)
 
     def __add_initial_participants(self):
         handles = []
@@ -271,9 +250,9 @@ class ButterflyTextChannel(
         handle = self._conn._handle_for_contact(contact)
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
-    def on_conversation_message_received(self, sender, message, timestamp=None):
+    def on_conversation_message_received(self, sender, message, 
+                                         formatting=None, timestamp=None):
         message = message.content
-
         id = self._recv_id
         if timestamp is None:
             timestamp = int(time.time())

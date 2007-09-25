@@ -135,7 +135,7 @@ class ButterflyPublishListChannel(ButterflyListChannel):
 
     def __init__(self, connection, handle):
         ButterflyListChannel.__init__(self, connection, handle)
-        self.GroupFlagsChanged(0, 0) # no contact Management for now
+        self.GroupFlagsChanged(0, 0)
 
     def contact_added(self, handle, contact):
         added = set()
@@ -250,8 +250,7 @@ class ButterflyTextChannel(
         handle = self._conn._handle_for_contact(contact)
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
-    def on_conversation_message_received(self, sender, message, 
-                                         formatting=None, timestamp=None):
+    def on_conversation_message_received(self, sender, message, timestamp=None):
         message = message.content
         id = self._recv_id
         if timestamp is None:

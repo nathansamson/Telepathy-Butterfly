@@ -66,9 +66,7 @@ class ButterflyAddressBookEventsHandler(pymsn.event.AddressBookEventInterface):
     def on_addressbook_group_contact_added(self, group, contact):
         added = set()
 
-        full_account = "/".join([contact.account, str(contact.network_id)])
-        handle = self._telepathy_connection._handle_manager.\
-            handle_for_contact(full_account)
+        handle = self._telepathy_connection._handle_for_contact(contact)
         added.add(handle)
         
         channel = self._telepathy_connection._channel_manager.\
@@ -84,9 +82,7 @@ class ButterflyAddressBookEventsHandler(pymsn.event.AddressBookEventInterface):
     def on_addressbook_group_contact_deleted(self, group, contact):
         removed = set()
 
-        full_account = "/".join([contact.account, str(contact.network_id)])
-        handle = self._telepathy_connection._handle_manager.\
-            handle_for_contact(full_account)
+        handle = self._telepathy_connection._handle_for_contact(contact)
         removed.add(handle)
         
         channel = self._telepathy_connection._channel_manager.\

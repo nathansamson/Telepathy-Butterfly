@@ -85,6 +85,7 @@ class ButterflyConnectionAvatars(\
                          "",
                          data=StringIO.StringIO(avatar))
         self._pymsn_client.profile.msn_object = msn_object
+        return base64.b64encode(msn_object._data_sha)
 
     def ClearAvatar(self):
         self._pymsn_client.profile.msn_object = None

@@ -22,6 +22,7 @@ import logging
 import imghdr
 import dbus
 import base64
+import sha
 
 import pymsn.util.StringIO as StringIO
 
@@ -78,7 +79,10 @@ class ButterflyConnectionAvatars(\
         if not isinstance(avatar, str):
             avatar = "".join([chr(b) for b in avatar])
         msn_object = pymsn.p2p.MSNObject(self._pymsn_client.profile, 
-                         len(avatar), pymsn.p2p.MSNObjectType.DISPLAY_PICTURE,0,"",
+                         len(avatar),
+                         pymsn.p2p.MSNObjectType.DISPLAY_PICTURE,
+                         sha.new(avatar).hexdigest() + '.tmp',
+                         "",
                          data=StringIO.StringIO(avatar))
         self._pymsn_client.profile.msn_object = msn_object
 

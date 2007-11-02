@@ -25,11 +25,9 @@ import gobject
 
 def do_later(function, *args, **kwargs):
     timeout = 2000 
-    #we reckon it takes about 10 seconds to synchronise the contact list
+    #we reckon it takes about 10 seconds to synchronize the contact list
     def do(*args, **kwargs):
-        return_value = function(*args, **kwargs)
-        if return_value is not None:
-            print out
+        function(*args, **kwargs)
         return False
     gobject.timeout_add(timeout, do, *args, **kwargs)
 

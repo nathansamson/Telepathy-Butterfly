@@ -255,7 +255,6 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def Disconnect(self):
         logger.info("Disconnecting")
-        self._channel_manager.close()
         gobject.idle_add(self._disconnect)
 
     def RequestHandles(self, handle_type, names, sender):

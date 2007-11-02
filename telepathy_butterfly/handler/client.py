@@ -39,6 +39,7 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
     def __init__(self, client, telepathy_connection):
         self._telepathy_connection = weakref.proxy(telepathy_connection)
         pymsn.event.ClientEventInterface.__init__(self, client)
+        self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_REQUESTED
 
     def on_client_state_changed(self, state):
         if state == pymsn.event.ClientState.CONNECTING:
@@ -60,20 +61,16 @@ class ButterflyClientEventsHandler(pymsn.event.ClientEventInterface):
         elif state == pymsn.event.ClientState.CLOSED:
             self._telepathy_connection.StatusChanged(
                     telepathy.CONNECTION_STATUS_DISCONNECTED,
-                    telepathy.CONNECTION_STATUS_REASON_REQUESTED)
+                    self.__disconnect_reason)
+            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_REQUESTED
+            self._telepathy_connection._channel_manager.close()
             self._telepathy_connection._advertise_disconnected()
 
     def on_client_error(self, type, error):
         if type == pymsn.event.ClientErrorType.NETWORK:
-            self._telepathy_connection.StatusChanged(
-                    telepathy.CONNECTION_STATUS_DISCONNECTED,
-                    telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR)
+            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR
         elif type == pymsn.event.ClientErrorType.AUTHENTICATION:
-            self._telepathy_connection.StatusChanged(
-                    telepathy.CONNECTION_STATUS_DISCONNECTED,
-                    telepathy.CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED)
+            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
         else:
-            self._telepathy_connection.StatusChanged(
-                    telepathy.CONNECTION_STATUS_DISCONNECTED,
-                    telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED)
+            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
 

@@ -71,7 +71,9 @@ class HandleManager(object):
             logger.debug("New self handle %u %s" % \
                     (handle.get_id(), handle.get_name()))
             self._self_handle = weakref.proxy(handle)
-        return self._self_handle
+        else:
+            handle = self._self_handle
+        return handle
 
     def handle_for_contact(self, account):
         if account in self._contacts_handles:
@@ -245,7 +247,7 @@ class ButterflyConnection(telepathy.server.Connection,
         event.ButterflyAddressBookEventsHandler(self._pymsn_client, self)
 
         full_account = "#".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
-        self_handle = self._handle_manager.handle_for_contact(full_account)
+        self_handle = self._handle_manager.handle_for_self(full_account)
         self.set_self_handle(self_handle)
         logger.info("Connection to the account %s created" % account)
     

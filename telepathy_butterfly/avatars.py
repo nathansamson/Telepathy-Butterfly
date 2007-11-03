@@ -18,6 +18,7 @@
 
 import telepathy
 import pymsn
+import gobject
 import logging
 import imghdr
 import dbus
@@ -85,7 +86,9 @@ class ButterflyConnectionAvatars(\
                          "",
                          data=StringIO.StringIO(avatar))
         self._pymsn_client.profile.msn_object = msn_object
-        return base64.b64encode(msn_object._data_sha)
+        avatar_token = base64.b64encode(msn_object._data_sha)
+        gobject.idle_add(self.self_msn_object_changed, avatar_token)
+        return avatar_token
 
     def ClearAvatar(self):
         self._pymsn_client.profile.msn_object = None
@@ -97,5 +100,11 @@ class ButterflyConnectionAvatars(\
             avatar_token = ""
         handle = self._handle_for_contact(contact)
         self.AvatarUpdated(handle, avatar_token)
+
+    def self_msn_object_changed(self, avatar_token):
+        handle = self._handle_manager.handle_for_self(None)
+        self.AvatarUpdated(handle, avatar_token)
+        return False
+    
 
 

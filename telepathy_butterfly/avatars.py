@@ -52,16 +52,21 @@ class ButterflyConnectionAvatars(\
         return result
 
     def RequestAvatars(self, contacts):
-        def __on_msn_object_data_retrieved(msn_object):
-            handle = self._handle_for_contact(msn_object._creator)
+        def avatar_retrieved(handle, msn_object):
             if msn_object._data is not None:
+                msn_object._data.seek(0, 0)
                 avatar = msn_object._data.read()
+                msn_object._data.seek(0, 0)
                 type = imghdr.what('', avatar)
                 if type is None: type = 'jpeg'
                 avatar = dbus.ByteArray(avatar)
                 token = base64.b64encode(msn_object._data_sha)
 
                 self.AvatarRetrieved(handle, token, avatar, 'image/'+type)
+        
+        def on_msn_object_data_retrieved(msn_object):
+            handle = self._handle_for_contact(msn_object._creator)
+            avatar_retrieved(handle, msn_object)
 
         for handle_id in contacts:
             handle = self._handle_manager.handle_for_handle_id(
@@ -69,12 +74,12 @@ class ButterflyConnectionAvatars(\
             if handle == self.GetSelfHandle():
                 msn_object = self._pymsn_client.profile.msn_object
                 if msn_object is not None:
-                    __on_msn_object_data_retrieved(msn_object)
+                    avatar_retrieved(handle, msn_object)
             else:
                 msn_object = self._contact_for_handle(handle).msn_object
                 if msn_object is not None:
                     self._pymsn_client._msn_object_store.request(msn_object,\
-                            (__on_msn_object_data_retrieved,))
+                            (on_msn_object_data_retrieved,))
 
     def SetAvatar(self, avatar, mime_type):
         if not isinstance(avatar, str):

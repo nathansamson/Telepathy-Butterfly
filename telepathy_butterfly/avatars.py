@@ -63,10 +63,11 @@ class ButterflyConnectionAvatars(\
                 token = base64.b64encode(msn_object._data_sha)
 
                 self.AvatarRetrieved(handle, token, avatar, 'image/'+type)
-        
+            return False
+
         def on_msn_object_data_retrieved(msn_object):
             handle = self._handle_for_contact(msn_object._creator)
-            avatar_retrieved(handle, msn_object)
+            gobject.idle_add(avatar_retrieved, handle, msn_object)
 
         for handle_id in contacts:
             handle = self._handle_manager.handle_for_handle_id(
@@ -74,7 +75,7 @@ class ButterflyConnectionAvatars(\
             if handle == self.GetSelfHandle():
                 msn_object = self._pymsn_client.profile.msn_object
                 if msn_object is not None:
-                    avatar_retrieved(handle, msn_object)
+                    gobject.idle_add(avatar_retrieved, handle, msn_object)
             else:
                 msn_object = self._contact_for_handle(handle).msn_object
                 if msn_object is not None:

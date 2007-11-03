@@ -22,7 +22,6 @@ import gobject
 import logging
 import imghdr
 import dbus
-import base64
 import sha
 
 import pymsn.util.StringIO as StringIO
@@ -46,7 +45,7 @@ class ButterflyConnectionAvatars(\
             else:
                 msn_object = self._contact_for_handle(handle).msn_object
             if msn_object is not None:
-                result[handle] = base64.b64encode(msn_object._data_sha)
+                result[handle] = msn_object._data_sha.encode("hex")
             else:
                 result[handle] = ""
         return result
@@ -79,7 +78,7 @@ class ButterflyConnectionAvatars(\
                          "",
                          data=StringIO.StringIO(avatar))
         self._pymsn_client.profile.msn_object = msn_object
-        avatar_token = base64.b64encode(msn_object._data_sha)
+        avatar_token = msn_object._data_sha.encode("hex")
         gobject.idle_add(self.self_msn_object_changed, avatar_token)
         return avatar_token
 
@@ -88,7 +87,7 @@ class ButterflyConnectionAvatars(\
 
     def contact_msn_object_changed(self, contact):
         if contact.msn_object is not None:
-            avatar_token = base64.b64encode(contact.msn_object._data_sha)
+            avatar_token = contact.msn_object._data_sha.encode("hex")
         else:
             avatar_token = ""
         handle = self._handle_for_contact(contact)
@@ -107,6 +106,6 @@ class ButterflyConnectionAvatars(\
             type = imghdr.what('', avatar)
             if type is None: type = 'jpeg'
             avatar = dbus.ByteArray(avatar)
-            token = base64.b64encode(msn_object._data_sha)
+            token = msn_object._data_sha.encode("hex")
             self.AvatarRetrieved(handle, token, avatar, 'image/'+type)
         return False

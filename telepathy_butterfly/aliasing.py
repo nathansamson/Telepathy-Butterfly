@@ -69,6 +69,7 @@ class ButterflyConnectionAliasing(
                     update_contact_infos(contact, infos)
             else:
                 self._pymsn_client.profile.display_name = alias
+                self.AliasesChanged(((self.GetSelfHandle(), alias), ))
 
     def contact_alias_changed(self, contact):
         handle = self._handle_for_contact(contact)

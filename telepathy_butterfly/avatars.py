@@ -79,6 +79,7 @@ class ButterflyConnectionAvatars(\
                          data=StringIO.StringIO(avatar))
         self._pymsn_client.profile.msn_object = msn_object
         avatar_token = msn_object._data_sha.encode("hex")
+        logger.debug("Setting self avatar :", avatar_token)
         gobject.idle_add(self.self_msn_object_changed, avatar_token)
         return avatar_token
 

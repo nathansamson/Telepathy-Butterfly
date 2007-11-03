@@ -52,22 +52,9 @@ class ButterflyConnectionAvatars(\
         return result
 
     def RequestAvatars(self, contacts):
-        def avatar_retrieved(handle, msn_object):
-            if msn_object._data is not None:
-                msn_object._data.seek(0, 0)
-                avatar = msn_object._data.read()
-                msn_object._data.seek(0, 0)
-                type = imghdr.what('', avatar)
-                if type is None: type = 'jpeg'
-                avatar = dbus.ByteArray(avatar)
-                token = base64.b64encode(msn_object._data_sha)
-
-                self.AvatarRetrieved(handle, token, avatar, 'image/'+type)
-            return False
-
         def on_msn_object_data_retrieved(msn_object):
             handle = self._handle_for_contact(msn_object._creator)
-            gobject.idle_add(avatar_retrieved, handle, msn_object)
+            gobject.idle_add(self.msn_object_retrieved, handle, msn_object)
 
         for handle_id in contacts:
             handle = self._handle_manager.handle_for_handle_id(
@@ -75,7 +62,7 @@ class ButterflyConnectionAvatars(\
             if handle == self.GetSelfHandle():
                 msn_object = self._pymsn_client.profile.msn_object
                 if msn_object is not None:
-                    gobject.idle_add(avatar_retrieved, handle, msn_object)
+                    gobject.idle_add(self.msn_object_retrieved, handle, msn_object)
             else:
                 msn_object = self._contact_for_handle(handle).msn_object
                 if msn_object is not None:
@@ -111,6 +98,15 @@ class ButterflyConnectionAvatars(\
         handle = self._handle_manager.handle_for_self(None)
         self.AvatarUpdated(handle, avatar_token)
         return False
-    
 
-
+    def msn_object_retrieved(self, handle, msn_object):
+        if msn_object._data is not None:
+            msn_object._data.seek(0, 0)
+            avatar = msn_object._data.read()
+            msn_object._data.seek(0, 0)
+            type = imghdr.what('', avatar)
+            if type is None: type = 'jpeg'
+            avatar = dbus.ByteArray(avatar)
+            token = base64.b64encode(msn_object._data_sha)
+            self.AvatarRetrieved(handle, token, avatar, 'image/'+type)
+        return False

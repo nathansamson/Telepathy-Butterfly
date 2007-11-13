@@ -54,7 +54,8 @@ class ButterflyListChannel(
 class ButterflyGroupChannel(ButterflyListChannel):
 
     def __init__(self, connection, handle):
-        self.__pending_add = self.__pending_remove = []
+        self.__pending_add = []
+        self.__pending_remove = []
         ButterflyListChannel.__init__(self, connection, handle)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD | \
                                telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
@@ -78,11 +79,13 @@ class ButterflyGroupChannel(ButterflyListChannel):
 
     def AddMembers(self, contacts, message):
         ab = self._conn._pymsn_client.address_book
-
         if self._conn._group_for_handle(self._handle) is None:
-            self.__pending_add.extend(contacts)
+            for contact in contacts:
+                if contact in self.__pending_remove:
+                    self.__pending_remove.remove(contact)
+                else:
+                    self.__pending_add.extend(contacts)
             return
-
         else:
             for h in contacts:
                 handle = self._conn._handle_manager.\
@@ -93,9 +96,12 @@ class ButterflyGroupChannel(ButterflyListChannel):
 
     def RemoveMembers(self, contacts, message):
         ab = self._conn._pymsn_client.address_book
-        
         if self._conn._group_for_handle(self._handle) is None:
-            self.__pending_remove.extend(contacts)
+            for contact in contacts:
+                if contact in self.__pending_add:
+                    self.__pending_add.remove(contact)
+                else:
+                    self.__pending_remove.extend(contacts)
             return
         else:
             for h in contacts:
@@ -111,7 +117,6 @@ class ButterflyGroupChannel(ButterflyListChannel):
 
     def Close(self):
         ab = self._conn._pymsn_client.address_book
-
         group = self._conn._group_for_handle(self._handle)
         ab.delete_group(group)
 

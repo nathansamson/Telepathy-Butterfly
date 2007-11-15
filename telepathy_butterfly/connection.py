@@ -168,9 +168,6 @@ class ChannelManager(object):
             logger.debug("Requesting new text channel")
             contact = self._connection._contact_for_handle(handle)
 
-            if contact.presence == pymsn.Presence.OFFLINE:
-                raise telepathy.NotAvailable('Contact not available')
-
             if conversation is None:
                 contacts = [contact]
             else:
@@ -297,6 +294,9 @@ class ButterflyConnection(telepathy.server.Connection,
 
             handle = self._handle_manager.\
                     handle_for_handle_id(handle_type, handle_id)
+            contact = self._contact_for_handle(handle)
+            if contact.presence == pymsn.Presence.OFFLINE:
+                raise telepathy.NotAvailable('Contact not available')
             channel = self._channel_manager.\
                     channel_for_text(handle, None, suppress_handler)
         else:

@@ -24,7 +24,7 @@ import imghdr
 import dbus
 import sha
 
-import pymsn.util.StringIO as StringIO
+import pymsn.util.string_io as StringIO
 
 logger = logging.getLogger('telepathy-butterfly:avatars')
 

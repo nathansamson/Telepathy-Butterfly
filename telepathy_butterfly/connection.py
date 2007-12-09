@@ -208,7 +208,7 @@ class ButterflyConnection(telepathy.server.Connection,
         self.check_parameters(parameters)
         
         account = unicode(parameters['account'])
-        server = (parameters['server'], parameters['port'])
+        server = (parameters['server'].encode('utf-8'), parameters['port'])
         
         proxies = {}
         
@@ -232,16 +232,18 @@ class ButterflyConnection(telepathy.server.Connection,
         self._handle_manager = HandleManager(self)
         self._channel_manager = ChannelManager(self)
         
-        self._account = (parameters['account'], parameters['password'])
+        self._account = (parameters['account'].encode('utf-8'),
+                parameters['password'].encode('utf-8'))
         self._initial_presence = pymsn.Presence.ONLINE
         self._initial_personal_message = ""
         
         self._manager = weakref.proxy(manager)
         self._pymsn_client = pymsn.Client(server, proxies)
-        event.ButterflyClientEventsHandler(self._pymsn_client, self)
-        event.ButterflyContactEventsHandler(self._pymsn_client, self)
-        event.ButterflyInviteEventsHandler(self._pymsn_client, self)
-        event.ButterflyAddressBookEventsHandler(self._pymsn_client, self)
+        self._event_handlers = [] 
+        self._event_handlers.append(event.ButterflyClientEventsHandler(self._pymsn_client, self))
+        self._event_handlers.append(event.ButterflyContactEventsHandler(self._pymsn_client, self))
+        self._event_handlers.append(event.ButterflyInviteEventsHandler(self._pymsn_client, self))
+        self._event_handlers.append(event.ButterflyAddressBookEventsHandler(self._pymsn_client, self))
 
         full_account = "#".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
         self_handle = self._handle_manager.handle_for_self(full_account)

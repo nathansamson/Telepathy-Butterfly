@@ -66,7 +66,7 @@ class ButterflyAddressBookEventsHandler(pymsn.event.AddressBookEventInterface):
     def on_addressbook_group_contact_added(self, group, contact):
         added = set()
 
-        handle = self._telepathy_connection._handle_for_contact(contact)
+        handle = self._telepathy_connection._handle_manager.handle_for_contact(contact)
         added.add(handle)
         
         channel = self._telepathy_connection._channel_manager.\
@@ -82,7 +82,7 @@ class ButterflyAddressBookEventsHandler(pymsn.event.AddressBookEventInterface):
     def on_addressbook_group_contact_deleted(self, group, contact):
         removed = set()
 
-        handle = self._telepathy_connection._handle_for_contact(contact)
+        handle = self._telepathy_connection._handle_manager.handle_for_contact(contact)
         removed.add(handle)
         
         channel = self._telepathy_connection._channel_manager.\
@@ -94,3 +94,4 @@ class ButterflyAddressBookEventsHandler(pymsn.event.AddressBookEventInterface):
         
         logger.debug("contact %s removed from group %s" % (handle.get_name(),
                                                                 group.name))
+

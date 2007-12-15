@@ -72,7 +72,7 @@ class ButterflyConnectionAliasing(
                 self.AliasesChanged(((self.GetSelfHandle(), alias), ))
 
     def contact_alias_changed(self, contact):
-        handle = self._handle_for_contact(contact)
+        handle = self._handle_manager.handle_for_contact(contact)
 
         alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
             get(ContactAnnotations.NICKNAME, None)

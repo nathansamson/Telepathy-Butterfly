@@ -146,6 +146,6 @@ class ButterflyConnectionPresence(
         if personal_message:
             arguments = {'message' : personal_message}
                 
-        handle = self._handle_for_contact(contact)
+        handle = self._handle_manager.handle_for_contact(contact)
         self.PresenceUpdate({handle: (0, {presence:arguments})}) 
 

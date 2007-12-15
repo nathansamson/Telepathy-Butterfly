@@ -65,7 +65,7 @@ class HandleManager(object):
             handle = telepathy.server.Handle(
                     self._connection.get_handle_id(),
                     telepathy.HANDLE_TYPE_CONTACT,
-                    account)
+                    account + "#" + str(pymsn.NetworkID.MSN))
             self._connection._handles[handle.get_type(), handle.get_id()] = \
                     handle
             logger.debug("New self handle %u %s" % \
@@ -75,19 +75,29 @@ class HandleManager(object):
             handle = self._self_handle
         return handle
 
-    def handle_for_contact(self, account):
-        if account in self._contacts_handles:
-            handle = self._contacts_handles[account]
+    def handle_for_contact(self, contact):
+        if contact in self._contacts_handles:
+            handle = self._contacts_handles[contact]
         else:
+            account = "#".join([contact.account, str(contact.network_id)])
             handle = telepathy.server.Handle(self._connection.get_handle_id(),
                     telepathy.HANDLE_TYPE_CONTACT,
                     account)
-            self._contacts_handles[account] = handle
+            self._contacts_handles[contact] = handle
             self._connection._handles[handle.get_type(), handle.get_id()] = \
                     handle
             logger.debug("New contact handle %u %s" % \
                     (handle.get_id(), handle.get_name()))
         return handle
+
+    def handle_for_contact_name(self, handle_name):
+        for contact, handle in self._contacts_handles.iteritems():
+            if handle_name == handle.get_name():
+                return handle
+            account, network_id = handle.get_name().rsplit('#', 1)
+            if handle_name == account:
+                return account
+        return None
     
     def handle_for_list(self, list_name):
         if list_name in self._list_handles:
@@ -263,7 +273,7 @@ class ButterflyConnection(telepathy.server.Connection,
         self.check_handle_type(handle_type)
         handles = []
         if handle_type == telepathy.HANDLE_TYPE_CONTACT:
-            get_handle = self._handle_manager.handle_for_contact
+            get_handle = self._handle_manager.handle_for_contact_name
         elif handle_type == telepathy.HANDLE_TYPE_LIST:
             get_handle = self._handle_manager.handle_for_list
         elif handle_type == telepathy.HANDLE_TYPE_GROUP:
@@ -350,9 +360,4 @@ class ButterflyConnection(telepathy.server.Connection,
         account, network = handle.get_name().split("#")
         return self._pymsn_client.address_book.contacts.\
             search_by_account(account).search_by_network_id(int(network))[0]
-
-    def _handle_for_contact(self, contact):
-        full_account = "#".join([contact.account, str(contact.network_id)])
-        return self._handle_manager.handle_for_contact(full_account)
-        
     

@@ -51,8 +51,7 @@ class ButterflyConnectionAvatars(\
         return result
 
     def RequestAvatars(self, contacts):
-        def on_msn_object_data_retrieved(msn_object):
-            handle = self._handle_for_contact(msn_object._creator)
+        def on_msn_object_data_retrieved(msn_object, handle):
             gobject.idle_add(self.msn_object_retrieved, handle, msn_object)
 
         for handle_id in contacts:
@@ -66,7 +65,7 @@ class ButterflyConnectionAvatars(\
                 msn_object = self._contact_for_handle(handle).msn_object
                 if msn_object is not None:
                     self._pymsn_client._msn_object_store.request(msn_object,\
-                            (on_msn_object_data_retrieved,))
+                            (on_msn_object_data_retrieved, handle))
 
     def SetAvatar(self, avatar, mime_type):
         if not isinstance(avatar, str):
@@ -91,7 +90,7 @@ class ButterflyConnectionAvatars(\
             avatar_token = contact.msn_object._data_sha.encode("hex")
         else:
             avatar_token = ""
-        handle = self._handle_for_contact(contact)
+        handle = self._handle_manager.handle_for_contact(contact)
         self.AvatarUpdated(handle, avatar_token)
 
     def self_msn_object_changed(self, avatar_token):
@@ -108,5 +107,5 @@ class ButterflyConnectionAvatars(\
             if type is None: type = 'jpeg'
             avatar = dbus.ByteArray(avatar)
             token = msn_object._data_sha.encode("hex")
-            self.AvatarRetrieved(handle, token, avatar, 'image/'+type)
+            self.AvatarRetrieved(handle, token, avatar, 'image/' + type)
         return False

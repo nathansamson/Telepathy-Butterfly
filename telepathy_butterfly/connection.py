@@ -255,8 +255,7 @@ class ButterflyConnection(telepathy.server.Connection,
         self._event_handlers.append(event.ButterflyInviteEventsHandler(self._pymsn_client, self))
         self._event_handlers.append(event.ButterflyAddressBookEventsHandler(self._pymsn_client, self))
 
-        full_account = "#".join([self._account[0], str(pymsn.profile.NetworkID.MSN)])
-        self_handle = self._handle_manager.handle_for_self(full_account)
+        self_handle = self._handle_manager.handle_for_self(self._account[0])
         self.set_self_handle(self_handle)
         logger.info("Connection to the account %s created" % account)
     

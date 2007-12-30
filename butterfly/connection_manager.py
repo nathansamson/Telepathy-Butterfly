@@ -21,11 +21,11 @@ import gobject
 import dbus
 import logging
 
-from telepathy_butterfly.connection import ButterflyConnection
+from butterfly.connection import ButterflyConnection
 
 __all__ = ['ButterflyConnectionManager']
 
-logger = logging.getLogger('telepathy-butterfly:connection_manager')
+logger = logging.getLogger('Butterfly.ConnectionManager')
 
 
 class ButterflyConnectionManager(telepathy.server.ConnectionManager):
@@ -44,7 +44,7 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
         "Returns the mandatory and optional parameters for the given proto."
         if proto not in self._protos:
             raise telepathy.NotImplemented('unknown protocol %s' % proto)
-        
+
         result = []
         connection_class = self._protos[proto]
         mandatory_parameters = connection_class._mandatory_parameters
@@ -71,8 +71,7 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
         return result
 
     def quit(self):
-        """
-        Terminates all connections. Must be called upon quit
-        """
+        "Terminates all connections. Must be called upon quit"
         for connection in self._connections:
             connection.Disconnect()
+        logger.info("Connection manager quitting")

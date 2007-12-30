@@ -16,70 +16,87 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import logging
 
 import telepathy
 import pymsn
-import logging
-
 from pymsn.service.description.AB.constants import \
     ContactGeneral, ContactAnnotations
 
-__all__ = ['ButterflyConnectionAliasing']
+from butterfly.handle import ButterflyHandleFactory
+from butterfly.util.decorator import async
 
-logger = logging.getLogger('telepathy-butterfly:aliasing')
+__all__ = ['ButterflyAliasing']
 
-class ButterflyConnectionAliasing(
-        telepathy.server.ConnectionInterfaceAliasing):
+logger = logging.getLogger('Butterfly.Aliasing')
+
+class ButterflyAliasing(
+        telepathy.server.ConnectionInterfaceAliasing,
+        pymsn.event.ContactEventInterface):
+
+    def __init__(self):
+        telepathy.server.ConnectionInterfaceAliasing.__init__(self)
+        pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
 
     def RequestAliases(self, contacts):
         result = []
         for handle_id in contacts:
-            handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            if handle == self.GetSelfHandle():
-                display_name = self._pymsn_client.profile.display_name
+            handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+            if handle == ButterflyHandleFactory(self, 'self'):
+                display_name = self.msn_client.profile.display_name
                 if display_name == "":
                     display_name = handle.get_name().split('@', 1)[0]
                     display_name = display_name.replace("_", " ")
                 result.append(unicode(display_name, 'utf-8'))
             else:
-                contact = self._contact_for_handle(handle)
-
+                contact = handle.contact
                 alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
                     get(ContactAnnotations.NICKNAME, None)
-
                 if alias == "" or alias is None:
                      alias = contact.display_name
-                     
-                result.append(alias)
+                result.append(unicode(alias, 'utf-8'))
         return result
-            
+
     def SetAliases(self, aliases):
         for handle_id, alias in aliases.iteritems():
-            handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            if handle != self.GetSelfHandle():
-                contact = self._contact_for_handle(handle)
+            handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+            if handle != ButterflyHandleFactory(self, 'self'):
+                contact = handle.contact
 
-                if alias == handle.get_name(): 
+                if alias == handle.name: 
                     alias = ""
                 infos = { ContactGeneral.ANNOTATIONS : \
                      { ContactAnnotations.NICKNAME : alias.encode('utf-8') }}
-                self._pymsn_client.address_book.\
+                self.msn_client.address_book.\
                     update_contact_infos(contact, infos)
             else:
-                self._pymsn_client.profile.display_name = alias
-                self.AliasesChanged(((self.GetSelfHandle(), alias), ))
+                self.msn_client.profile.display_name = alias
+                logger.info("Self alias changed to '%s'" % alias)
+                self.AliasesChanged(((ButterflyHandleFactory(self, 'self'), alias), ))
 
-    def contact_alias_changed(self, contact):
-        handle = self._handle_manager.handle_for_contact(contact)
+    # pymsn.event.ContactEventInterface
+    def on_contact_display_name_changed(self, contact):
+        self._contact_alias_changed(contact)
+
+    # pymsn.event.ContactEventInterface
+    def on_contact_infos_changed(self, contact, updated_infos):
+        alias = updated_infos.get(ContactGeneral.ANNOTATIONS, {}).\
+            get(ContactAnnotations.NICKNAME, None)
+
+        if alias is not None or alias != "":
+            self._contact_alias_changed(contact)
+
+    @async
+    def _contact_alias_changed(self, contact):
+        handle = ButterflyHandleFactory(self, 'contact', contact)
 
         alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
             get(ContactAnnotations.NICKNAME, None)
 
-        if alias == "" or alias is None or handle == self.GetSelfHandle():
+        if alias == "" or alias is None:
             alias = contact.display_name
-            
+
         alias = unicode(alias, 'utf-8')
+        logger.info("Contact %r alias changed to '%s'" % (handle, alias))
         self.AliasesChanged(((handle, alias), ))
 

@@ -1,0 +1,134 @@
+# telepathy-butterfly - an MSN connection manager for Telepathy
+#
+# Copyright (C) 2007 Ali Sabil <ali.sabil@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+import logging
+import weakref
+
+import telepathy
+import pymsn
+
+__all__ = ['ButterflyHandleFactory']
+
+logger = logging.getLogger('Butterfly.Handle')
+
+
+def ButterflyHandleFactory(connection, type, *args):
+    mapping = {'self': ButterflySelfHandle,
+               'contact': ButterflyContactHandle,
+               'list': ButterflyListHandle,
+               'group': ButterflyGroupHandle}
+    handle = mapping[type](connection, *args)
+    connection._handles[handle.get_type(), handle.get_id()] = handle
+    return handle
+
+
+class ButterflyHandleMeta(type):
+    def __call__(cls, connection, *args):
+        obj, newly_created = cls.__new__(cls, connection, *args)
+        if newly_created:
+            obj.__init__(connection, connection.get_handle_id(), *args)
+            logger.info("New Handle %r" % obj)
+        return obj 
+
+class ButterflyHandle(telepathy.server.Handle):
+    __metaclass__ = ButterflyHandleMeta
+
+    instances = weakref.WeakValueDictionary()
+    def __new__(cls, connection, *args):
+        key = (cls, connection._account, args)
+        if key not in cls.instances.keys():
+            instance = object.__new__(cls, connection, *args)
+            cls.instances[key] = instance # TRICKY: instances is a weakdict
+            return instance, True
+        return cls.instances[key], False
+
+    def __init__(self, connection, id, handle_type, name):
+        telepathy.server.Handle.__init__(self, id, handle_type, name)
+        self._conn = weakref.proxy(connection)
+
+    def __repr__(self):
+        type_mapping = {telepathy.HANDLE_TYPE_CONTACT : 'Contact',
+                telepathy.HANDLE_TYPE_ROOM : 'Room',
+                telepathy.HANDLE_TYPE_LIST : 'List',
+                telepathy.HANDLE_TYPE_GROUP : 'Group'}
+        type_str = type_mapping.get(self.type, '')
+        return "<Butterfly%sHandle id=%u name='%s'>" % \
+            (type_str, self.id, self.name)
+
+    id = property(telepathy.server.Handle.get_id)
+    type = property(telepathy.server.Handle.get_type)
+    name = property(telepathy.server.Handle.get_name)
+
+
+class ButterflySelfHandle(ButterflyHandle):
+    instance = None
+
+    def __init__(self, connection, id):
+        handle_type = telepathy.HANDLE_TYPE_CONTACT
+        handle_name = connection._account[0] + "#" + str(pymsn.NetworkID.MSN)
+        self._connection = connection
+        ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
+
+    @property
+    def profile(self):
+        return self._connection.msn_client.profile
+
+
+class ButterflyContactHandle(ButterflyHandle):
+    def __init__(self, connection, id, contact):
+        handle_type = telepathy.HANDLE_TYPE_CONTACT
+        if isinstance(contact, basestring):
+            name = contact.rsplit('#', 1)
+            contacts = connection.msn_client.address_book.contacts.\
+                    search_by_account(name[0])
+            if len(name) > 1:
+                network_id = int(name[1])
+                contacts = contacts.search_by_network_id(network_id)
+            if len(contacts) > 0:
+                contact = contacts[0]
+            else:
+                # FIXME: Handle unknown contacts by creating them
+                raise telepathy.NotImplemented('Contact adding not supported')
+        handle_name = "#".join([contact.account, str(contact.network_id)])
+        self._contact = contact
+        ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
+
+    @property
+    def contact(self):
+        return self._contact
+
+
+class ButterflyListHandle(ButterflyHandle):
+    def __init__(self, connection, id, list_name):
+        handle_type = telepathy.HANDLE_TYPE_LIST
+        handle_name = list_name
+        ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
+
+
+class ButterflyGroupHandle(ButterflyHandle):
+    def __init__(self, connection, id, group_name):
+        handle_type = telepathy.HANDLE_TYPE_GROUP
+        handle_name = group_name
+        ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
+
+    @property
+    def group(self):
+        for group in self._conn.msn_client.address_book.groups:
+            if group.name == self.name:
+                return group
+        return None

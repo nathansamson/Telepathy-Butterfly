@@ -16,16 +16,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import logging
+import time
 
 import telepathy
 import pymsn
-import logging
 
-__all__ = ['ButterflyConnectionPresence']
+from butterfly.handle import ButterflyHandleFactory
+from butterfly.util.decorator import async
 
-logger = logging.getLogger('telepathy-butterfly:presence')
+__all__ = ['ButterflyPresence']
 
-class ButterflyPresence(object):
+logger = logging.getLogger('Butterfly.Presence')
+
+class ButterflyPresenceMapping(object):
     ONLINE = 'available'
     AWAY = 'away'
     BUSY = 'dnd'
@@ -36,7 +40,7 @@ class ButterflyPresence(object):
     INVISIBLE = 'hidden'
     OFFLINE = 'offline'
 
-    telepathy_to_pymsn = {
+    to_pymsn = {
             ONLINE:     pymsn.Presence.ONLINE,
             AWAY:       pymsn.Presence.AWAY,
             BUSY:       pymsn.Presence.BUSY,
@@ -48,7 +52,7 @@ class ButterflyPresence(object):
             OFFLINE:    pymsn.Presence.OFFLINE
             }
 
-    pymsn_to_telepathy = {
+    to_telepathy = {
             pymsn.Presence.ONLINE:         ONLINE,
             pymsn.Presence.AWAY:           AWAY,
             pymsn.Presence.BUSY:           BUSY,
@@ -60,8 +64,13 @@ class ButterflyPresence(object):
             pymsn.Presence.OFFLINE:        OFFLINE
             }
 
-class ButterflyConnectionPresence(
-        telepathy.server.ConnectionInterfacePresence):
+
+class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
+        pymsn.event.ContactEventInterface):
+
+    def __init__(self):
+        telepathy.server.ConnectionInterfacePresence.__init__(self)
+        pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
 
     def GetStatuses(self):
         # the arguments are in common to all on-line presences
@@ -70,31 +79,31 @@ class ButterflyConnectionPresence(
         # you get one of these for each status
         # {name:(type, self, exclusive, {argument:types}}
         return {
-            ButterflyPresence.ONLINE:(
+            ButterflyPresenceMapping.ONLINE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_AVAILABLE,
                 True, True, arguments),
-            ButterflyPresence.AWAY:(
+            ButterflyPresenceMapping.AWAY:(
                 telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
                 True, True, arguments),
-            ButterflyPresence.BUSY:(
+            ButterflyPresenceMapping.BUSY:(
                 telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
                 True, True, arguments),
-            ButterflyPresence.IDLE:(
+            ButterflyPresenceMapping.IDLE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
                 True, True, arguments),
-            ButterflyPresence.BRB:(
+            ButterflyPresenceMapping.BRB:(
                 telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
                 True, True, arguments),
-            ButterflyPresence.PHONE:(
+            ButterflyPresenceMapping.PHONE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
                 True, True, arguments),
-            ButterflyPresence.LUNCH:(
+            ButterflyPresenceMapping.LUNCH:(
                 telepathy.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
                 True, True, arguments),
-            ButterflyPresence.INVISIBLE:(
+            ButterflyPresenceMapping.INVISIBLE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_HIDDEN,
                 True, True, {}),
-            ButterflyPresence.OFFLINE:(
+            ButterflyPresenceMapping.OFFLINE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_OFFLINE,
                 True, True, {})
         }
@@ -108,27 +117,30 @@ class ButterflyConnectionPresence(
 
     def SetStatus(self, statuses):
         status, arguments = statuses.items()[0]
-        if status == ButterflyPresence.OFFLINE:
+        if status == ButterflyPresenceMapping.OFFLINE:
             self.Disconnect()
 
-        presence = ButterflyPresence.telepathy_to_pymsn[status]
+        presence = ButterflyPresenceMapping.to_pymsn[status]
         message = arguments.get('message', u'').encode("utf-8")
 
-        logger.debug("SetStatus: presence='%s', message='%s'" % (presence, message))
+        logger.info("Setting Presence to '%s'" % presence)
+        logger.info("Setting Personal message to '%s'" % message)
+
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:
             self._initial_presence = presence
             self._initial_personal_message = message
         else:
-            self._pymsn_client.profile.personal_message = message
-            self._pymsn_client.profile.presence = presence
+            self.msn_client.profile.personal_message = message
+            self.msn_client.profile.presence = presence
+            self._presence_changed(ButterflyHandleFactory(self, 'self'),
+                    presence, message)
 
     def get_presences(self, contacts):
         presences = {}
         for handle_id in contacts:
-            handle = self._handle_manager.handle_for_handle_id(
-                    telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            contact = self._contact_for_handle(handle)
-            presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
+            handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+            contact = handle.contact
+            presence = ButterflyPresenceMapping.to_telepathy[contact.presence]
             personal_message = unicode(contact.personal_message, "utf-8")
 
             arguments = {}
@@ -138,14 +150,23 @@ class ButterflyConnectionPresence(
             presences[handle] = (0, {presence : arguments}) # TODO: Timestamp
         return presences
 
-    def contact_presence_changed(self, contact):
-        presence = ButterflyPresence.pymsn_to_telepathy[contact.presence]
-        personal_message = unicode(contact.personal_message, "utf-8")
-            
+    # pymsn.event.ContactEventInterface
+    def on_contact_presence_changed(self, contact):
+        handle = ButterflyHandleFactory(self, 'contact', contact)
+        logger.info("Contact %r presence changed to '%s'" % (handle, contact.presence))
+        self._presence_changed(handle, contact.presence, contact.personal_message)
+
+    # pymsn.event.ContactEventInterface
+    on_contact_personal_message_changed = on_contact_presence_changed
+
+    @async
+    def _presence_changed(self, handle, presence, personal_message):
+        presence = ButterflyPresenceMapping.to_telepathy[presence]
+        personal_message = unicode(personal_message, "utf-8")
+
         arguments = {}
         if personal_message:
             arguments = {'message' : personal_message}
-                
-        handle = self._handle_manager.handle_for_contact(contact)
-        self.PresenceUpdate({handle: (0, {presence:arguments})}) 
+
+        self.PresenceUpdate({handle: (int(time.time()), {presence:arguments})})
 

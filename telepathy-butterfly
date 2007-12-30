@@ -26,7 +26,8 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from telepathy_butterfly import ButterflyConnectionManager
+from butterfly import ButterflyConnectionManager
+from butterfly.util.decorator import async
 
 logger = logging.getLogger('telepathy-butterfly')
 
@@ -40,15 +41,16 @@ if __name__ == '__main__':
 
     manager = ButterflyConnectionManager()
     mainloop = gobject.MainLoop(is_running=True)
-    
+
+    @async
     def quit_cb():
         manager.quit()
         mainloop.quit()
-        return False
 
-    signal.signal(signal.SIGTERM, lambda : gobject.idle_add(quit_cb))
-    
-    try:
-        mainloop.run()
-    except KeyboardInterrupt:
-        quit_cb()
+    signal.signal(signal.SIGTERM, lambda : quit_cb)
+
+    while mainloop.is_running():
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            quit_cb()

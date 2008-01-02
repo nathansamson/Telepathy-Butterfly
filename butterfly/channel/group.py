@@ -47,7 +47,7 @@ class ButterflyGroupChannel(ButterflyListChannel,
         @async
         def create_group():
             if handle.group is None:
-                connection.msn_client.address_book.add_group(handle.get_name())
+                connection.msn_client.address_book.add_group(handle.name)
         create_group()
 
     def AddMembers(self, contacts, message):
@@ -97,31 +97,31 @@ class ButterflyGroupChannel(ButterflyListChannel,
                 ab.delete_contact_from_group(group, contact)
 
     def Close(self):
-        logger.debug("Deleting group %s" % self._handle.get_name())
+        logger.debug("Deleting group %s" % self._handle.name)
         ab = self._conn.msn_client.address_book
         group = self._handle.group
         ab.delete_group(group)
 
-    def _filter(self, contact):
+    def _filter_contact(self, contact):
         for group in contact.groups:
-            if group.name == self._handle.get_name():
-                return [True, False, False]
-        return False
+            if group.name == self._handle.name:
+                return (True, False, False)
+        return (False, False, False)
 
     def on_addressbook_group_added(self, group):
-        if group.name == self._handle.get_name():
+        if group.name == self._handle.name:
             self.AddMembers(self.__pending_add, None)
             self.__pending_add = []
             self.RemoveMembers(self.__pending_remove, None)
             self.__pending_remove = []
 
     def on_addressbook_group_deleted(self, group):
-        if group.name == self._handle.get_name():
+        if group.name == self._handle.name:
             self.Closed()
             self._conn.remove_channel(self)
 
     def on_addressbook_group_contact_added(self, group, contact):
-        if group.name == self._handle.get_name():
+        if group.name == self._handle.name:
             handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
 
             added = set()
@@ -130,11 +130,11 @@ class ButterflyGroupChannel(ButterflyListChannel,
             self.MembersChanged('', added, (), (), (), 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
-            logger.debug("Contact %s added to group %s" % (handle.get_name(),
+            logger.debug("Contact %s added to group %s" % (handle.name,
                     group.name))
 
     def on_addressbook_group_contact_deleted(self, group, contact):
-        if group.name == self._handle.get_name():
+        if group.name == self._handle.name:
             handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
 
             removed = set()
@@ -143,6 +143,6 @@ class ButterflyGroupChannel(ButterflyListChannel,
             self.MembersChanged('', (), removed, (), (), 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
-            logger.debug("Contact %s removed from group %s" % (handle.get_name(),
+            logger.debug("Contact %s removed from group %s" % (handle.name,
                     group.name))
 

@@ -135,8 +135,7 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
             contact = handle.contact
             if contact is None:
                 account = handle.name.split("#", 1)[0]
-            elif contact.is_member(pymsn.Membership.PENDING) or \
-                contact.is_member(pymsn.Membership.FORWARD):
+            elif contact.is_member(pymsn.Membership.FORWARD):
                 continue
             else:
                 account = contact.account
@@ -175,7 +174,7 @@ class ButterflyPublishListChannel(ButterflyListChannel,
             contact_handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT,
                         contact_handle_id)
             contact = contact_handle.contact
-            ab.accept_contact_invitation(contact)
+            ab.accept_contact_invitation(contact, False)
 
     def RemoveMembers(self, contacts, message):
         ab = self._conn.msn_client.address_book

@@ -45,12 +45,13 @@ class ButterflyHandleMeta(type):
             logger.info("New Handle %r" % obj)
         return obj 
 
+
 class ButterflyHandle(telepathy.server.Handle):
     __metaclass__ = ButterflyHandleMeta
 
     instances = weakref.WeakValueDictionary()
     def __new__(cls, connection, *args):
-        key = (cls, connection._account, args)
+        key = (cls, connection._account[0], args)
         if key not in cls.instances.keys():
             instance = object.__new__(cls, connection, *args)
             cls.instances[key] = instance # TRICKY: instances is a weakdict
@@ -92,18 +93,6 @@ class ButterflySelfHandle(ButterflyHandle):
 class ButterflyContactHandle(ButterflyHandle):
     def __init__(self, connection, id, contact):
         handle_type = telepathy.HANDLE_TYPE_CONTACT
-        if isinstance(contact, basestring):
-            name = contact.rsplit('#', 1)
-            contacts = connection.msn_client.address_book.contacts.\
-                    search_by_account(name[0])
-            if len(name) > 1:
-                network_id = int(name[1])
-                contacts = contacts.search_by_network_id(network_id)
-            if len(contacts) > 0:
-                contact = contacts[0]
-            else:
-                # FIXME: Handle unknown contacts by creating them
-                raise telepathy.NotImplemented('Contact adding not supported')
         handle_name = "#".join([contact.account, str(contact.network_id)])
         self._contact = contact
         ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
@@ -132,3 +121,4 @@ class ButterflyGroupHandle(ButterflyHandle):
             if group.name == self.name:
                 return group
         return None
+

@@ -139,7 +139,10 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         presences = {}
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            contact = handle.contact
+            try:
+                contact = handle.contact
+            except AttributeError:
+                contact = handle.profile
             presence = ButterflyPresenceMapping.to_telepathy[contact.presence]
             personal_message = unicode(contact.personal_message, "utf-8")
 

@@ -102,18 +102,11 @@ class ButterflyGroupChannel(ButterflyListChannel,
         group = self._handle.group
         ab.delete_group(group)
 
-    def on_addressbook_messenger_contact_added(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
-
-        added = set()
+    def _filter(self, contact):
         for group in contact.groups:
             if group.name == self._handle.get_name():
-                added.add(handle)
-                break
-
-        if added:
-            self.MembersChanged('', added, (), (), (), 0,
-                                telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+                return [True, False, False]
+        return False
 
     def on_addressbook_group_added(self, group):
         if group.name == self._handle.get_name():

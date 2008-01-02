@@ -78,9 +78,8 @@ class ButterflyListChannel(
     # pymsn.event.AddressBookEventInterface
     def on_addressbook_contact_deleted(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
-        members, local_pending, remote_pending = self.GetAllMembers()
-        if (handle in members) or (handle in local_pending) or (handle in remote_pending):
-            self.MembersChanged('', (), [handle], (), remote_pending, 0,
+        if self._contains_handle(handle):
+            self.MembersChanged('', (), [handle], (), (), 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
     # pymsn.event.AddressBookEventInterface
@@ -109,8 +108,14 @@ class ButterflyListChannel(
     def _filter_contact(self, contact):
         return (False, False, False)
 
+    def _contains_handle(self, handle):
+        members, local_pending, remote_pending = self.GetAllMembers()
+        return (handle in members) or (handle in local_pending) or \
+                (handle in remote_pending)
 
-class ButterflySubscribeListChannel(ButterflyListChannel):
+
+class ButterflySubscribeListChannel(ButterflyListChannel,
+        pymsn.event.ContactEventInterface):
     """Subscribe List channel.
 
     This channel contains the list of contact to whom the current used is
@@ -119,8 +124,24 @@ class ButterflySubscribeListChannel(ButterflyListChannel):
 
     def __init__(self, connection, handle):
         ButterflyListChannel.__init__(self, connection, handle)
+        pymsn.event.ContactEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD |
                 telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
+
+    def AddMembers(self, contacts, message):
+        ab = self._conn.msn_client.address_book
+        for h in contacts:
+            handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, h)
+            contact = handle.contact
+            if contact is None:
+                account = handle.name.split("#", 1)[0]
+            elif contact.is_member(pymsn.Membership.PENDING) or \
+                contact.is_member(pymsn.Membership.FORWARD):
+                continue
+            else:
+                account = contact.account
+            ab.add_messenger_contact(account,
+                    invite_message=message.encode('utf-8'))
 
     def RemoveMembers(self, contacts, message):
         ab = self._conn.msn_client.address_book
@@ -132,17 +153,38 @@ class ButterflySubscribeListChannel(ButterflyListChannel):
     def _filter_contact(self, contact):
         return (contact.is_member(pymsn.Membership.FORWARD), False, False)
 
+    # pymsn.event.ContactEventInterface
+    def on_contact_memberships_changed(self, contact):
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+        if contact.is_member(pymsn.Membership.FORWARD):
+            self.MembersChanged('', [handle], (), (), (), 0,
+                    telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
-class ButterflyPublishListChannel(ButterflyListChannel):
+
+class ButterflyPublishListChannel(ButterflyListChannel,
+        pymsn.event.ContactEventInterface):
 
     def __init__(self, connection, handle):
         ButterflyListChannel.__init__(self, connection, handle)
+        pymsn.event.ContactEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(0, 0)
 
-    def _filter_contact(self, contact):
-        return (contact.is_member(pymsn.Membership.REVERSE),
-                contact.is_member(pymsn.Membership.PENDING),
-                False)
+    def AddMembers(self, contacts, message):
+        ab = self._conn.msn_client.address_book
+        for contact_handle_id in contacts:
+            contact_handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT,
+                        contact_handle_id)
+            contact = contact_handle.contact
+            ab.accept_contact_invitation(contact)
+
+    def RemoveMembers(self, contacts, message):
+        ab = self._conn.msn_client.address_book
+        for contact_handle_id in contacts:
+            contact_handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT,
+                        contact_handle_id)
+            contact = contact_handle.contact
+            if contact.is_member(pymsn.Membership.PENDING):
+                ab.decline_contact_invitation(contact)
 
     def GetLocalPendingMembersWithInfo(self):
         result = []
@@ -155,3 +197,25 @@ class ButterflyPublishListChannel(ButterflyListChannel):
                     contact.attributes.get('invite_message', '')))
         return result
 
+    def _filter_contact(self, contact):
+        return (contact.is_member(pymsn.Membership.REVERSE),
+                contact.is_member(pymsn.Membership.PENDING),
+                False)
+
+    # pymsn.event.ContactEventInterface
+    def on_contact_memberships_changed(self, contact):
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+        if self._contains_handle(handle):
+            contact = handle.contact
+            if contact.is_member(pymsn.Membership.PENDING):
+                # Nothing worth our attention
+                return
+
+            if contact.is_member(pymsn.Membership.FORWARD):
+                # Contact accepted
+                self.MembersChanged('', [handle], (), (), (), 0,
+                        telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
+            else:
+                # Contact rejected
+                self.MembersChanged('', (), [handle], (), (), 0,
+                        telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)

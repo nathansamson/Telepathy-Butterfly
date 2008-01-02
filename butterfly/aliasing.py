@@ -62,6 +62,9 @@ class ButterflyAliasing(
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle != ButterflyHandleFactory(self, 'self'):
                 contact = handle.contact
+                # FIXME: we don't want this, do we ? 
+                if contact.id == "00000000-0000-0000-0000-000000000000":
+                    continue
 
                 if alias == handle.name: 
                     alias = ""

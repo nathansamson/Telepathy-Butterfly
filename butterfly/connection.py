@@ -230,6 +230,9 @@ class ButterflyConnection(telepathy.server.Connection,
         handle = ButterflyHandleFactory(self, 'contact', participant)
         channel = self._channel_manager.channel_for_text(handle, conversation)
 
+    def _advertise_disconnected(self):
+        self._manager.disconnected(self)
+
 
 def build_proxy_infos(self, parameters, proxy_type='http'):
     server_key = proxy_type + '-proxy-server'

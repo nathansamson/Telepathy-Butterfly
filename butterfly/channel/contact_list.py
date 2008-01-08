@@ -149,10 +149,12 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
         for h in contacts:
             handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, h)
             contact = handle.contact
-            ab.delete_contact(contact)
+            if contact.is_member(pymsn.Membership.FORWARD):
+                ab.delete_contact(contact)
 
     def _filter_contact(self, contact):
-        return (contact.is_member(pymsn.Membership.FORWARD), False, False)
+        return (contact.is_member(pymsn.Membership.FORWARD) and not
+                contact.is_member(pymsn.Membership.PENDING), False, False)
 
     # pymsn.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):

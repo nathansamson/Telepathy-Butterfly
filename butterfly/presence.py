@@ -143,8 +143,13 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
                 contact = handle.contact
             except AttributeError:
                 contact = handle.profile
-            presence = ButterflyPresenceMapping.to_telepathy[contact.presence]
-            personal_message = unicode(contact.personal_message, "utf-8")
+
+            if contact is not None:
+                presence = ButterflyPresenceMapping.to_telepathy[contact.presence]
+                personal_message = unicode(contact.personal_message, "utf-8")
+            else:
+                presence = ButterflyPresenceMapping.OFFLINE
+                personal_message = u""
 
             arguments = {}
             if personal_message:
@@ -155,7 +160,8 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
 
     # pymsn.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):
-        handle = ButterflyHandleFactory(self, 'contact', contact)
+        handle = ButterflyHandleFactory(self, 'contact',
+                contact.account, contact.network_id)
         logger.info("Contact %r presence changed to '%s'" % (handle, contact.presence))
         self._presence_changed(handle, contact.presence, contact.personal_message)
 

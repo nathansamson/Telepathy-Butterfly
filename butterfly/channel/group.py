@@ -122,7 +122,8 @@ class ButterflyGroupChannel(ButterflyListChannel,
 
     def on_addressbook_group_contact_added(self, group, contact):
         if group.name == self._handle.name:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                    contact.account, contact.network_id)
 
             added = set()
             added.add(handle)
@@ -135,7 +136,8 @@ class ButterflyGroupChannel(ButterflyListChannel,
 
     def on_addressbook_group_contact_deleted(self, group, contact):
         if group.name == self._handle.name:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                    contact.account, contact.network_id)
 
             removed = set()
             removed.add(handle)

@@ -50,11 +50,14 @@ class ButterflyAliasing(
                 result.append(unicode(display_name, 'utf-8'))
             else:
                 contact = handle.contact
-                alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
-                    get(ContactAnnotations.NICKNAME, None)
-                if alias == "" or alias is None:
-                     alias = contact.display_name
-                result.append(unicode(alias, 'utf-8'))
+                if contact is None:
+                    result.append(unicode(handle.account, 'utf-8'))
+                else:
+                    alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
+                        get(ContactAnnotations.NICKNAME, None)
+                    if alias == "" or alias is None:
+                         alias = contact.display_name
+                    result.append(unicode(alias, 'utf-8'))
         return result
 
     def SetAliases(self, aliases):
@@ -62,6 +65,9 @@ class ButterflyAliasing(
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle != ButterflyHandleFactory(self, 'self'):
                 contact = handle.contact
+                # FIXME: we would maybe like to queue it until the contact is created ?
+                if contact is None:
+                    continue
                 # FIXME: we don't want this, do we ? 
                 if contact.id == "00000000-0000-0000-0000-000000000000":
                     continue
@@ -91,7 +97,8 @@ class ButterflyAliasing(
 
     @async
     def _contact_alias_changed(self, contact):
-        handle = ButterflyHandleFactory(self, 'contact', contact)
+        handle = ButterflyHandleFactory(self, 'contact',
+                contact.account, contact.network_id)
 
         alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
             get(ContactAnnotations.NICKNAME, None)

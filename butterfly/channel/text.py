@@ -75,21 +75,24 @@ class ButterflyTextChannel(
 
     # pymsn.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                contact.account, contact.network_id)
         logger.info("User %r joined" % handle)
         self.MembersChanged('', [handle], [], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
     # pymsn.event.ConversationEventInterface
     def on_conversation_user_left(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                contact.account, contact.network_id)
         logger.info("User %r left" % handle)
         self.MembersChanged('', [], [handle], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
     # pymsn.event.ConversationEventInterface
     def on_conversation_user_typing(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', contact)
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                contact.account, contact.network_id)
         logger.info("User %r is typing" % handle)
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
@@ -97,7 +100,8 @@ class ButterflyTextChannel(
     def on_conversation_message_received(self, sender, message):
         id = self._recv_id
         timestamp = int(time.time())
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', sender)
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         message = message.content
         logger.info("User %r sent a message" % handle)
@@ -108,7 +112,8 @@ class ButterflyTextChannel(
     def on_conversation_nudge_received(self, sender):
         id = self._recv_id
         timestamp = int(time.time())
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact', sender)
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
         text = unicode(_("sends you a nudge"), "utf-8")
         logger.info("User %r sent a nudge" % handle)
@@ -119,7 +124,8 @@ class ButterflyTextChannel(
     def __add_initial_participants(self):
         handles = []
         for participant in self._conversation.participants:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact', participant)
+            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                    participant.account, participant.network_id)
             handles.append(handle)
         self.MembersChanged('', handles, [], [], [],
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)

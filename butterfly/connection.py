@@ -138,17 +138,21 @@ class ButterflyConnection(telepathy.server.Connection,
         for name in names:
             if handle_type == telepathy.HANDLE_TYPE_CONTACT:
                 contact_name = name.rsplit('#', 1)
-                contacts = connection.msn_client.address_book.contacts.\
+                contacts = self.msn_client.address_book.contacts.\
                         search_by_account(contact_name[0])
                 if len(contact_name) > 1:
                     network_id = int(contact_name[1])
                     contacts = contacts.search_by_network_id(network_id)
+                else:
+                    network_id = pymsn.NetworkID.MSN
+
                 if len(contacts) > 0:
                     contact = contacts[0]
+                    handle = ButterflyHandleFactory(self, 'contact',
+                            contact.account, contact.network_id)
                 else:
-                    # FIXME: Handle unknown contacts by creating them
-                    raise telepathy.NotImplemented('Contact adding not supported')
-                handle = ButterflyHandleFactory(self, 'contact', contact)
+                    handle = ButterflyHandleFactory(self, 'contact',
+                            contact_name[0], network_id)
             elif handle_type == telepathy.HANDLE_TYPE_LIST:
                 handle = ButterflyHandleFactory(self, 'list', name)
             elif handle_type == telepathy.HANDLE_TYPE_GROUP:
@@ -238,7 +242,8 @@ class ButterflyConnection(telepathy.server.Connection,
         for p in participants:
             participant = p
             break
-        handle = ButterflyHandleFactory(self, 'contact', participant)
+        handle = ButterflyHandleFactory(self, 'contact',
+                participant.account, participant.network_id)
         channel = self._channel_manager.channel_for_text(handle, conversation)
 
     def _advertise_disconnected(self):

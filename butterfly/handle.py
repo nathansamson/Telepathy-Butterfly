@@ -91,15 +91,21 @@ class ButterflySelfHandle(ButterflyHandle):
 
 
 class ButterflyContactHandle(ButterflyHandle):
-    def __init__(self, connection, id, contact):
+    def __init__(self, connection, id, contact_account, contact_network):
         handle_type = telepathy.HANDLE_TYPE_CONTACT
-        handle_name = "#".join([contact.account, str(contact.network_id)])
-        self._contact = contact
+        handle_name = "#".join([contact_account, str(contact_network)])
+        self.account = contact_account
+        self.network = contact_network
         ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
 
     @property
     def contact(self):
-        return self._contact
+        result = self._conn.msn_client.address_book.contacts.\
+                search_by_account(self.account).\
+                search_by_network_id(self.network)
+        if len(result) == 0:
+            return None
+        return result[0]
 
 
 class ButterflyListHandle(ButterflyHandle):

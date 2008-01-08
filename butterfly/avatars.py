@@ -51,9 +51,15 @@ class ButterflyAvatars(\
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle == self.GetSelfHandle():
-                msn_object = handle.profile.msn_object
+                contact = handle.profile
             else:
-                msn_object = handle.contact.msn_object
+                contact = handle.contact
+
+            if contact is not None:
+                msn_object = contact.msn_object
+            else:
+                msn_object = None
+            
             if msn_object is not None:
                 result[handle] = msn_object._data_sha.encode("hex")
             else:
@@ -68,7 +74,11 @@ class ButterflyAvatars(\
                 if msn_object is not None:
                     self._msn_object_retrieved(msn_object, handle)
             else:
-                msn_object = handle.contact.msn_object
+                contact = handle.contact
+                if contact is not None:
+                    msn_object = contact.msn_object
+                else:
+                    msn_object = None
                 if msn_object is not None:
                     self.msn_client.msn_object_store.request(msn_object,\
                             (self._msn_object_retrieved, handle))
@@ -97,7 +107,8 @@ class ButterflyAvatars(\
             avatar_token = contact.msn_object._data_sha.encode("hex")
         else:
             avatar_token = ""
-        handle = ButterflyHandleFactory(self, 'contact', contact)
+        handle = ButterflyHandleFactory(self, 'contact',
+                contact.account, contact.network_id)
         self.AvatarUpdated(handle, avatar_token)
 
     @async

@@ -21,6 +21,7 @@
 import gobject
 import dbus.glib
 import signal
+import os
 
 import logging
 
@@ -29,28 +30,39 @@ logging.basicConfig(level=logging.DEBUG)
 from butterfly import ButterflyConnectionManager
 from butterfly.util.decorator import async
 
-logger = logging.getLogger('telepathy-butterfly')
+logger = logging.getLogger('Butterfly')
+
+IDLE_TIMEOUT = 5000
+PROCESS_NAME = 'telepathy-butterfly'
 
 if __name__ == '__main__':
-    #try: # change process name for killall
-    #   import ctypes
-    #   libc = ctypes.CDLL('libc.so.6')
-    #   libc.prctl(15, 'telepathy-butterfly', 0, 0, 0)
-    #except Exception, e:
-    #   logger.warning('Unable to set processName: %s" % e')
-
-    manager = ButterflyConnectionManager()
-    mainloop = gobject.MainLoop(is_running=True)
+    try: # change process name for killall
+       import ctypes
+       libc = ctypes.CDLL('libc.so.6')
+       libc.prctl(15, PROCESS_NAME, 0, 0, 0)
+    except Exception, e:
+       logger.warning('Unable to set processName: %s" % e')
 
     @async
-    def quit_cb():
+    def quit():
         manager.quit()
         mainloop.quit()
 
-    signal.signal(signal.SIGTERM, lambda : quit_cb)
+    if 'BUTTERFLY_PERSIST' not in os.environ:
+        def timeout_cb():
+            if len(manager._connections) == 0:
+                logger.info('No connection received - quitting')
+                quit()
+            return False
+        gobject.timeout_add(IDLE_TIMEOUT, timeout_cb)
+
+    signal.signal(signal.SIGTERM, lambda : quit)
+
+    manager = ButterflyConnectionManager(quit)
+    mainloop = gobject.MainLoop(is_running=True)
 
     while mainloop.is_running():
         try:
             mainloop.run()
         except KeyboardInterrupt:
-            quit_cb()
+            quit()

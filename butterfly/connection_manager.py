@@ -33,11 +33,12 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
     
     Implements the org.freedesktop.Telepathy.ConnectionManager interface"""
 
-    def __init__(self):
+    def __init__(self, shutdown_func=None):
         "Initializer"
         telepathy.server.ConnectionManager.__init__(self, 'butterfly')
 
         self._protos['msn'] = ButterflyConnection
+        self._shutdown = shutdown_func
         logger.info("Connection manager created")
 
     def GetParameters(self, proto):
@@ -69,6 +70,15 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
             result.append(param)
 
         return result
+
+    def disconnected(self, conn):
+        def shutdown():
+            if self._shutdown is not None and \
+                    len(self._connections) == 0:
+                self._shutdown()
+            return False
+        result = telepathy.server.ConnectionManager.disconnected(self, conn)
+        gobject.timeout_add(5000, shutdown)
 
     def quit(self):
         "Terminates all connections. Must be called upon quit"

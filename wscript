@@ -8,8 +8,8 @@ blddir = '_build_'
 
 import Scripting
 
-Scripting.g_gz = 'bz2'
-Scripting.g_excludes.extend(['pymsn', 'telepathy'])
+Scripting.g_gz = 'gz'
+Scripting.g_excludes.extend(['pymsn', 'telepathy', 'dist'])
 
 
 def set_options(opt):

@@ -136,15 +136,17 @@ class ButterflyConnection(telepathy.server.Connection,
 
         handles = []
         for name in names:
+            name = name.encode('utf-8')
             if handle_type == telepathy.HANDLE_TYPE_CONTACT:
-                contact_name = name.rsplit('#', 1)
-                contacts = self.msn_client.address_book.contacts.\
-                        search_by_account(contact_name[0])
-                if len(contact_name) > 1:
+                name = name.rsplit('#', 1)
+                contact_name = name[0]
+                if len(name) > 1:
                     network_id = int(contact_name[1])
-                    contacts = contacts.search_by_network_id(network_id)
                 else:
                     network_id = pymsn.NetworkID.MSN
+                contacts = self.msn_client.address_book.contacts.\
+                        search_by_account(contact_name).\
+                        search_by_network_id(network_id)
 
                 if len(contacts) > 0:
                     contact = contacts[0]
@@ -152,7 +154,7 @@ class ButterflyConnection(telepathy.server.Connection,
                             contact.account, contact.network_id)
                 else:
                     handle = ButterflyHandleFactory(self, 'contact',
-                            contact_name[0], network_id)
+                            contact_name, network_id)
             elif handle_type == telepathy.HANDLE_TYPE_LIST:
                 handle = ButterflyHandleFactory(self, 'list', name)
             elif handle_type == telepathy.HANDLE_TYPE_GROUP:

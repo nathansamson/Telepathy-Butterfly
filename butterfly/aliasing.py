@@ -51,7 +51,7 @@ class ButterflyAliasing(
             else:
                 contact = handle.contact
                 if contact is None:
-                    result.append(handle.account)
+                    result.append(unicode(handle.account, 'utf-8'))
                 else:
                     alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
                         get(ContactAnnotations.NICKNAME, None)

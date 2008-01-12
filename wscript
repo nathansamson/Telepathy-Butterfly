@@ -25,8 +25,6 @@ def configure(conf):
     conf.define('VERSION', VERSION)
     conf.define('PACKAGE', APPNAME)
 
-    print conf.env
-
 def build(bld):
     bld.add_subdirs('butterfly data')
     install_files('LIBEXECDIR', '', 'telepathy-butterfly', chmod=0755)

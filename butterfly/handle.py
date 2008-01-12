@@ -96,6 +96,7 @@ class ButterflyContactHandle(ButterflyHandle):
         handle_name = "#".join([contact_account, str(contact_network)])
         self.account = contact_account
         self.network = contact_network
+        self.pending_groups = set()
         ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
 
     @property

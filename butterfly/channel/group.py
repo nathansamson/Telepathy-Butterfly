@@ -71,7 +71,10 @@ class ButterflyGroupChannel(ButterflyListChannel,
                         (contact_handle, self._handle))
                 contact = contact_handle.contact
                 group = self._handle.group
-                ab.add_contact_to_group(group, contact)
+                if contact is not None and contact.is_member(pymsn.Membership.FORWARD):
+                    ab.add_contact_to_group(group, contact)
+                else:
+                    contact_handle.pending_groups.add(group)
 
     def RemoveMembers(self, contacts, message):
         ab = self._conn.msn_client.address_book
@@ -94,7 +97,10 @@ class ButterflyGroupChannel(ButterflyListChannel,
                         (contact_handle, self._handle))
                 contact = contact_handle.contact
                 group = self._handle.group
-                ab.delete_contact_from_group(group, contact)
+                if contact is not None and contact.is_member(pymsn.Membership.FORWARD):
+                    ab.delete_contact_from_group(group, contact)
+                else:
+                    contact_handle.pending_groups.discard(group)
 
     def Close(self):
         logger.debug("Deleting group %s" % self._handle.name)

@@ -144,8 +144,11 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
                 continue
             else:
                 account = contact.account
+            groups = list(handle.pending_groups)
+            handle.pending_groups = set()
             ab.add_messenger_contact(account,
-                    invite_message=message.encode('utf-8'))
+                    invite_message=message.encode('utf-8'),
+                    groups=groups)
 
     def RemoveMembers(self, contacts, message):
         ab = self._conn.msn_client.address_book
@@ -166,6 +169,11 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
         if contact.is_member(pymsn.Membership.FORWARD):
             self.MembersChanged('', [handle], (), (), (), 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
+            if len(handle.pending_groups) > 0:
+                ab = self._conn.msn_client.address_book
+                for group in handle.pending_groups:
+                    ab.add_contact_to_group(group, contact)
+                handle.pending_groups = set()
 
 
 class ButterflyPublishListChannel(ButterflyListChannel,

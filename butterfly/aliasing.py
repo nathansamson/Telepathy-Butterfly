@@ -64,18 +64,16 @@ class ButterflyAliasing(
         for handle_id, alias in aliases.iteritems():
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle != ButterflyHandleFactory(self, 'self'):
-                contact = handle.contact
-                # FIXME: we would maybe like to queue it until the contact is created ?
-                if contact is None:
-                    continue
-                # FIXME: we don't want this, do we ? 
-                if contact.id == "00000000-0000-0000-0000-000000000000":
-                    continue
-
                 if alias == handle.name: 
-                    alias = ""
-                infos = { ContactGeneral.ANNOTATIONS : \
-                     { ContactAnnotations.NICKNAME : alias.encode('utf-8') }}
+                    alias = u""
+                contact = handle.contact
+                if contact is None or \
+                        (not contact.is_member(pymsn.Membership.FORWARD)):
+                    handle.pending_alias = alias
+                    continue
+                infos = {ContactGeneral.ANNOTATIONS : \
+                            {ContactAnnotations.NICKNAME : alias.encode('utf-8')}
+                        }
                 self.msn_client.address_book.\
                     update_contact_infos(contact, infos)
             else:
@@ -94,6 +92,20 @@ class ButterflyAliasing(
 
         if alias is not None or alias != "":
             self._contact_alias_changed(contact)
+
+    # pymsn.event.ContactEventInterface
+    def on_contact_memberships_changed(self, contact):
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                contact.account, contact.network_id)
+        if contact.is_member(pymsn.Membership.FORWARD):
+            alias = handle.pending_alias
+            if alias is not None:
+                infos = {ContactGeneral.ANNOTATIONS : \
+                            {ContactAnnotations.NICKNAME : alias.encode('utf-8')}
+                        }
+                self.msn_client.address_book.\
+                    update_contact_infos(contact, infos)
+                handle.pending_alias = None
 
     @async
     def _contact_alias_changed(self, contact):

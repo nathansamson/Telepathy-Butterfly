@@ -126,7 +126,8 @@ class ButterflyGroupHandle(ButterflyHandle):
     @property
     def group(self):
         for group in self._conn.msn_client.address_book.groups:
-            if group.name == self.name:
+            # Microsoft seems to like case insensitive stuff
+            if group.name.lower() == self.name.lower():
                 return group
         return None
 

@@ -55,10 +55,13 @@ if __name__ == '__main__':
                 quit()
             return False
         gobject.timeout_add(IDLE_TIMEOUT, timeout_cb)
+        shutdown_callback = quit
+    else:
+        shutdown_callback = None
 
     signal.signal(signal.SIGTERM, lambda : quit)
 
-    manager = ButterflyConnectionManager(quit)
+    manager = ButterflyConnectionManager(shutdown_callback)
     mainloop = gobject.MainLoop(is_running=True)
 
     while mainloop.is_running():

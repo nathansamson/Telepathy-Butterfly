@@ -1,0 +1,24 @@
+telepathy-butterfly-0.3.0 (Blue Morpho)
+======================================
+
+  * List of changes between 0.3.1 and 0.3.0
+    o No longuer disconnect when BUTTERFLY_PERSIST is set and the last client
+    o Group names are case insensitive, added a fix to avoid creating a new group
+    o Fixed Alias setting on contacts not in the FORWARD list
+    o Fixed adding contacts to group during contact addition
+    o Fixed utf-8 encoded handle names
+
+  * List of changes between 0.3.0 and 0.1.4
+    o Complete rewrite using the new pymsn-0.3.0
+
+telepathy-butterfly-0.1.4 (Glasswing)
+======================================
+
+  * List of changes between 0.1.4 and 0.1.3
+    o Merged Magnus Nordseth avatar support patch
+    o Added mime type support to avatars
+
+  * List of bugs fixed between 0.1.4 and 0.1.3
+    o Fixed Personnal Message Setting, and Aliases retrieval
+    o Fixed TextChannel closed on timeout by the client, and never reopened
+    again

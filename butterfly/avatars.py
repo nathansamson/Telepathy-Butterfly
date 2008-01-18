@@ -39,6 +39,7 @@ class ButterflyAvatars(\
         pymsn.event.ContactEventInterface):
 
     def __init__(self):
+    	self._avatar_known = False
         telepathy.server.ConnectionInterfaceAvatars.__init__(self)
         pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
 
@@ -62,7 +63,7 @@ class ButterflyAvatars(\
             
             if msn_object is not None:
                 result[handle] = msn_object._data_sha.encode("hex")
-            else:
+            elif self._avatar_known:
                 result[handle] = ""
         return result
 
@@ -84,6 +85,7 @@ class ButterflyAvatars(\
                             (self._msn_object_retrieved, handle))
 
     def SetAvatar(self, avatar, mime_type):
+    	self._avatar_known = True
         if not isinstance(avatar, str):
             avatar = "".join([chr(b) for b in avatar])
         msn_object = pymsn.p2p.MSNObject(self.msn_client.profile, 
@@ -100,6 +102,7 @@ class ButterflyAvatars(\
 
     def ClearAvatar(self):
         self.msn_client.profile.msn_object = None
+        self._avatar_known = True
 
     # pymsn.event.ContactEventInterface
     def on_contact_msn_object_changed(self, contact):

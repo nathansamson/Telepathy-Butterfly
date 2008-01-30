@@ -12,13 +12,13 @@ VERSION = Utils.g_module.VERSION
 
 
 _options = (
-        ('bindir', 'user executables', '$(EPREFIX)/bin'),
-        ('sbindir', 'system admin executables', '$(EPREFIX)/sbin'),
-        ('libexecdir', 'program executables', '$(EPREFIX)/libexec'),
+        ('bindir', 'user executables', '$(EXEC_PREFIX)/bin'),
+        ('sbindir', 'system admin executables', '$(EXEC_PREFIX)/sbin'),
+        ('libexecdir', 'program executables', '$(EXEC_PREFIX)/libexec'),
         ('sysconfdir', 'read-only single-machine data', '$(PREFIX)/etc'),
         ('sharedstatedir', 'modifiable architecture-independent data', '$(PREFIX)/com'),
         ('localstatedir', 'modifiable single-machine data', '$(PREFIX)/var'),
-        ('libdir', 'object code libraries', '$(EPREFIX)/lib'),
+        ('libdir', 'object code libraries', '$(EXEC_PREFIX)/lib'),
         ('includedir', 'C header files', '$(PREFIX)/include'),
         ('oldincludedir', 'C header files for non-gcc', '/usr/include'),
         ('datarootdir', 'read-only arch.-independent data root', '$(PREFIX)/share'),
@@ -75,12 +75,12 @@ def detect(conf):
     conf.env['PREFIX'] = os.path.abspath(conf.env['PREFIX'])
     prefix = conf.env['PREFIX']
 
-    eprefix = get_param('EPREFIX')
+    eprefix = get_param('EXEC_PREFIX')
     if not eprefix:
         eprefix = prefix
-    conf.env['EPREFIX'] = eprefix
+    conf.env['EXEC_PREFIX'] = eprefix
 
-    resolved_dirs_dict = {'PREFIX' : prefix, 'EPREFIX': eprefix,
+    resolved_dirs_dict = {'PREFIX' : prefix, 'EXEC_PREFIX': eprefix,
             'APPNAME' : APPNAME, 'PACKAGE': APPNAME, 'VERSION' : VERSION}
     unresolved_dirs_dict = {}
     for name, help, default in _options:
@@ -108,29 +108,28 @@ def detect(conf):
         conf.env[name] = value
 
 def set_options(opt):
-    # copied from multisync-gui-0.2X wscript
+    # ---- copied from multisync-gui-0.2X wscript
     inst_dir = opt.add_option_group("Installation directories",
             'By default, waf install will install all the files in\
             "/usr/local/bin", "/usr/local/lib" etc.  You can specify \
             an installation prefix other than "/usr/local" using "--prefix",\
             for instance "--prefix=$HOME"')
 
-    #just do some cleanups in the option list
-    try:
-        prefix_option = opt.parser.get_option("--prefix")
+    # just do some cleanups in the option list
+    prefix_option = opt.parser.get_option("--prefix")
+    if prefix_option:
         opt.parser.remove_option("--prefix")
-        destdir_option = opt.parser.get_option("--destdir")
-        opt.parser.remove_option("--destdir")
         inst_dir.add_option(prefix_option)
+    destdir_option = opt.parser.get_option("--destdir")
+    if destdir_option:
+        opt.parser.remove_option("--destdir")
         inst_dir.add_option(destdir_option)
+    # ---- end copy
 
-    except:
-        pass
-    # end copy
     inst_dir.add_option('--exec-prefix',
             help="installation prefix [Default: %s]" % 'PREFIX',
-	    default='',
-	    dest='EPREFIX')
+            default='',
+            dest='EXEC_PREFIX')
 
     dirs_options = opt.add_option_group("Fine tuning of the installation directories", '')
 

@@ -85,7 +85,7 @@ class ButterflyAvatars(\
                             (self._msn_object_retrieved, handle))
 
     def SetAvatar(self, avatar, mime_type):
-    	self._avatar_known = True
+        self._avatar_known = True
         if not isinstance(avatar, str):
             avatar = "".join([chr(b) for b in avatar])
         msn_object = pymsn.p2p.MSNObject(self.msn_client.profile, 
@@ -118,6 +118,7 @@ class ButterflyAvatars(\
     def _self_msn_object_changed(self, avatar_token):
         handle = ButterflyHandleFactory(self, 'self')
         self.AvatarUpdated(handle, avatar_token)
+        self._msn_object_retrieved(self.msn_client.profile.msn_object, handle)
 
     @async
     def _msn_object_retrieved(self, msn_object, handle):

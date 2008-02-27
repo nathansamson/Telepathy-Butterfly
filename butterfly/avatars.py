@@ -122,7 +122,7 @@ class ButterflyAvatars(\
 
     @async
     def _msn_object_retrieved(self, msn_object, handle):
-        if msn_object._data is not None:
+        if msn_object is not None and msn_object._data is not None:
             msn_object._data.seek(0, 0)
             avatar = msn_object._data.read()
             msn_object._data.seek(0, 0)

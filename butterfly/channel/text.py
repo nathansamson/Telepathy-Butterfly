@@ -66,7 +66,7 @@ class ButterflyTextChannel(
             self._conversation.send_nudge()
         else:
             raise telepathy.NotImplemented("Unhandled message type")
-        self.Sent(int(time.time()), message_type, text) 
+        self.Sent(int(time.time()), message_type, text)
 
     def Close(self):
         self._conversation.leave()
@@ -86,8 +86,11 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         logger.info("User %r left" % handle)
-        self.MembersChanged('', [], [handle], [], [],
-                handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+        if len(self._members) == 1:
+            self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_GONE)
+        else:
+            self.MembersChanged('', [], [handle], [], [],
+                    handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
     # pymsn.event.ConversationEventInterface
     def on_conversation_user_typing(self, contact):

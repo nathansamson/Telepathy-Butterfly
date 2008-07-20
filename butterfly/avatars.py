@@ -36,12 +36,14 @@ logger = logging.getLogger('Butterfly.Avatars')
 
 class ButterflyAvatars(\
         telepathy.server.ConnectionInterfaceAvatars,
-        pymsn.event.ContactEventInterface):
+        pymsn.event.ContactEventInterface,
+        pymsn.event.ProfileEventInterface):
 
     def __init__(self):
-    	self._avatar_known = False
+        self._avatar_known = False
         telepathy.server.ConnectionInterfaceAvatars.__init__(self)
         pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
+        pymsn.event.ProfileEventInterface.__init__(self, self.msn_client)
 
     def GetAvatarRequirements(self):
         mime_types = ("image/png","image/jpeg","image/gif")
@@ -60,7 +62,7 @@ class ButterflyAvatars(\
                 msn_object = contact.msn_object
             else:
                 msn_object = None
-            
+
             if msn_object is not None:
                 result[handle] = msn_object._data_sha.encode("hex")
             elif self._avatar_known:
@@ -71,9 +73,8 @@ class ButterflyAvatars(\
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle == self.GetSelfHandle():
-                msn_object = handle.profile.msn_object
-                if msn_object is not None:
-                    self._msn_object_retrieved(msn_object, handle)
+                msn_object = self.msn_client.profile.msn_object
+                self._msn_object_retrieved(msn_object, handle)
             else:
                 contact = handle.contact
                 if contact is not None:
@@ -88,7 +89,7 @@ class ButterflyAvatars(\
         self._avatar_known = True
         if not isinstance(avatar, str):
             avatar = "".join([chr(b) for b in avatar])
-        msn_object = pymsn.p2p.MSNObject(self.msn_client.profile, 
+        msn_object = pymsn.p2p.MSNObject(self.msn_client.profile,
                          len(avatar),
                          pymsn.p2p.MSNObjectType.DISPLAY_PICTURE,
                          sha.new(avatar).hexdigest() + '.tmp',
@@ -97,7 +98,6 @@ class ButterflyAvatars(\
         self.msn_client.profile.msn_object = msn_object
         avatar_token = msn_object._data_sha.encode("hex")
         logger.info("Setting self avatar to %s" % avatar_token)
-        self._self_msn_object_changed(avatar_token)
         return avatar_token
 
     def ClearAvatar(self):
@@ -114,15 +114,19 @@ class ButterflyAvatars(\
                 contact.account, contact.network_id)
         self.AvatarUpdated(handle, avatar_token)
 
-    @async
-    def _self_msn_object_changed(self, avatar_token):
-        handle = ButterflyHandleFactory(self, 'self')
-        self.AvatarUpdated(handle, avatar_token)
-        self._msn_object_retrieved(self.msn_client.profile.msn_object, handle)
+    # pymsn.event.ProfileEventInterface
+    def on_profile_msn_object_changed(self):
+        msn_object = self.msn_client.profile.msn_object
+        if msn_object is not None:
+            avatar_token = msn_object._data_sha.encode("hex")
+            logger.info("Self avatar changed to %s" % avatar_token)
+            handle = ButterflyHandleFactory(self, 'self')
+            self.AvatarUpdated(handle, avatar_token)
 
     @async
     def _msn_object_retrieved(self, msn_object, handle):
         if msn_object is not None and msn_object._data is not None:
+            logger.info("Avatar retrieved %s" % msn_object._data_sha.encode("hex"))
             msn_object._data.seek(0, 0)
             avatar = msn_object._data.read()
             msn_object._data.seek(0, 0)
@@ -131,3 +135,5 @@ class ButterflyAvatars(\
             avatar = dbus.ByteArray(avatar)
             token = msn_object._data_sha.encode("hex")
             self.AvatarRetrieved(handle, token, avatar, 'image/' + type)
+        else:
+            logger.info("Avatar retrieved but NULL")

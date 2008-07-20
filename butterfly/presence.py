@@ -66,11 +66,13 @@ class ButterflyPresenceMapping(object):
 
 
 class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
-        pymsn.event.ContactEventInterface):
+        pymsn.event.ContactEventInterface,
+        pymsn.event.ProfileEventInterface):
 
     def __init__(self):
         telepathy.server.ConnectionInterfacePresence.__init__(self)
         pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
+        pymsn.event.ProfileEventInterface.__init__(self, self.msn_client)
 
     def GetStatuses(self):
         # the arguments are in common to all on-line presences
@@ -132,8 +134,6 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         else:
             self.msn_client.profile.personal_message = message
             self.msn_client.profile.presence = presence
-            self._presence_changed(ButterflyHandleFactory(self, 'self'),
-                    presence, message)
 
     def get_presences(self, contacts):
         presences = {}
@@ -168,6 +168,15 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
     # pymsn.event.ContactEventInterface
     on_contact_personal_message_changed = on_contact_presence_changed
 
+    # pymsn.event.ProfileEventInterface
+    def on_profile_presence_changed(self):
+        profile = self.msn_client.profile
+        self._presence_changed(ButterflyHandleFactory(self, 'self'),
+                profile.presence, profile.personal_message)
+
+    # pymsn.event.ProfileEventInterface
+    on_profile_personal_message_changed = on_profile_presence_changed
+
     @async
     def _presence_changed(self, handle, presence, personal_message):
         presence = ButterflyPresenceMapping.to_telepathy[presence]
@@ -178,4 +187,3 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             arguments = {'message' : personal_message}
 
         self.PresenceUpdate({handle: (int(time.time()), {presence:arguments})})
-

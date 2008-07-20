@@ -1,6 +1,16 @@
 telepathy-butterfly-0.3.0 (Blue Morpho)
 ======================================
 
+  * List of changes between 0.3.2 and 0.3.1
+    o Fixed self presence handling
+    o Fixed self avatar handling
+    o The last user in a multi user conversation no longuer leaves the conversation
+    o Fixed an Attribute exception is ButterflyAvatars
+    o Fixed AvatarRetrieved not being emitted for self avatar
+    o Updated the configure script and the gnu_dirs tool
+    o Fixed the configure script to generate a Makefile able to handle DISTDIR
+    o Fixed GetKnownAvatarTokens for self handle when no avatar is known
+
   * List of changes between 0.3.1 and 0.3.0
     o No longuer disconnect when BUTTERFLY_PERSIST is set and the last client
     o Group names are case insensitive, added a fix to avoid creating a new group

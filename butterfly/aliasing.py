@@ -44,24 +44,21 @@ class ButterflyAliasing(
 
     def RequestAliases(self, contacts):
         logger.debug("Called RequestAliases")
-        return [self._get_alias(handle_id)\
-                    for handle_id in contacts]
+        return [self._get_alias(handle_id) for handle_id in contacts]
 
-
-    def GetAliases(self,contacts):
+    def GetAliases(self, contacts):
         logger.debug("Called GetAliases")
 
         result = {}
-        for contact in contacts :
+        for contact in contacts:
             result[contact] = self._get_alias(contact)
         return result
-
 
     def SetAliases(self, aliases):
         for handle_id, alias in aliases.iteritems():
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle != ButterflyHandleFactory(self, 'self'):
-                if alias == handle.name: 
+                if alias == handle.name:
                     alias = u""
                 contact = handle.contact
                 if contact is None or \

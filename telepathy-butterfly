@@ -22,6 +22,7 @@ import gobject
 import dbus.glib
 import signal
 import os
+import sys
 
 import logging
 
@@ -61,7 +62,12 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGTERM, lambda : quit)
 
-    manager = ButterflyConnectionManager(shutdown_callback)
+    try:
+        manager = ButterflyConnectionManager(shutdown_func=shutdown_callback)
+    except dbus.exceptions.NameExistsException:
+        logger.warning('Failed to acquire bus name, connection manager already running?')
+        sys.exit(1)
+
     mainloop = gobject.MainLoop(is_running=True)
 
     while mainloop.is_running():

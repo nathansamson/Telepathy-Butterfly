@@ -71,7 +71,7 @@ class ButterflyAliasing(
                 self.msn_client.address_book.\
                     update_contact_infos(contact, infos)
             else:
-                self.msn_client.profile.display_name = alias
+                self.msn_client.profile.display_name = alias.encode('utf-8')
                 logger.info("Self alias changed to '%s'" % alias)
                 self.AliasesChanged(((ButterflyHandleFactory(self, 'self'), alias), ))
 

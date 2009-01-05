@@ -24,45 +24,11 @@ import pymsn
 
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.util.decorator import async
+from butterfly.simple_presence import ButterflyPresenceMapping
 
 __all__ = ['ButterflyPresence']
 
 logger = logging.getLogger('Butterfly.Presence')
-
-class ButterflyPresenceMapping(object):
-    ONLINE = 'available'
-    AWAY = 'away'
-    BUSY = 'dnd'
-    IDLE = 'xa'
-    BRB = 'brb'
-    PHONE = 'phone'
-    LUNCH = 'lunch'
-    INVISIBLE = 'hidden'
-    OFFLINE = 'offline'
-
-    to_pymsn = {
-            ONLINE:     pymsn.Presence.ONLINE,
-            AWAY:       pymsn.Presence.AWAY,
-            BUSY:       pymsn.Presence.BUSY,
-            IDLE:       pymsn.Presence.IDLE,
-            BRB:        pymsn.Presence.BE_RIGHT_BACK,
-            PHONE:      pymsn.Presence.ON_THE_PHONE,
-            LUNCH:      pymsn.Presence.OUT_TO_LUNCH,
-            INVISIBLE:  pymsn.Presence.INVISIBLE,
-            OFFLINE:    pymsn.Presence.OFFLINE
-            }
-
-    to_telepathy = {
-            pymsn.Presence.ONLINE:         ONLINE,
-            pymsn.Presence.AWAY:           AWAY,
-            pymsn.Presence.BUSY:           BUSY,
-            pymsn.Presence.IDLE:           IDLE,
-            pymsn.Presence.BE_RIGHT_BACK:  BRB,
-            pymsn.Presence.ON_THE_PHONE:   PHONE,
-            pymsn.Presence.OUT_TO_LUNCH:   LUNCH,
-            pymsn.Presence.INVISIBLE:      INVISIBLE,
-            pymsn.Presence.OFFLINE:        OFFLINE
-            }
 
 
 class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,

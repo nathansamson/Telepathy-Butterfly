@@ -25,6 +25,7 @@ import pymsn
 import pymsn.event
 
 from butterfly.presence import ButterflyPresence
+from butterfly.simple_presence import ButterflySimplePresence
 from butterfly.aliasing import ButterflyAliasing
 from butterfly.avatars import ButterflyAvatars
 from butterfly.handle import ButterflyHandleFactory
@@ -37,6 +38,7 @@ logger = logging.getLogger('Butterfly.Connection')
 
 class ButterflyConnection(telepathy.server.Connection,
         ButterflyPresence,
+        ButterflySimplePresence,
         ButterflyAliasing,
         ButterflyAvatars,
         pymsn.event.ClientEventInterface,
@@ -91,6 +93,7 @@ class ButterflyConnection(telepathy.server.Connection,
             except TypeError: # handle old versions of tp-python
                 telepathy.server.Connection.__init__(self, 'msn', account)
             ButterflyPresence.__init__(self)
+            ButterflySimplePresence.__init__(self)
             ButterflyAliasing.__init__(self)
             ButterflyAvatars.__init__(self)
             pymsn.event.ClientEventInterface.__init__(self, self._msn_client)

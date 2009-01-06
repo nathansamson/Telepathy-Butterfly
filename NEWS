@@ -1,6 +1,10 @@
 telepathy-butterfly-0.3.3 (06-01-2009)
 ======================================
 
+Dependencies:
+
+ * telepathy-python 0.15.5
+
 Enhancements:
 
  * Exit if the connection manager is already running.

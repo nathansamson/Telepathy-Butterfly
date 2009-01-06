@@ -1,6 +1,13 @@
 telepathy-butterfly-0.3.0 (Blue Morpho)
 ======================================
 
+  * List of changes between 0.3.3 and 0.3.2
+    o Exit if the connection manager is already running.
+    o Implemented GetAliases & GetAliasFlags from Connection.Interface.Aliasing.
+    o Encode the user alias as UTF-8 when setting a new display name.
+    o Implement SimplePresence.
+    o Use telepathy.utils.debug_divert_messages to divert log messages.
+
   * List of changes between 0.3.2 and 0.3.1
     o Fixed self presence handling
     o Fixed self avatar handling

@@ -23,9 +23,11 @@ import dbus.glib
 import signal
 import os
 import sys
-
 import logging
 
+from telepathy.utils import debug_divert_messages
+
+debug_divert_messages(os.getenv('BUTTERFLY_LOGFILE'))
 logging.basicConfig(level=logging.DEBUG)
 
 from butterfly import ButterflyConnectionManager

@@ -1,41 +1,68 @@
-telepathy-butterfly-0.3.0 (Blue Morpho)
+telepathy-butterfly-0.3.3 (06-01-2009)
 ======================================
 
-  * List of changes between 0.3.3 and 0.3.2
-    o Exit if the connection manager is already running.
-    o Implemented GetAliases & GetAliasFlags from Connection.Interface.Aliasing.
-    o Encode the user alias as UTF-8 when setting a new display name.
-    o Implement SimplePresence.
-    o Use telepathy.utils.debug_divert_messages to divert log messages.
+Enhancements:
 
-  * List of changes between 0.3.2 and 0.3.1
-    o Fixed self presence handling
-    o Fixed self avatar handling
-    o The last user in a multi user conversation no longuer leaves the conversation
-    o Fixed an Attribute exception is ButterflyAvatars
-    o Fixed AvatarRetrieved not being emitted for self avatar
-    o Updated the configure script and the gnu_dirs tool
-    o Fixed the configure script to generate a Makefile able to handle DISTDIR
-    o Fixed GetKnownAvatarTokens for self handle when no avatar is known
+ * Exit if the connection manager is already running.
+ * Implemented GetAliases & GetAliasFlags from Connection.Interface.Aliasing.
+ * Implement SimplePresence.
+ * Use telepathy.utils.debug_divert_messages to divert log messages.
 
-  * List of changes between 0.3.1 and 0.3.0
-    o No longuer disconnect when BUTTERFLY_PERSIST is set and the last client
-    o Group names are case insensitive, added a fix to avoid creating a new group
-    o Fixed Alias setting on contacts not in the FORWARD list
-    o Fixed adding contacts to group during contact addition
-    o Fixed utf-8 encoded handle names
+Fixes:
 
-  * List of changes between 0.3.0 and 0.1.4
-    o Complete rewrite using the new pymsn-0.3.0
+ * Encode the user alias as UTF-8 when setting a new display name.
 
-telepathy-butterfly-0.1.4 (Glasswing)
+telepathy-butterfly-0.3.2 (20-07-2008)
 ======================================
 
-  * List of changes between 0.1.4 and 0.1.3
-    o Merged Magnus Nordseth avatar support patch
-    o Added mime type support to avatars
+Enhancements:
 
-  * List of bugs fixed between 0.1.4 and 0.1.3
-    o Fixed Personnal Message Setting, and Aliases retrieval
-    o Fixed TextChannel closed on timeout by the client, and never reopened
-    again
+ * Updated the configure script and the gnu_dirs tool
+ * The last user in a multi user conversation no longer leaves the conversation
+
+Fixes:
+
+ * Fixed self presence handling
+ * Fixed self avatar handling
+ * Fixed an Attribute exception is ButterflyAvatars
+ * Fixed AvatarRetrieved not being emitted for self avatar
+ * Fixed the configure script to generate a Makefile able to handle DISTDIR
+ * Fixed GetKnownAvatarTokens for self handle when no avatar is known
+
+telepathy-butterfly-0.3.1 (16-01-2008)
+======================================
+
+Fixes:
+
+ * No longuer disconnect when BUTTERFLY_PERSIST is set and the last client
+ * Group names are case insensitive, added a fix to avoid creating a new group
+ * Fixed Alias setting on contacts not in the FORWARD list
+ * Fixed adding contacts to group during contact addition
+ * Fixed utf-8 encoded handle names
+
+telepathy-butterfly-0.3.0 (12-01-2008)
+======================================
+
+The "Blue Morpho" release.
+
+Enhancements:
+
+ * Complete rewrite using the new pymsn-0.3.0
+
+telepathy-butterfly-0.1.4
+=========================
+
+Enhancements:
+
+ * Added mime type support to avatars
+ * Merged Magnus Nordseth avatar support patch
+
+telepathy-butterfly-0.1.3
+=========================
+
+The "Glasswing" release.
+
+Fixes:
+
+ * Fixed Personnal Message Setting, and Aliases retrieval
+ * Fixed TextChannel closed on timeout by the client, and never reopened again

@@ -25,6 +25,11 @@ import os
 import sys
 import logging
 
+import telepathy
+if telepathy.version < (0, 15, 6):
+    print >> sys.stderr, 'Critical: telepathy-python >= 0.15.6 required. Exiting.'
+    sys.exit(1)
+
 from telepathy.utils import debug_divert_messages
 
 debug_divert_messages(os.getenv('BUTTERFLY_LOGFILE'))

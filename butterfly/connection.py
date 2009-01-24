@@ -88,10 +88,7 @@ class ButterflyConnection(telepathy.server.Connection,
             self._channel_manager = ChannelManager(self)
 
             # Call parent initializers
-            try:
-                telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
-            except TypeError: # handle old versions of tp-python
-                telepathy.server.Connection.__init__(self, 'msn', account)
+            telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
             ButterflyPresence.__init__(self)
             ButterflySimplePresence.__init__(self)
             ButterflyAliasing.__init__(self)

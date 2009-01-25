@@ -95,7 +95,7 @@ class ButterflyContacts(
         interface = telepathy.CONNECTION_INTERFACE_ALIASING
         if interface in interfaces:
             interface_attribute = interface + '/' + self.attributes[interface]
-            aliases = self.GetAliases()
+            aliases = self.GetAliases(handles)
             for handle, alias in zip(handles, aliases):
                 ret[handle][interface_attribute] = alias
 

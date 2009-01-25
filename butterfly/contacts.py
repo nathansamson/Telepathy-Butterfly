@@ -21,12 +21,9 @@ import logging
 import time
 
 import telepathy
-import telepathy.constants
 import telepathy.errors
 import pymsn
-
-from butterfly.handle import ButterflyHandleFactory
-from butterfly.util.decorator import async
+import dbus
 
 __all__ = ['ButterflyContacts']
 
@@ -40,10 +37,10 @@ class ButterflyContacts(
         pymsn.event.ProfileEventInterface):
 
     attributes = {
-        'org.freedesktop.Telepathy.Connection' : 'org.freedesktop.Telepathy.Connection/contact-id',
-        'org.freedesktop.Telepathy.Connection.Interface.SimplePresence' : 'org.freedesktop.Telepathy.Connection.Interface.SimplePresence/presence',
-        'org.freedesktop.Telepathy.Connection.Interface.Aliasing' : 'org.freedesktop.Telepathy.Connection.Interface.Aliasing/alias',
-        'org.freedesktop.Telepathy.Connection.Interface.Avatars' : 'org.freedesktop.Telepathy.Connection.Interface.Avatars/token'
+        telepathy.CONNECTION : 'contact-id',
+        telepathy.CONNECTION_INTERFACE_SIMPLE_PRESENCE : 'presence',
+        telepathy.CONNECTION_INTERFACE_ALIASING : 'alias',
+        telepathy.CONNECTION_INTERFACE_AVATARS : 'token'
         }
 
     def __init__(self):
@@ -51,59 +48,61 @@ class ButterflyContacts(
         pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
         pymsn.event.ProfileEventInterface.__init__(self, self.msn_client)
 
-        dbus_interface = 'org.freedesktop.Telepathy.Connection.Interface.Contacts'
+        dbus_interface = telepathy.CONNECTION_INTERFACE_CONTACTS
 
         self._implement_property_get(dbus_interface, \
                 {'ContactAttributeInterfaces' : self.get_contact_attribute_interfaces})
 
-    def GetContactAttributes(self, handles, interfaces, hold):
+    # Overwrite the dbus attribute to get the sender argument
+    @dbus.service.method(telepathy.CONNECTION_INTERFACE_CONTACTS, in_signature='auasb',
+                            out_signature='a{ua{sv}}', sender_keyword='sender')
+    def GetContactAttributes(self, handles, interfaces, hold, sender):
         for interface in interfaces:
-            if interface not in self.attributes.keys():
-                raise telepathy.errors.InvalidArgument
+            if interface not in self.attributes:
+                raise telepathy.errors.InvalidArgument(
+                    'Interface %s is not supported by GetContactAttributes' % (interface))
+
+        handle_type = telepathy.HANDLE_TYPE_CONTACT
         ret = {}
+        for handle in handles:
+            ret[handle] = {}
 
         self.check_connected()
-        handle_type = telepathy.HANDLE_TYPE_CONTACT
         self.check_handle_type(handle_type)
 
         for handle in handles:
             self.check_handle(handle_type, handle)
 
+        #Hold handles if needed
+        if hold:
+            self.HoldHandles(handle_type, handles, sender)
+
         # Attributes from the interface org.freedesktop.Telepathy.Connection
         # are always returned, and need not be requested explicitly.
-        interface = 'org.freedesktop.Telepathy.Connection'
-        if interface in interfaces :
-            interfaces.remove(interface)
-        interface_attribute = self.attributes[interface]
+        interface = telepathy.CONNECTION
+        interface_attribute = interface + '/' + self.attributes[interface]
+        ids = self.InspectHandles(handle_type, handles)
+        for handle, id in zip(handles, ids):
+            ret[handle][interface_attribute] = id
 
-        for handle in handles:
-            ret[handle] = {}
-            ret[handle][interface_attribute] = self._handles[handle_type, handle].get_name()
-
-            # Hold handle if needed
-            # FIXME : We need the sender argument
-            #if hold:
-                #self.add_client_handle(handle, sender)
-
-        interface = 'org.freedesktop.Telepathy.Connection.Interface.SimplePresence'
-        if interface in interfaces :
-            interface_attribute = self.attributes[interface]
-            presences = self.get_simple_presences(handles)
-
+        interface = telepathy.CONNECTION_INTERFACE_SIMPLE_PRESENCE
+        if interface in interfaces:
+            interface_attribute = interface + '/' + self.attributes[interface]
+            presences = self.GetPresences(handles)
             for handle, presence in presences.items():
                 ret[handle.id][interface_attribute] = presence
 
-        interface = 'org.freedesktop.Telepathy.Connection.Interface.Aliasing'
-        if interface in interfaces :
-            interface_attribute = self.attributes[interface]
-            for handle in handles:
-                ret[handle][interface_attribute] = self._get_alias(handle)
+        interface = telepathy.CONNECTION_INTERFACE_ALIASING
+        if interface in interfaces:
+            interface_attribute = interface + '/' + self.attributes[interface]
+            aliases = self.GetAliases()
+            for handle, alias in zip(handles, aliases):
+                ret[handle][interface_attribute] = alias
 
-        interface = 'org.freedesktop.Telepathy.Connection.Interface.Avatars'
-        if interface in interfaces :
-            interface_attribute = self.attributes[interface]
+        interface = telepathy.CONNECTION_INTERFACE_AVATARS
+        if interface in interfaces:
+            interface_attribute = interface + '/' + self.attributes[interface]
             tokens = self.GetKnownAvatarTokens(handles)
-
             for handle, token in tokens.items():
                 ret[handle.id][interface_attribute] = token
 

@@ -29,8 +29,6 @@ __all__ = ['ButterflyContacts']
 
 logger = logging.getLogger('Butterfly.Contacts')
 
-
-
 class ButterflyContacts(
         telepathy.server.ConnectionInterfaceContacts,
         pymsn.event.ContactEventInterface,
@@ -67,11 +65,7 @@ class ButterflyContacts(
         for handle in handles:
             ret[handle] = {}
 
-        self.check_connected()
-        self.check_handle_type(handle_type)
-
-        for handle in handles:
-            self.check_handle(handle_type, handle)
+        #InspectHandle already checks we're connected, the handles and handle type.
 
         #Hold handles if needed
         if hold:

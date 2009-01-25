@@ -55,6 +55,7 @@ class ButterflyContacts(
     @dbus.service.method(telepathy.CONNECTION_INTERFACE_CONTACTS, in_signature='auasb',
                             out_signature='a{ua{sv}}', sender_keyword='sender')
     def GetContactAttributes(self, handles, interfaces, hold, sender):
+        #InspectHandle already checks we're connected, the handles and handle type.
         for interface in interfaces:
             if interface not in self.attributes:
                 raise telepathy.errors.InvalidArgument(
@@ -65,7 +66,16 @@ class ButterflyContacts(
         for handle in handles:
             ret[handle] = {}
 
-        #InspectHandle already checks we're connected, the handles and handle type.
+        functions = {
+            telepathy.CONNECTION :
+                lambda x: zip(x, self.InspectHandles(handle_type, x)),
+            telepathy.CONNECTION_INTERFACE_SIMPLE_PRESENCE :
+                lambda x: self.GetPresences(x).items(),
+            telepathy.CONNECTION_INTERFACE_ALIASING :
+                lambda x: self.GetAliases(x).items(),
+            telepathy.CONNECTION_INTERFACE_AVATARS :
+                lambda x: self.GetKnownAvatarTokens(x).items()
+            }
 
         #Hold handles if needed
         if hold:
@@ -73,33 +83,12 @@ class ButterflyContacts(
 
         # Attributes from the interface org.freedesktop.Telepathy.Connection
         # are always returned, and need not be requested explicitly.
-        interface = telepathy.CONNECTION
-        interface_attribute = interface + '/' + self.attributes[interface]
-        ids = self.InspectHandles(handle_type, handles)
-        for handle, id in zip(handles, ids):
-            ret[handle][interface_attribute] = id
-
-        interface = telepathy.CONNECTION_INTERFACE_SIMPLE_PRESENCE
-        if interface in interfaces:
+        interfaces = set(interfaces + [telepathy.CONNECTION])
+        for interface in interfaces:
             interface_attribute = interface + '/' + self.attributes[interface]
-            presences = self.GetPresences(handles)
-            for handle, presence in presences.items():
-                ret[handle.id][interface_attribute] = presence
-
-        interface = telepathy.CONNECTION_INTERFACE_ALIASING
-        if interface in interfaces:
-            interface_attribute = interface + '/' + self.attributes[interface]
-            aliases = self.GetAliases(handles)
-            for handle, alias in zip(handles, aliases):
-                ret[handle][interface_attribute] = alias
-
-        interface = telepathy.CONNECTION_INTERFACE_AVATARS
-        if interface in interfaces:
-            interface_attribute = interface + '/' + self.attributes[interface]
-            tokens = self.GetKnownAvatarTokens(handles)
-            for handle, token in tokens.items():
-                ret[handle.id][interface_attribute] = token
-
+            results = functions[interface](handles)
+            for handle, value in results:
+                ret[int(handle)][interface_attribute] = value
         return ret
 
     def get_contact_attribute_interfaces(self):

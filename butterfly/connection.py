@@ -29,6 +29,7 @@ from butterfly.simple_presence import ButterflySimplePresence
 from butterfly.aliasing import ButterflyAliasing
 from butterfly.avatars import ButterflyAvatars
 from butterfly.handle import ButterflyHandleFactory
+from butterfly.contacts import ButterflyContacts
 from butterfly.channel_manager import ChannelManager
 
 __all__ = ['ButterflyConnection']
@@ -41,6 +42,7 @@ class ButterflyConnection(telepathy.server.Connection,
         ButterflySimplePresence,
         ButterflyAliasing,
         ButterflyAvatars,
+        ButterflyContacts,
         pymsn.event.ClientEventInterface,
         pymsn.event.InviteEventInterface):
 
@@ -93,6 +95,7 @@ class ButterflyConnection(telepathy.server.Connection,
             ButterflySimplePresence.__init__(self)
             ButterflyAliasing.__init__(self)
             ButterflyAvatars.__init__(self)
+            ButterflyContacts.__init__(self)
             pymsn.event.ClientEventInterface.__init__(self, self._msn_client)
             pymsn.event.InviteEventInterface.__init__(self, self._msn_client)
 

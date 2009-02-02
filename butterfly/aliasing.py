@@ -89,7 +89,7 @@ class ButterflyAliasing(
 
     # pymsn.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+        handle = ButterflyHandleFactory(self, 'contact',
                 contact.account, contact.network_id)
         if contact.is_member(pymsn.Membership.FORWARD):
             alias = handle.pending_alias

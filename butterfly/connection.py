@@ -102,7 +102,7 @@ class ButterflyConnection(telepathy.server.Connection,
             self.set_self_handle(ButterflyHandleFactory(self, 'self'))
 
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
-            self._initial_presence = None
+            self._initial_presence = telepathy.CONNECTION_PRESENCE_TYPE_AVAILABLE
             self._initial_personal_message = None
 
             logger.info("Connection to the account %s created" % account)

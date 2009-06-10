@@ -31,11 +31,10 @@ from butterfly.media import ButterflyStreamHandler
 __all__ = ['ButterflySessionHandler']
 
 class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
-    def __init__(self, connection, channel, session, handle):
+    def __init__(self, connection, channel, call):
         self._conn = connection
         self._channel = channel
-        self._session = session
-        self._handle = handle
+        self._call = call
         self._stream_handlers = {}
         self._next_stream_id = 0
 
@@ -60,12 +59,23 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
             path = self.get_stream_path(handler.id)
             self.NewStreamHandler(path, handler.id, handler.type,
                     handler.direction)
+        #self._call.invite()
 
     def Error(self, code, message):
         print "Session error", code, message
 
     def GetStream(self, id):
         return self._stream_handlers[id]
+
+    def FindStream(self, stream):
+        id = None
+        for handler in self.ListStreams():
+            if handler._stream == stream:
+                id = handler.id
+        return id
+
+    def HasStreams(self):
+        return bool(self._stream_handlers)
 
     def ListStreams(self):
         return self._stream_handlers.values()
@@ -82,12 +92,12 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
             media_type = "audio"
         else:
             media_type = "video"
-        stream = self._session.create_stream(media_type)
+        stream = self._call.media_session.add_stream(media_type, True)
         handler = ButterflyStreamHandler(self._conn, self, stream)
         return handler
 
     def RemoveStream(self, id):
-        pass
+        del self._stream_handlers[id]
 
     def on_stream_state_changed(self, id, state):
         self._channel.on_stream_state_changed(id, state)

@@ -52,16 +52,15 @@ class ButterflyMediaChannel(
         self._call = call
         self._handle = handle
 
-        self._session_handler = ButterflySessionHandler(self._conn, self,
-                call.media_session, handle)
+        self._session_handler = ButterflySessionHandler(self._conn, self, call)
         self.NewSessionHandler(self._session_handler, self._session_handler.type)
 
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
         self.__add_initial_participants()
 
     def Close(self):
-        telepathy.server.ChannelTypeStreamedMedia.Close(self)
-        self.remove_from_connection()
+        print "Channel closed by client"
+        self._call.end()
 
     def GetSessionHandlers(self):
         return [(self._session_handler, self._session_handler.type)]
@@ -94,6 +93,8 @@ class ButterflyMediaChannel(
         print "RemoveStreams %r" % streams
         for id in streams:
             self._session_handler.RemoveStream(id)
+        if not self._session_handler.HasStreams():
+            self.Close()
 
     #papyon.event.call.CallEventInterface
     def on_call_incoming(self):
@@ -105,15 +106,22 @@ class ButterflyMediaChannel(
 
     #papyon.event.call.CallEventInterface
     def on_call_accepted(self):
-        pass
+        self.on_call_answered(3, 0)
 
     #papyon.event.call.CallEventInterface
-    def on_call_rejected(self):
-        pass
+    def on_call_rejected(self, response):
+        self.on_call_answered(0, 0)
+
+    def on_call_answered(self, direction, pending_send):
+        for handler in self._session_handler.ListStreams():
+            handler.set_direction(direction, pending_send)
+            self.StreamDirectionChanged(handler.id, direction, pending_send)
 
     #papyon.event.call.CallEventInterface
     def on_call_ended(self):
-        pass
+        print "Call ended"
+        telepathy.server.ChannelTypeStreamedMedia.Close(self)
+        self.remove_from_connection()
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_created(self, stream):
@@ -122,6 +130,12 @@ class ButterflyMediaChannel(
         self.StreamAdded(handler.id, self._handle, handler.type)
         self.StreamDirectionChanged(handler.id, handler.direction,
                 handler.pending_send)
+
+    #papyon.event.media.MediaSessionEventInterface
+    def on_stream_removed(self, stream):
+        print "Media Stream removed"
+        id = self._session_handler.FindStream(stream)
+        self._session_handler.RemoveStream(id)
 
     def on_stream_state_changed(self, id, state):
         self.StreamStateChanged(id, state)

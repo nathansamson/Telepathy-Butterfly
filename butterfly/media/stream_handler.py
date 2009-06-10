@@ -95,17 +95,22 @@ class ButterflyStreamHandler (
     def stun_servers(self):
         return [("64.14.48.28", dbus.UInt32(3478))]
 
-    def Ready(self, Codecs):
+    def Ready(self, codecs):
+        print "StreamReady : ", codecs
         if self._remote_candidates is not None:
             self.SetRemoteCandidateList(self._remote_candidates)
         if self._remote_codecs is not None:
             self.SetRemoteCodecs(self._remote_codecs)
+        self.SetStreamPlaying(True)
+        self.SetStreamSending(True)
         self.SetLocalCodecs(codecs)
         #if self._session is None:
         #    self._session = ButterflyWebcamSession(self._conn, self._handle.contact)
 
-    def StreamState(self, State):
-        print "StreamState : ", State
+    def StreamState(self, state):
+        print "StreamState : ", state
+        self._state = state
+        self._session.on_stream_state_changed(self.id, state)
 
     def Error(self, code, message):
         print "StreamError - %i - %s" % (code, message)
@@ -121,24 +126,26 @@ class ButterflyStreamHandler (
         self._stream.local_candidates_prepared()
 
     def NewActiveCandidatePair(self, native_id, remote_id):
+        print "New active candidate pair %s %s" % (native_id, remote_id)
+        remote_id = '1'
         self._stream.new_active_candidate_pair(native_id, remote_id)
 
-    def SetLocalCodecs(self, Codecs):
+    def SetLocalCodecs(self, codecs):
+        pass
+
+    def SupportedCodecs(self, codecs):
+        print "SupportedCodecs: ", codecs
         list = self.convert_tp_codecs(codecs)
         self._stream.set_local_codecs(list)
 
-    def SupportedCodecs(self, Codecs):
-        print "SupportedCodecs: ", Codecs
+    def CodecChoice(self, codec_id):
+        print "CodecChoice :", codec_id
 
-    def CodecChoice(self, Codec_ID):
-        print "CodecChoice :", Codec_ID
-
-    def CodecsUpdated(self, Codecs):
-        print "CodecsUpdated: ", Codecs
+    def CodecsUpdated(self, codecs):
+        print "CodecsUpdated: ", codecs
 
     #papyon.event.MediaStreamEventInterface
     def on_remote_candidates_received(self, candidates):
-        print "REMOTE CANDIDATES"
         list = self.convert_ice_candidates(candidates)
         self._remote_candidates = list
 
@@ -159,12 +166,13 @@ class ButterflyStreamHandler (
         self.Close()
 
     def convert_sdp_codec(self, codec):
-        return (codec.payload, codec.encoding, self._type, codec.bitrate, 1, {})
+        return (codec.payload, codec.encoding, self._type, codec.clockrate, 0,
+                codec.params)
 
     def convert_tp_codecs(self, codecs):
         list = []
         for codec in codecs:
-            c = papyon.sip.sdp.SDPCodec(codec[0], codec[1], codec[3])
+            c = papyon.sip.sdp.SDPCodec(codec[0], codec[1], codec[3], codec[5])
             list.append(c)
         return list
 
@@ -205,7 +213,18 @@ class ButterflyStreamHandler (
     def convert_tp_candidate(self, id, transport):
         proto = "UDP"
         priority = int(transport[6] * 65536)
-        type = "host"
+        if transport[7] == 0:
+            type = "host"
+            addr = None
+            port = None
+        elif transport[7] == 1:
+            type = "srflx"
+            addr = "192.168.1.102"
+            port = int(transport[2])
+        elif transport[7] == 2:
+            type = "relay"
+            addr = None
+            port = None
         return papyon.sip.ice.ICECandidate(19, id, int(transport[0]), proto, priority,
                 transport[8], transport[9], type, transport[1],
-                int(transport[2]))
+                int(transport[2]), addr, port)

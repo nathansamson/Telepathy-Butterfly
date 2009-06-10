@@ -33,6 +33,7 @@ __all__ = ['ButterflySessionHandler']
 class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
     def __init__(self, connection, channel, session, handle):
         self._conn = connection
+        self._channel = channel
         self._session = session
         self._handle = handle
         self._stream_handlers = {}
@@ -87,3 +88,6 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
 
     def RemoveStream(self, id):
         pass
+
+    def on_stream_state_changed(self, id, state):
+        self._channel.on_stream_state_changed(id, state)

@@ -123,6 +123,9 @@ class ButterflyMediaChannel(
         self.StreamDirectionChanged(handler.id, handler.direction,
                 handler.pending_send)
 
+    def on_stream_state_changed(self, id, state):
+        self.StreamStateChanged(id, state)
+
     @async
     def __add_initial_participants(self):
         self.MembersChanged('', [self._handle], [], [], [],

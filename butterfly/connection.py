@@ -141,7 +141,7 @@ class ButterflyConnection(telepathy.server.Connection,
                 name = name.rsplit('#', 1)
                 contact_name = name[0]
                 if len(name) > 1:
-                    network_id = int(contact_name[1])
+                    network_id = int(name[1])
                 else:
                     network_id = pymsn.NetworkID.MSN
                 contacts = self.msn_client.address_book.contacts.\

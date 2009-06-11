@@ -1,3 +1,19 @@
+telepathy-butterfly-0.3.4 (UNRELEASED)
+======================================
+
+Dependencies:
+
+ * telepathy-python 0.15.6
+
+Enhancements:
+
+ * Implement Connection.Interface.Contacts
+
+Fixes:
+
+ * Fixed AttributeError in on_contact_memberships_changed (fd.o #19919)
+ * Actually emit the SimplePresence.PresencesChanged signal
+
 telepathy-butterfly-0.3.3 (06-01-2009)
 ======================================
 

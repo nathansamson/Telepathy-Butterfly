@@ -73,6 +73,11 @@ class ButterflyTextChannel(
         telepathy.server.ChannelTypeText.Close(self)
         self.remove_from_connection()
 
+    # Redefine GetSelfHandle since we use our own handle
+    #  as Butterfly doesn't have channel specific handles
+    def GetSelfHandle(self):
+        return self._conn.GetSelfHandle()
+
     # pymsn.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
@@ -126,6 +131,7 @@ class ButterflyTextChannel(
     @async
     def __add_initial_participants(self):
         handles = []
+        handles.append(self._conn.GetSelfHandle())
         for participant in self._conversation.participants:
             handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                     participant.account, participant.network_id)

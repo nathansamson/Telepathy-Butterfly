@@ -14,6 +14,7 @@ Fixes:
  * Fixed AttributeError in on_contact_memberships_changed (fd.o #19919)
  * Actually emit the SimplePresence.PresencesChanged signal
  * Fix RequestHandles for contact and DnD in empathy (fd.o #22224)
+ * Fix GetSelfHandle in text channel, add handle in members
 
 telepathy-butterfly-0.3.3 (06-01-2009)
 ======================================

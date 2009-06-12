@@ -55,7 +55,9 @@ class ButterflyMediaChannel(
         self._session_handler = ButterflySessionHandler(self._conn, self, call)
         self.NewSessionHandler(self._session_handler, self._session_handler.type)
 
-        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REMOVE, 0)
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REJECT, 0)
         self.__add_initial_participants()
 
     def Close(self):
@@ -95,6 +97,33 @@ class ButterflyMediaChannel(
             self._session_handler.RemoveStream(id)
         if not self._session_handler.HasStreams():
             self.Close()
+
+    def GetSelfHandle(self):
+        return self._conn.GetSelfHandle()
+
+    def GetLocalPendingMembersWithInfo(self):
+        info = []
+        for member in self._local_pending:
+            info.append((member, self._handle, 0, ''))
+        return info
+
+    def AddMembers(self, handles, message):
+        print "Add members", handles, message
+        for handle in handles:
+            print handle, self.GetSelfHandle()
+            if handle == int(self.GetSelfHandle()):
+                print "That's me"
+                if self.GetSelfHandle() in self._local_pending:
+                    print "Is local pending"
+                    self._call.accept()
+            else:
+                print "Not me", self.GetSelfHandle()
+
+    def RemoveMembers(self, handles, message):
+        print "Remove members", handles, message
+
+    def RemoveMembersWithReason(self, handles, message, reason):
+        print "Remove members", handles, message, reason
 
     #papyon.event.call.CallEventInterface
     def on_call_incoming(self):
@@ -142,5 +171,16 @@ class ButterflyMediaChannel(
 
     @async
     def __add_initial_participants(self):
-        self.MembersChanged('', [self._handle], [], [], [],
+        added = []
+        local_pending = []
+        remote_pending = []
+
+        if False:
+            remote_pending.append(self._handle)
+            added.append(self._conn.GetSelfHandle())
+        else:
+            local_pending.append(self._conn.GetSelfHandle())
+            added.append(self._handle)
+
+        self.MembersChanged('', added, [], local_pending, remote_pending,
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)

@@ -294,6 +294,18 @@ class ButterflyConnection(telepathy.server.Connection,
         channel = self._channel_manager.channel_for_props(props,
                 signal=True, call=call)
 
+    # papyon.event.InviteEventInterface
+    def on_invite_webcam(self, session, producer):
+        direction = producer and "send" or "receive"
+        logger.debug("Invitation to %s webcam" % direction)
+
+        handle = ButterflyHandleFactory(self, 'contact', session.peer.account,
+                session.peer.network_id)
+        props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+                handle, False)
+        channel = self._channel_manager.channel_for_props(props, signal=True,
+                call=session)
+
     def _advertise_disconnected(self):
         self._manager.disconnected(self)
 

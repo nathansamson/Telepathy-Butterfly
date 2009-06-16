@@ -39,10 +39,11 @@ class ButterflyTextChannel(
         telepathy.server.ChannelInterfaceChatState,
         pymsn.event.ConversationEventInterface):
 
-    def __init__(self, connection, conversation):
+    def __init__(self, connection, conversation, chan_manager):
         self._recv_id = 0
         self._conversation = conversation
         self._conn_ref = weakref.ref(connection)
+        self._chan_manager_ref = weakref.ref(chan_manager)
 
         telepathy.server.ChannelTypeText.__init__(self, connection, None)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
@@ -70,6 +71,7 @@ class ButterflyTextChannel(
 
     def Close(self):
         self._conversation.leave()
+        self._chan_manager_ref().remove_text_channel(self)
         telepathy.server.ChannelTypeText.Close(self)
         self.remove_from_connection()
 

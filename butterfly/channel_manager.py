@@ -66,7 +66,14 @@ class ChannelManager(object):
             if conversation is None:
                 client = self._conn_ref().msn_client
                 conversation = pymsn.Conversation(client, [contact])
-            channel = ButterflyTextChannel(self._conn_ref(), conversation)
+            channel = ButterflyTextChannel(self._conn_ref(), conversation, self)
             self._text_channels[handle] = channel
             self._conn_ref().add_channel(channel, handle, suppress_handler)
         return channel
+
+    def remove_text_channel(self, text_channel):
+        logger.debug("Removing channel %s" % text_channel)
+        for handle, chan in self._text_channels.items():
+            if chan == text_channel:
+                del self._text_channels[handle]
+

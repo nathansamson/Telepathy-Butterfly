@@ -27,6 +27,7 @@ import papyon.event
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflyStreamHandler
+from papyon.sip.media import MediaSessionType
 
 __all__ = ['ButterflySessionHandler']
 
@@ -37,6 +38,8 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self._call = call
         self._stream_handlers = {}
         self._next_stream_id = 0
+        self._type = call.media_session.type
+        self._subtype = self._type is MediaSessionType.WEBCAM and "msn" or "rtp"
 
         path = channel._object_path + "/sessionhandler1"
         telepathy.server.MediaSessionHandler.__init__(self, connection._name, path)
@@ -47,8 +50,12 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         return self._next_stream_id
 
     @property
+    def subtype(self):
+        return self._subtype
+
+    @property
     def type(self):
-        return "rtp"
+        return self._type
 
     def get_stream_path(self, id):
         return "%s/stream%d" % (self._object_path, id)
@@ -87,12 +94,12 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self.NewStreamHandler(path, handler.id, handler.type, handler.direction)
         return handler
 
-    def CreateStream(self, type):
-        if type == 0:
+    def CreateStream(self, type, direction):
+        if type == telepathy.MEDIA_STREAM_TYPE_AUDIO:
             media_type = "audio"
         else:
             media_type = "video"
-        stream = self._call.media_session.add_stream(media_type, True)
+        stream = self._call.media_session.add_stream(media_type, direction, True)
         handler = ButterflyStreamHandler(self._conn, self, stream)
         return handler
 

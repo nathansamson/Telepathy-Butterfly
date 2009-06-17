@@ -24,6 +24,8 @@ import telepathy
 import papyon
 import papyon.event
 
+from papyon.sip.constants import *
+
 __all__ = ['ButterflyStreamHandler']
 
 StreamTypes = {
@@ -46,7 +48,7 @@ class ButterflyStreamHandler (
         self._interfaces = set()
 
         self._state = 1
-        self._direction = telepathy.MEDIA_STREAM_DIRECTION_BIDIRECTIONAL
+        self._direction = stream.direction
         if self._stream.controlling:
             self._pending_send = telepathy.MEDIA_STREAM_PENDING_REMOTE_SEND
         else:
@@ -61,7 +63,7 @@ class ButterflyStreamHandler (
         papyon.event.MediaStreamEventInterface.__init__(self, stream)
 
         self._implement_property_get(telepathy.interfaces.MEDIA_STREAM_HANDLER,
-            {'CreatedLocally': lambda: self._stream.controlling,
+            {'CreatedLocally': lambda: self.created_locally,
              'NATTraversal': lambda: self.nat_traversal,
              'STUNServers': lambda: self.stun_servers,
              'RelayInfo': lambda: self.relay_info})
@@ -87,8 +89,17 @@ class ButterflyStreamHandler (
         return self._state
 
     @property
+    def created_locally(self):
+        return self._stream.controlling
+
+    @property
     def nat_traversal(self):
-        return "wlm-2009"
+        if self._session.type is MediaSessionType.SIP:
+            return "wlm-8.5"
+        elif self._session.type is MediaSessionType.TUNNELED_SIP:
+            return "wlm-2009"
+        else:
+            return "none"
 
     @property
     def relay_info(self):
@@ -96,7 +107,11 @@ class ButterflyStreamHandler (
 
     @property
     def stun_servers(self):
-        return [("64.14.48.28", dbus.UInt32(3478))]
+        if self._session.type in (MediaSessionType.SIP,
+                MediaSessionType.TUNNELED_SIP):
+            return [("64.14.48.28", dbus.UInt32(3478))]
+        else:
+            return dbus.Array([], signature="a(su)")
 
     def set_direction(self, direction, pending_send):
         self._direction = direction
@@ -104,16 +119,21 @@ class ButterflyStreamHandler (
 
     def Ready(self, codecs):
         print "StreamReady : ", codecs
+        webcam = (self._session.type is MediaSessionType.WEBCAM)
+
         if self._remote_candidates is not None:
             self.SetRemoteCandidateList(self._remote_candidates)
-        if self._remote_codecs is not None:
+        if self._remote_codecs is not None and not webcam:
             self.SetRemoteCodecs(self._remote_codecs)
-        self.SetStreamPlaying(True)
-        self.SetStreamSending(True)
-        if self._stream.controlling:
+
+        self.SetStreamPlaying(self._direction &
+                telepathy.MEDIA_STREAM_DIRECTION_RECEIVE)
+        self.SetStreamSending(self._direction &
+                telepathy.MEDIA_STREAM_DIRECTION_SEND)
+
+        if self.created_locally or webcam:
+            print "Set local codecs"
             self.SetLocalCodecs(codecs)
-        #if self._session is None:
-        #    self._session = ButterflyWebcamSession(self._conn, self._handle.contact)
 
     def StreamState(self, state):
         print "StreamState : ", state
@@ -122,6 +142,7 @@ class ButterflyStreamHandler (
 
     def Error(self, code, message):
         print "StreamError - %i - %s" % (code, message)
+        self.Close()
 
     def NewNativeCandidate(self, id, transports):
         candidates = []
@@ -192,7 +213,7 @@ class ButterflyStreamHandler (
     def convert_ice_candidates(self, candidates):
         array = {}
         for c in candidates:
-            if c.transport.lower() == "udp":
+            if c.transport == "UDP":
                 proto = 0
             else:
                 proto = 1
@@ -205,22 +226,34 @@ class ButterflyStreamHandler (
             else:
                 print "TYPE", c.type
                 type = 0
-            while True:
-                try:
-                    base64.b64decode(c.username)
-                    break
-                except:
-                    c.username += "="
-            while True:
-                try:
-                    base64.b64decode(c.password)
-                    break
-                except:
-                    c.password += "="
-            preference = float(c.priority) / 65536.0
-            transport = (c.component_id, c.ip, c.port, proto, "RTP", "AVP",
-                    preference, type, c.username, c.password)
+            #FIXME
+            if c.username:
+                while True:
+                    try:
+                        base64.b64decode(c.username)
+                        break
+                    except:
+                        c.username += "="
+            else:
+                c.username = ""
+            if c.password:
+                while True:
+                    try:
+                        base64.b64decode(c.password)
+                        break
+                    except:
+                        c.password += "="
+            else:
+                c.password = ""
+            if c.priority is not None:
+                preference = float(c.priority) / 65536.0
+            else:
+                preference = 1.0
+            transport = (c.component_id, c.ip, c.port, proto,
+                    self._session.subtype, "AVP", preference, type, c.username,
+                    c.password)
             array.setdefault(c.foundation, []).append(transport)
+        print array
         return array.items()
 
     def convert_tp_candidate(self, id, transport):
@@ -238,6 +271,10 @@ class ButterflyStreamHandler (
             type = "relay"
             addr = None
             port = None
-        return papyon.sip.ice.ICECandidate(19, id, int(transport[0]), proto, priority,
+        if self._session.type is MediaSessionType.SIP:
+            draft = 6
+        else:
+            draft = 19
+        return papyon.sip.ice.ICECandidate(draft, id, int(transport[0]), proto, priority,
                 transport[8], transport[9], type, transport[1],
                 int(transport[2]), addr, port)

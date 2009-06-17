@@ -53,7 +53,7 @@ class ButterflyMediaChannel(
         self._handle = handle
 
         self._session_handler = ButterflySessionHandler(self._conn, self, call)
-        self.NewSessionHandler(self._session_handler, self._session_handler.type)
+        self.NewSessionHandler(self._session_handler, self._session_handler.subtype)
 
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REMOVE, 0)
@@ -65,7 +65,7 @@ class ButterflyMediaChannel(
         self._call.end()
 
     def GetSessionHandlers(self):
-        return [(self._session_handler, self._session_handler.type)]
+        return [(self._session_handler, self._session_handler.subtype)]
 
     def ListStreams(self):
         print "ListStreams"
@@ -82,9 +82,10 @@ class ButterflyMediaChannel(
 
         streams = dbus.Array([], signature="a(uuuuuu)")
         for type in types:
-            handler = self._session_handler.CreateStream(type)
+            handler = self._session_handler.CreateStream(type, 3)
             streams.append((handler.id, self._handle, handler.type,
                 handler.state, handler.direction, handler.pending_send))
+        self._call.invite()
         return streams
 
     def RequestStreamDirection(self, id, direction):
@@ -112,12 +113,8 @@ class ButterflyMediaChannel(
         for handle in handles:
             print handle, self.GetSelfHandle()
             if handle == int(self.GetSelfHandle()):
-                print "That's me"
                 if self.GetSelfHandle() in self._local_pending:
-                    print "Is local pending"
                     self._call.accept()
-            else:
-                print "Not me", self.GetSelfHandle()
 
     def RemoveMembers(self, handles, message):
         print "Remove members", handles, message
@@ -127,11 +124,11 @@ class ButterflyMediaChannel(
 
     #papyon.event.call.CallEventInterface
     def on_call_incoming(self):
-        self._call.accept()
+        print "RING"
 
     #papyon.event.call.CallEventInterface
     def on_call_ringing(self):
-        pass
+        print "RING"
 
     #papyon.event.call.CallEventInterface
     def on_call_accepted(self):
@@ -184,3 +181,4 @@ class ButterflyMediaChannel(
 
         self.MembersChanged('', added, [], local_pending, remote_pending,
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+        self._call.ring()

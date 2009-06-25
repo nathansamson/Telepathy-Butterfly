@@ -39,6 +39,7 @@ class ButterflyMediaChannel(
         telepathy.server.ChannelInterfaceGroup,
         telepathy.server.ChannelInterfaceMediaSignalling,
         papyon.event.CallEventInterface,
+        papyon.event.ContactEventInterface,
         papyon.event.MediaSessionEventInterface):
 
     def __init__(self, conn, manager, call, handle, props):
@@ -47,6 +48,7 @@ class ButterflyMediaChannel(
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         telepathy.server.ChannelInterfaceMediaSignalling.__init__(self)
         papyon.event.CallEventInterface.__init__(self, call)
+        papyon.event.ContactEventInterface.__init__(self, conn.msn_client)
         papyon.event.MediaSessionEventInterface.__init__(self, call.media_session)
 
         self._call = call
@@ -162,6 +164,13 @@ class ButterflyMediaChannel(
         print "Media Stream removed"
         id = self._session_handler.FindStream(stream)
         self._session_handler.RemoveStream(id)
+
+    #papyon.event.media.ContactEventInterface
+    def on_contact_presence_changed(self, contact):
+        if contact == self._call.peer and \
+           contact.presence == papyon.Presence.OFFLINE:
+            print "%s is now offline, closing channel" % contact
+            self.Close()
 
     def on_stream_state_changed(self, id, state):
         self.StreamStateChanged(id, state)

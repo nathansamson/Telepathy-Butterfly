@@ -103,7 +103,12 @@ class ButterflyStreamHandler (
 
     @property
     def relay_info(self):
-        return dbus.Array([], signature="aa{sv}")
+        relays = dbus.Array([], signature="a{sv}")
+        for i, relay in enumerate(self._stream.relays):
+            dict = self.convert_relay(relay)
+            dict["component"] = dbus.UInt32(i + 1)
+            relays.append(dict)
+        return relays
 
     @property
     def stun_servers(self):
@@ -111,7 +116,7 @@ class ButterflyStreamHandler (
                 MediaSessionType.TUNNELED_SIP):
             return [("64.14.48.28", dbus.UInt32(3478))]
         else:
-            return dbus.Array([], signature="a(su)")
+            return dbus.Array([], signature="(su)")
 
     def set_direction(self, direction, pending_send):
         self._direction = direction
@@ -278,3 +283,8 @@ class ButterflyStreamHandler (
         return papyon.sip.ice.ICECandidate(draft, id, int(transport[0]), proto, priority,
                 transport[8], transport[9], type, transport[1],
                 int(transport[2]), addr, port)
+
+    def convert_relay(self, relay):
+        info = {"ip": relay.ip, "port": dbus.UInt32(relay.port),
+                "username": relay.username, "password": relay.password}
+        return dbus.Dictionary(info, signature="sv")

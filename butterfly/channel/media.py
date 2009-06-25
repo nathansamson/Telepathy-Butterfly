@@ -54,7 +54,7 @@ class ButterflyMediaChannel(
         self._call = call
         self._handle = handle
 
-        self._session_handler = ButterflySessionHandler(self._conn, self, call)
+        self._session_handler = ButterflySessionHandler(self._conn, self, call.media_session)
         self.NewSessionHandler(self._session_handler, self._session_handler.subtype)
 
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
@@ -85,6 +85,8 @@ class ButterflyMediaChannel(
         streams = dbus.Array([], signature="a(uuuuuu)")
         for type in types:
             handler = self._session_handler.CreateStream(type, 3)
+            handler.connect("state-changed", self.on_stream_state_changed)
+            handler.connect("error", self.on_stream_error)
             streams.append((handler.id, self._handle, handler.type,
                 handler.state, handler.direction, handler.pending_send))
         self._call.invite()
@@ -155,6 +157,8 @@ class ButterflyMediaChannel(
     def on_stream_created(self, stream):
         print "Media Stream created upon peer request"
         handler = self._session_handler.HandleStream(stream)
+        handler.connect("state-changed", self.on_stream_state_changed)
+        handler.connect("error", self.on_stream_error)
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_added(self, stream):
@@ -178,8 +182,14 @@ class ButterflyMediaChannel(
             print "%s is now offline, closing channel" % contact
             self.Close()
 
-    def on_stream_state_changed(self, id, state):
-        self.StreamStateChanged(id, state)
+    #StreamHandler event
+    def on_stream_error(self, handler, error, message):
+        self.StreamError(handler.id, error, message)
+        self._call.media_session.remove_stream(handler.stream)
+
+    #StreamHandler event
+    def on_stream_state_changed(self, handler, state):
+        self.StreamStateChanged(handler.id, state)
 
     @async
     def __add_initial_participants(self):

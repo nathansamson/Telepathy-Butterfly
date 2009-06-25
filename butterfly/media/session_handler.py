@@ -32,13 +32,12 @@ from papyon.sip.media import MediaSessionType
 __all__ = ['ButterflySessionHandler']
 
 class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
-    def __init__(self, connection, channel, call):
+    def __init__(self, connection, channel, session):
         self._conn = connection
-        self._channel = channel
-        self._call = call
+        self._session = session
         self._stream_handlers = {}
         self._next_stream_id = 0
-        self._type = call.media_session.type
+        self._type = session.type
         self._subtype = self._type is MediaSessionType.WEBCAM and "msn" or "rtp"
         self._ready = False
         self._pending_handlers = []
@@ -93,7 +92,7 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
             media_type = "audio"
         else:
             media_type = "video"
-        stream = self._call.media_session.add_stream(media_type, direction, True)
+        stream = self._session.create_stream(media_type, direction, True)
         handler = self.HandleStream(stream)
         self._session.add_pending_stream(stream)
         return handler
@@ -104,8 +103,6 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self._stream_handlers[handler.id] = handler
         return handler
 
-    def RemoveStream(self, id):
-        del self._stream_handlers[id]
     def NewStream(self, stream=None, handler=None):
         if handler is None:
             handler = self.FindStream(stream)
@@ -117,5 +114,9 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self.NewStreamHandler(path, handler.id, handler.type, handler.direction)
         return handler
 
-    def on_stream_state_changed(self, id, state):
-        self._channel.on_stream_state_changed(id, state)
+    def RemoveStream(self, id):
+        print "Session remove stream handler", id
+        if id in self._stream_handlers:
+            handler = self._stream_handlers[id]
+            handler.remove_from_connection()
+            del self._stream_handlers[id]

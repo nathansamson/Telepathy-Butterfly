@@ -41,11 +41,12 @@ class ButterflyStreamHandler (
     def __init__(self, connection, session, stream):
         self._id = session.next_stream_id
         path = session.get_stream_path(self._id)
-
+        print "New stream %i" % self._id
         self._conn = connection
         self._session = session
         self._stream = stream
         self._interfaces = set()
+        self._callbacks = {}
 
         self._state = 1
         self._direction = stream.direction
@@ -89,6 +90,10 @@ class ButterflyStreamHandler (
         return self._state
 
     @property
+    def stream(self):
+        return self._stream
+
+    @property
     def created_locally(self):
         return self._stream.controlling
 
@@ -122,13 +127,21 @@ class ButterflyStreamHandler (
         self._direction = direction
         self._pending_send = pending_send
 
+    def connect(self, signal, cb):
+        self._callbacks.setdefault(signal, []).append(cb)
+
+    def emit(self, signal, *args):
+        callbacks = self._callbacks.get(signal, [])
+        for cb in callbacks:
+            cb(self, *args)
+
     def Ready(self, codecs):
-        print "StreamReady : ", codecs
+        print "Stream %i is ready" % self._id
         webcam = (self._session.type is MediaSessionType.WEBCAM)
 
-        if self._remote_candidates is not None:
+        if self._remote_candidates:
             self.SetRemoteCandidateList(self._remote_candidates)
-        if self._remote_codecs is not None and not webcam:
+        if self._remote_codecs:
             self.SetRemoteCodecs(self._remote_codecs)
 
         self.SetStreamPlaying(self._direction &
@@ -137,16 +150,16 @@ class ButterflyStreamHandler (
                 telepathy.MEDIA_STREAM_DIRECTION_SEND)
 
         if self.created_locally or webcam:
-            print "Set local codecs"
             self.SetLocalCodecs(codecs)
 
     def StreamState(self, state):
         print "StreamState : ", state
         self._state = state
-        self._session.on_stream_state_changed(self.id, state)
+        self.emit("state-changed", state)
 
     def Error(self, code, message):
         print "StreamError - %i - %s" % (code, message)
+        self.emit("error", code, message)
         self.Close()
 
     def NewNativeCandidate(self, id, transports):
@@ -195,7 +208,9 @@ class ButterflyStreamHandler (
 
     #papyon.event.MediaStreamEventInterface
     def on_stream_closed(self):
-        print "Stream Closed"
+        print "Stream %i closed" % self._id
+        self._state = 0
+        self.emit("state-changed", self._state)
         self.Close()
 
     def convert_sdp_codecs(self, codecs):

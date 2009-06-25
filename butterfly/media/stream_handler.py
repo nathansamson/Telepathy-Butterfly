@@ -229,36 +229,14 @@ class ButterflyStreamHandler (
             elif c.type == "relay":
                 type = 2
             else:
-                print "TYPE", c.type
                 type = 0
-            #FIXME
-            if c.username:
-                while True:
-                    try:
-                        base64.b64decode(c.username)
-                        break
-                    except:
-                        c.username += "="
-            else:
-                c.username = ""
-            if c.password:
-                while True:
-                    try:
-                        base64.b64decode(c.password)
-                        break
-                    except:
-                        c.password += "="
-            else:
-                c.password = ""
             if c.priority is not None:
                 preference = float(c.priority) / 65536.0
             else:
                 preference = 1.0
-            transport = (c.component_id, c.ip, c.port, proto,
-                    self._session.subtype, "AVP", preference, type, c.username,
-                    c.password)
+            transport = (c.component_id, c.ip, c.port, proto, self._session.subtype,
+                    "AVP", preference, type, c.username, c.password)
             array.setdefault(c.foundation, []).append(transport)
-        print array
         return array.items()
 
     def convert_tp_candidate(self, id, transport):

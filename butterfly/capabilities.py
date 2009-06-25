@@ -40,10 +40,11 @@ class ButterflyCapabilities(
 
     @dbus.service.method('org.freedesktop.Telepathy.Connection.Interface.Capabilities', in_signature='a(su)as', out_signature='a(su)')
     def AdvertiseCapabilities(self, Add, Remove):
-        print "*******AdvertiseCapabilities ****** %r ***** %r" % (Add, Remove)
         for caps, specs in Add:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
-                self._self_handle.profile.client_id.has_webcam = True
+                if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
+                    self._self_handle.profile.client_id.has_webcam = True
+                    self._self_handle.profile.client_id.supports_rtc_video = True
         for caps in Remove:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
                 self._self_handle.profile.client_id.has_webcam = False
@@ -71,7 +72,6 @@ class ButterflyCapabilities(
             return
 
         diff = (int(handle), ctype, old_gen, new_gen, old_spec, new_spec)
-        print diff
         self.CapabilitiesChanged([diff])
 
     def _get_capabilities(self, contact):
@@ -84,12 +84,8 @@ class ButterflyCapabilities(
             gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
             spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
             spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
-            print "%s supports audio" % contact.account
 
             if caps.has_webcam:
                 spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
-                print "%s supports video" % contact.account
-            else:
-                print "%s doesn't support video" % contact.account
 
         return gen_caps, spec_caps

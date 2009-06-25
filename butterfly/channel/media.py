@@ -152,6 +152,7 @@ class ButterflyMediaChannel(
         print "Call ended"
         telepathy.server.ChannelTypeStreamedMedia.Close(self)
         self.remove_from_connection()
+        self._session_handler.remove_from_connection()
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_created(self, stream):

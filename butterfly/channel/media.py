@@ -153,8 +153,13 @@ class ButterflyMediaChannel(
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_created(self, stream):
-        print "Media Stream created"
-        handler = self._session_handler.AddStream(stream)
+        print "Media Stream created upon peer request"
+        handler = self._session_handler.HandleStream(stream)
+
+    #papyon.event.media.MediaSessionEventInterface
+    def on_stream_added(self, stream):
+        print "Media Stream added"
+        handler = self._session_handler.NewStream(stream)
         self.StreamAdded(handler.id, self._handle, handler.type)
         self.StreamDirectionChanged(handler.id, handler.direction,
                 handler.pending_send)
@@ -162,8 +167,9 @@ class ButterflyMediaChannel(
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_removed(self, stream):
         print "Media Stream removed"
-        id = self._session_handler.FindStream(stream)
-        self._session_handler.RemoveStream(id)
+        handler = self._session_handler.FindStream(stream)
+        self._session_handler.RemoveStream(handler.id)
+        del handler
 
     #papyon.event.media.ContactEventInterface
     def on_contact_presence_changed(self, contact):

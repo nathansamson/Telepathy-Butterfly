@@ -40,6 +40,8 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self._next_stream_id = 0
         self._type = call.media_session.type
         self._subtype = self._type is MediaSessionType.WEBCAM and "msn" or "rtp"
+        self._ready = False
+        self._pending_handlers = []
 
         path = channel._object_path + "/sessionhandler1"
         telepathy.server.MediaSessionHandler.__init__(self, connection._name, path)
@@ -61,12 +63,11 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         return "%s/stream%d" % (self._object_path, id)
 
     def Ready(self):
-        print "Session ready"
-        for handler in self._stream_handlers.values():
-            path = self.get_stream_path(handler.id)
-            self.NewStreamHandler(path, handler.id, handler.type,
-                    handler.direction)
-        #self._call.invite()
+        print "Session ready", self._pending_handlers
+        self._ready = True
+        for handler in self._pending_handlers:
+            self.NewStream(handler=handler)
+        self._pending_handlers = []
 
     def Error(self, code, message):
         print "Session error", code, message
@@ -75,11 +76,11 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         return self._stream_handlers[id]
 
     def FindStream(self, stream):
-        id = None
+        ret = None
         for handler in self.ListStreams():
-            if handler._stream == stream:
-                id = handler.id
-        return id
+            if handler.stream == stream:
+                ret = handler
+        return ret
 
     def HasStreams(self):
         return bool(self._stream_handlers)
@@ -87,24 +88,34 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
     def ListStreams(self):
         return self._stream_handlers.values()
 
-    def AddStream(self, stream):
-        handler = ButterflyStreamHandler(self._conn, self, stream)
-        self._stream_handlers[handler.id] = handler
-        path = self.get_stream_path(handler.id)
-        self.NewStreamHandler(path, handler.id, handler.type, handler.direction)
-        return handler
-
     def CreateStream(self, type, direction):
         if type == telepathy.MEDIA_STREAM_TYPE_AUDIO:
             media_type = "audio"
         else:
             media_type = "video"
         stream = self._call.media_session.add_stream(media_type, direction, True)
+        handler = self.HandleStream(stream)
+        self._session.add_pending_stream(stream)
+        return handler
+
+    def HandleStream(self, stream):
         handler = ButterflyStreamHandler(self._conn, self, stream)
+        print "Session add stream handler", handler.id
+        self._stream_handlers[handler.id] = handler
         return handler
 
     def RemoveStream(self, id):
         del self._stream_handlers[id]
+    def NewStream(self, stream=None, handler=None):
+        if handler is None:
+            handler = self.FindStream(stream)
+        if not self._ready:
+            self._pending_handlers.append(handler)
+            return handler
+        print "Session new stream handler", handler.id
+        path = self.get_stream_path(handler.id)
+        self.NewStreamHandler(path, handler.id, handler.type, handler.direction)
+        return handler
 
     def on_stream_state_changed(self, id, state):
         self._channel.on_stream_state_changed(id, state)

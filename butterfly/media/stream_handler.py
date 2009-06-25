@@ -24,7 +24,7 @@ import telepathy
 import papyon
 import papyon.event
 
-from papyon.sip.constants import *
+from papyon.media.constants import *
 
 __all__ = ['ButterflyStreamHandler']
 

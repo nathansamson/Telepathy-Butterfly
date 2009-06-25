@@ -27,7 +27,7 @@ import papyon.event
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflyStreamHandler
-from papyon.sip.media import MediaSessionType
+from papyon.media.constants import *
 
 __all__ = ['ButterflySessionHandler']
 

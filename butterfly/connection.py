@@ -243,6 +243,7 @@ class ButterflyConnection(telepathy.server.Connection,
                 self._client.profile.presence = presence
             if message is not None:
                 self._client.profile.personal_message = message
+            self._client.profile.end_point_name = "PAPYON"
 
             if (presence is not None) or (message is not None):
                 self._presence_changed(ButterflyHandleFactory(self, 'self'),
@@ -286,8 +287,8 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.InviteEventInterface
     def on_invite_conference(self, call):
         logger.debug("Call invite")
-        handle = ButterflyHandleFactory(self, 'contact', call.contact.account,
-                call.contact.network_id)
+        handle = ButterflyHandleFactory(self, 'contact', call.peer.account,
+                call.peer.network_id)
 
         props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
                 handle, False)

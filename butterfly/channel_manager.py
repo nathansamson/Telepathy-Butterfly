@@ -29,6 +29,7 @@ from butterfly.channel.group import ButterflyGroupChannel
 from butterfly.channel.im import ButterflyImChannel
 from butterfly.channel.muc import ButterflyMucChannel
 from butterfly.channel.conference import ButterflyConferenceChannel
+from butterfly.channel.filetransfer import ButterflyFileTransferChannel
 from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 
@@ -124,6 +125,11 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 #            ]
 #        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
 
+        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_FILE_TRANSFER,
+            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)}
+        self._implement_channel_class(telepathy.CHANNEL_TYPE_FILE_TRANSFER,
+            self._get_ft_channel, fixed, [telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
+
     def _get_list_channel(self, props):
         _, surpress_handler, handle = self._get_type_requested_handle(props)
 
@@ -183,9 +189,30 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
             client = self._conn.msn_client
             call = client.call_manager.create_call(contact)
 
-
         path = "MediaChannel/%d" % self.__media_channel_id
         self.__media_channel_id += 1
 
         return ButterflyMediaChannel(self._conn, self, call, handle, props,
             object_path=path)
+
+    def _get_ft_channel(self, props, session=None):
+        _, surpress_handler, handle = self._get_type_requested_handle(props)
+
+        if handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
+            raise telepathy.NotImplemented('Only contacts are allowed')
+
+        contact = handle.contact
+
+        if contact.presence == papyon.Presence.OFFLINE:
+            raise telepathy.NotAvailable('Contact not available')
+
+        logger.debug('New file transfer channel')
+
+        if session is None:
+            type = telepathy.CHANNEL_TYPE_FILE_TRANSFER
+            filename = props[type + ".Filename"]
+            size = props[type + ".Size"]
+            client = self._conn.msn_client
+            session = client.ft_manager.send(contact, filename, size)
+
+        return ButterflyFileTransferChannel(self._conn, self, session, handle, props)

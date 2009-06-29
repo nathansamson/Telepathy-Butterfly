@@ -156,31 +156,20 @@ class ButterflyFileTransferChannel(
         return channel
 
     def on_socket_connected(self, channel, condition):
-        logger.debug("Telepathy socket connected"
+        logger.debug("Telepathy socket connected")
         sock = self.socket.accept()[0]
         if self._receiving:
+            buffer = DataBuffer(sock)
+            self._session.set_receive_data_buffer(buffer, self.size)
             self._session.accept()
         else:
-            sock.setblocking(False)
-            channel = gobject.IOChannel(sock.fileno())
-            channel.set_encoding(None)
-            channel.set_buffered(False)
-            channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
-            channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
-            self.channel = channel
+            buffer = DataBuffer(sock, self.size)
+            self._session.send(buffer)
         self.socket = sock
 
-    def on_stream_received(self, channel, condition):
-        data = channel.read(1024)
-        self._session.send_chunk(data)
-
     def on_chunk_transferred(self, session, chunk):
-        if self._receiving:
-            self.socket.send(chunk)
         self._transferred += len(chunk)
         self.TransferredBytesChanged(self._transferred)
-        data = self.channel.read(1024)
-        self._session.send_chunk(data)
 
     def on_transfer_complete(self, session, data):
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
@@ -217,3 +206,49 @@ class ButterflyFileTransferChannel(
         handles = [self._handle]
         self.MembersChanged('', handles, pending, [], [],
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
+
+
+class DataBuffer(object):
+
+    def __init__(self, socket, size=0):
+        self._socket = socket
+        self._size = size
+        self._offset = 0
+        self._buffer = ""
+
+    def seek(self, offset, position):
+        if position == 0:
+            self._offset = offset
+        elif position == 2:
+            self._offset = self._size
+
+    def tell(self):
+        return self._offset
+
+    def read(self, max_size=None):
+        if max_size is None:
+            # we can't read all the data;
+            # let's just return the last chunk
+            return self._buffer
+        data = self._buffer[0:max_size]
+        self._buffer[max_size:]
+        self._offset += len(data)
+        return data
+
+    def write(self, data):
+        self._size += len(data)
+        self._buffer = data
+        self._socket.send(data)
+
+    def add_channel(self):
+        sock.setblocking(False)
+        channel = gobject.IOChannel(sock.fileno())
+        channel.set_encoding(None)
+        channel.set_buffered(False)
+        channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
+        channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
+        self.channel = channel
+
+    def on_stream_received(self, channel, condition):
+        data = channel.read(1024)
+        self._session.send_chunk(data)

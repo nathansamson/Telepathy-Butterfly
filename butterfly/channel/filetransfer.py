@@ -230,14 +230,16 @@ class DataBuffer(object):
             # we can't read all the data;
             # let's just return the last chunk
             return self._buffer
-        data = self._buffer[0:max_size]
-        self._buffer[max_size:]
+        max_size = min(max_size, self._size - self._offset)
+        data = self._socket.recv(max_size)
+        self._buffer = data
         self._offset += len(data)
         return data
 
     def write(self, data):
-        self._size += len(data)
         self._buffer = data
+        self._size += len(data)
+        self._offset += len(data)
         self._socket.send(data)
 
     def add_channel(self):

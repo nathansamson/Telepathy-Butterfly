@@ -24,7 +24,7 @@ import telepathy
 import papyon
 import papyon.event
 
-from papyon.media.constants import *
+from papyon.media import *
 
 __all__ = ['ButterflyStreamHandler']
 
@@ -226,7 +226,7 @@ class ButterflyStreamHandler (
     def convert_tp_codecs(self, codecs):
         list = []
         for codec in codecs:
-            c = papyon.sip.sdp.SDPCodec(codec[0], codec[1], codec[3], codec[5])
+            c = MediaCodec(codec[0], codec[1], codec[3], codec[5])
             list.append(c)
         return list
 
@@ -269,11 +269,7 @@ class ButterflyStreamHandler (
             type = "relay"
             addr = None
             port = None
-        if self._session.type is MediaSessionType.SIP:
-            draft = 6
-        else:
-            draft = 19
-        return papyon.sip.ice.ICECandidate(draft, id, int(transport[0]), proto, priority,
+        return MediaCandidate(id, int(transport[0]), proto, priority,
                 transport[8], transport[9], type, transport[1],
                 int(transport[2]), addr, port)
 

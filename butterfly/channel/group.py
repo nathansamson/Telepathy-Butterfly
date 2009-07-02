@@ -20,8 +20,8 @@
 import logging
 
 import telepathy
-import pymsn
-import pymsn.event
+import papyon
+import papyon.event
 
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
@@ -33,13 +33,13 @@ logger = logging.getLogger('Butterfly.GroupChannel')
 
 
 class ButterflyGroupChannel(ButterflyListChannel,
-            pymsn.event.AddressBookEventInterface):
+            papyon.event.AddressBookEventInterface):
 
     def __init__(self, connection, handle):
         self.__pending_add = []
         self.__pending_remove = []
         ButterflyListChannel.__init__(self, connection, handle)
-        pymsn.event.AddressBookEventInterface.__init__(self, connection.msn_client)
+        papyon.event.AddressBookEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD | 
                 telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
         # Create this group on the server if not existant
@@ -71,7 +71,7 @@ class ButterflyGroupChannel(ButterflyListChannel,
                         (contact_handle, self._handle))
                 contact = contact_handle.contact
                 group = self._handle.group
-                if contact is not None and contact.is_member(pymsn.Membership.FORWARD):
+                if contact is not None and contact.is_member(papyon.Membership.FORWARD):
                     ab.add_contact_to_group(group, contact)
                 else:
                     contact_handle.pending_groups.add(group)
@@ -97,7 +97,7 @@ class ButterflyGroupChannel(ButterflyListChannel,
                         (contact_handle, self._handle))
                 contact = contact_handle.contact
                 group = self._handle.group
-                if contact is not None and contact.is_member(pymsn.Membership.FORWARD):
+                if contact is not None and contact.is_member(papyon.Membership.FORWARD):
                     ab.delete_contact_from_group(group, contact)
                 else:
                     contact_handle.pending_groups.discard(group)

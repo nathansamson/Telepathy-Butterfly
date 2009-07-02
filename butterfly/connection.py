@@ -21,8 +21,8 @@ import weakref
 import logging
 
 import telepathy
-import pymsn
-import pymsn.event
+import papyon
+import papyon.event
 
 from butterfly.presence import ButterflyPresence
 from butterfly.aliasing import ButterflyAliasing
@@ -41,8 +41,8 @@ class ButterflyConnection(telepathy.server.Connection,
         ButterflyAliasing,
         ButterflyAvatars,
         ButterflyContacts,
-        pymsn.event.ClientEventInterface,
-        pymsn.event.InviteEventInterface):
+        papyon.event.ClientEventInterface,
+        papyon.event.InviteEventInterface):
 
     _mandatory_parameters = {
             'account' : 's',
@@ -82,7 +82,7 @@ class ButterflyConnection(telepathy.server.Connection,
                 proxies['https'] = proxy
 
             self._manager = weakref.proxy(manager)
-            self._msn_client = pymsn.Client(server, proxies)
+            self._msn_client = papyon.Client(server, proxies)
             self._account = (parameters['account'].encode('utf-8'),
                     parameters['password'].encode('utf-8'))
             self._channel_manager = ChannelManager(self)
@@ -93,13 +93,13 @@ class ButterflyConnection(telepathy.server.Connection,
             ButterflyAliasing.__init__(self)
             ButterflyAvatars.__init__(self)
             ButterflyContacts.__init__(self)
-            pymsn.event.ClientEventInterface.__init__(self, self._msn_client)
-            pymsn.event.InviteEventInterface.__init__(self, self._msn_client)
+            papyon.event.ClientEventInterface.__init__(self, self._msn_client)
+            papyon.event.InviteEventInterface.__init__(self, self._msn_client)
 
             self.set_self_handle(ButterflyHandleFactory(self, 'self'))
 
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
-            self._initial_presence = pymsn.Presence.INVISIBLE
+            self._initial_presence = papyon.Presence.INVISIBLE
             self._initial_personal_message = None
 
             logger.info("Connection to the account %s created" % account)
@@ -143,7 +143,7 @@ class ButterflyConnection(telepathy.server.Connection,
                 if len(name) > 1:
                     network_id = int(name[1])
                 else:
-                    network_id = pymsn.NetworkID.MSN
+                    network_id = papyon.NetworkID.MSN
                 contacts = self.msn_client.address_book.contacts.\
                         search_by_account(contact_name).\
                         search_by_network_id(network_id)
@@ -178,7 +178,7 @@ class ButterflyConnection(telepathy.server.Connection,
             if handle_type != telepathy.HANDLE_TYPE_CONTACT:
                 raise telepathy.NotImplemented("Only Contacts are allowed")
             contact = handle.contact
-            if contact.presence == pymsn.Presence.OFFLINE:
+            if contact.presence == papyon.Presence.OFFLINE:
                 raise telepathy.NotAvailable('Contact not available')
             channel = channel_manager.channel_for_text(handle, None, suppress_handler)
         else:
@@ -186,12 +186,12 @@ class ButterflyConnection(telepathy.server.Connection,
 
         return channel._object_path
 
-    # pymsn.event.ClientEventInterface
+    # papyon.event.ClientEventInterface
     def on_client_state_changed(self, state):
-        if state == pymsn.event.ClientState.CONNECTING:
+        if state == papyon.event.ClientState.CONNECTING:
             self.StatusChanged(telepathy.CONNECTION_STATUS_CONNECTING,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
-        elif state == pymsn.event.ClientState.SYNCHRONIZED:
+        elif state == papyon.event.ClientState.SYNCHRONIZED:
             handle = ButterflyHandleFactory(self, 'list', 'subscribe')
             self._channel_manager.channel_for_list(handle)
             handle = ButterflyHandleFactory(self, 'list', 'publish')
@@ -206,7 +206,7 @@ class ButterflyConnection(telepathy.server.Connection,
             for group in self.msn_client.address_book.groups:
                 handle = ButterflyHandleFactory(self, 'group', group.name)
                 self._channel_manager.channel_for_list(handle)
-        elif state == pymsn.event.ClientState.OPEN:
+        elif state == papyon.event.ClientState.OPEN:
             self.StatusChanged(telepathy.CONNECTION_STATUS_CONNECTED,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
             presence = self._initial_presence
@@ -220,23 +220,23 @@ class ButterflyConnection(telepathy.server.Connection,
                 self._presence_changed(ButterflyHandleFactory(self, 'self'),
                         self._client.profile.presence,
                         self._client.profile.personal_message)
-        elif state == pymsn.event.ClientState.CLOSED:
+        elif state == papyon.event.ClientState.CLOSED:
             self.StatusChanged(telepathy.CONNECTION_STATUS_DISCONNECTED,
                     self.__disconnect_reason)
             #FIXME
             self._channel_manager.close()
             self._advertise_disconnected()
 
-    # pymsn.event.ClientEventInterface
+    # papyon.event.ClientEventInterface
     def on_client_error(self, type, error):
-        if type == pymsn.event.ClientErrorType.NETWORK:
+        if type == papyon.event.ClientErrorType.NETWORK:
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR
-        elif type == pymsn.event.ClientErrorType.AUTHENTICATION:
+        elif type == papyon.event.ClientErrorType.AUTHENTICATION:
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
         else:
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
 
-    # pymsn.event.InviteEventInterface
+    # papyon.event.InviteEventInterface
     def on_invite_conversation(self, conversation):
         logger.debug("Conversation invite")
         #FIXME: get rid of this crap and implement group support
@@ -258,7 +258,7 @@ def build_proxy_infos(self, parameters, proxy_type='http'):
     username_key = proxy_type + '-proxy-username'
     password_key = proxy_type + '-proxy-password'
     if server_key in parameters and port_key in parameters:
-        return pymsn.ProxyInfos(host = parameters[server_key],
+        return papyon.ProxyInfos(host = parameters[server_key],
                 port = parameters[port_key],
                 type = proxy_type,
                 user = parameters.get(username_key, None),

@@ -22,9 +22,9 @@ import sha
 import dbus
 
 import telepathy
-import pymsn
-import pymsn.event
-import pymsn.util.string_io as StringIO
+import papyon
+import papyon.event
+import papyon.util.string_io as StringIO
 
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.util.decorator import async
@@ -36,14 +36,14 @@ logger = logging.getLogger('Butterfly.Avatars')
 
 class ButterflyAvatars(\
         telepathy.server.ConnectionInterfaceAvatars,
-        pymsn.event.ContactEventInterface,
-        pymsn.event.ProfileEventInterface):
+        papyon.event.ContactEventInterface,
+        papyon.event.ProfileEventInterface):
 
     def __init__(self):
         self._avatar_known = False
         telepathy.server.ConnectionInterfaceAvatars.__init__(self)
-        pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
-        pymsn.event.ProfileEventInterface.__init__(self, self.msn_client)
+        papyon.event.ContactEventInterface.__init__(self, self.msn_client)
+        papyon.event.ProfileEventInterface.__init__(self, self.msn_client)
 
     def GetAvatarRequirements(self):
         mime_types = ("image/png","image/jpeg","image/gif")
@@ -89,9 +89,9 @@ class ButterflyAvatars(\
         self._avatar_known = True
         if not isinstance(avatar, str):
             avatar = "".join([chr(b) for b in avatar])
-        msn_object = pymsn.p2p.MSNObject(self.msn_client.profile,
+        msn_object = papyon.p2p.MSNObject(self.msn_client.profile,
                          len(avatar),
-                         pymsn.p2p.MSNObjectType.DISPLAY_PICTURE,
+                         papyon.p2p.MSNObjectType.DISPLAY_PICTURE,
                          sha.new(avatar).hexdigest() + '.tmp',
                          "",
                          data=StringIO.StringIO(avatar))
@@ -104,7 +104,7 @@ class ButterflyAvatars(\
         self.msn_client.profile.msn_object = None
         self._avatar_known = True
 
-    # pymsn.event.ContactEventInterface
+    # papyon.event.ContactEventInterface
     def on_contact_msn_object_changed(self, contact):
         if contact.msn_object is not None:
             avatar_token = contact.msn_object._data_sha.encode("hex")
@@ -114,7 +114,7 @@ class ButterflyAvatars(\
                 contact.account, contact.network_id)
         self.AvatarUpdated(handle, avatar_token)
 
-    # pymsn.event.ProfileEventInterface
+    # papyon.event.ProfileEventInterface
     def on_profile_msn_object_changed(self):
         msn_object = self.msn_client.profile.msn_object
         if msn_object is not None:

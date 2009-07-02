@@ -20,7 +20,7 @@ import logging
 import weakref
 
 import telepathy
-import pymsn
+import papyon
 
 from butterfly.channel.contact_list import ButterflyContactListChannelFactory
 from butterfly.channel.group import ButterflyGroupChannel
@@ -65,7 +65,7 @@ class ChannelManager(object):
 
             if conversation is None:
                 client = self._conn_ref().msn_client
-                conversation = pymsn.Conversation(client, [contact])
+                conversation = papyon.Conversation(client, [contact])
             channel = ButterflyTextChannel(self._conn_ref(), conversation, self)
             self._text_channels[handle] = channel
             self._conn_ref().add_channel(channel, handle, suppress_handler)

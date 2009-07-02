@@ -20,8 +20,8 @@ import logging
 
 import telepathy
 import telepathy.constants
-import pymsn
-from pymsn.service.description.AB.constants import \
+import papyon
+from papyon.service.description.AB.constants import \
     ContactGeneral, ContactAnnotations
 
 from butterfly.handle import ButterflyHandleFactory
@@ -33,11 +33,11 @@ logger = logging.getLogger('Butterfly.Aliasing')
 
 class ButterflyAliasing(
         telepathy.server.ConnectionInterfaceAliasing,
-        pymsn.event.ContactEventInterface):
+        papyon.event.ContactEventInterface):
 
     def __init__(self):
         telepathy.server.ConnectionInterfaceAliasing.__init__(self)
-        pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
+        papyon.event.ContactEventInterface.__init__(self, self.msn_client)
 
     def GetAliasFlags(self):
         return telepathy.constants.CONNECTION_ALIAS_FLAG_USER_SET
@@ -62,7 +62,7 @@ class ButterflyAliasing(
                     alias = u""
                 contact = handle.contact
                 if contact is None or \
-                        (not contact.is_member(pymsn.Membership.FORWARD)):
+                        (not contact.is_member(papyon.Membership.FORWARD)):
                     handle.pending_alias = alias
                     continue
                 infos = {ContactGeneral.ANNOTATIONS : \
@@ -75,11 +75,11 @@ class ButterflyAliasing(
                 logger.info("Self alias changed to '%s'" % alias)
                 self.AliasesChanged(((ButterflyHandleFactory(self, 'self'), alias), ))
 
-    # pymsn.event.ContactEventInterface
+    # papyon.event.ContactEventInterface
     def on_contact_display_name_changed(self, contact):
         self._contact_alias_changed(contact)
 
-    # pymsn.event.ContactEventInterface
+    # papyon.event.ContactEventInterface
     def on_contact_infos_changed(self, contact, updated_infos):
         alias = updated_infos.get(ContactGeneral.ANNOTATIONS, {}).\
             get(ContactAnnotations.NICKNAME, None)
@@ -87,11 +87,11 @@ class ButterflyAliasing(
         if alias is not None or alias != "":
             self._contact_alias_changed(contact)
 
-    # pymsn.event.ContactEventInterface
+    # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):
         handle = ButterflyHandleFactory(self, 'contact',
                 contact.account, contact.network_id)
-        if contact.is_member(pymsn.Membership.FORWARD):
+        if contact.is_member(papyon.Membership.FORWARD):
             alias = handle.pending_alias
             if alias is not None:
                 infos = {ContactGeneral.ANNOTATIONS : \

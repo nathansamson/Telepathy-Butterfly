@@ -20,7 +20,7 @@ import logging
 import weakref
 
 import telepathy
-import pymsn
+import papyon
 
 __all__ = ['ButterflyHandleFactory']
 
@@ -81,7 +81,7 @@ class ButterflySelfHandle(ButterflyHandle):
 
     def __init__(self, connection, id):
         handle_type = telepathy.HANDLE_TYPE_CONTACT
-        handle_name = connection._account[0] + "#" + str(pymsn.NetworkID.MSN)
+        handle_name = connection._account[0] + "#" + str(papyon.NetworkID.MSN)
         self._connection = connection
         ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
 

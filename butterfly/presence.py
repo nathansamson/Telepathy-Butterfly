@@ -25,7 +25,7 @@ import time
 import telepathy
 import telepathy.constants
 import telepathy.errors
-import pymsn
+import papyon
 
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.util.decorator import async
@@ -46,28 +46,28 @@ class ButterflyPresenceMapping(object):
     INVISIBLE = 'hidden'
     OFFLINE = 'offline'
 
-    to_pymsn = {
-            ONLINE:     pymsn.Presence.ONLINE,
-            AWAY:       pymsn.Presence.AWAY,
-            BUSY:       pymsn.Presence.BUSY,
-            IDLE:       pymsn.Presence.IDLE,
-            BRB:        pymsn.Presence.BE_RIGHT_BACK,
-            PHONE:      pymsn.Presence.ON_THE_PHONE,
-            LUNCH:      pymsn.Presence.OUT_TO_LUNCH,
-            INVISIBLE:  pymsn.Presence.INVISIBLE,
-            OFFLINE:    pymsn.Presence.OFFLINE
+    to_papyon = {
+            ONLINE:     papyon.Presence.ONLINE,
+            AWAY:       papyon.Presence.AWAY,
+            BUSY:       papyon.Presence.BUSY,
+            IDLE:       papyon.Presence.IDLE,
+            BRB:        papyon.Presence.BE_RIGHT_BACK,
+            PHONE:      papyon.Presence.ON_THE_PHONE,
+            LUNCH:      papyon.Presence.OUT_TO_LUNCH,
+            INVISIBLE:  papyon.Presence.INVISIBLE,
+            OFFLINE:    papyon.Presence.OFFLINE
             }
 
     to_telepathy = {
-            pymsn.Presence.ONLINE:         ONLINE,
-            pymsn.Presence.AWAY:           AWAY,
-            pymsn.Presence.BUSY:           BUSY,
-            pymsn.Presence.IDLE:           IDLE,
-            pymsn.Presence.BE_RIGHT_BACK:  BRB,
-            pymsn.Presence.ON_THE_PHONE:   PHONE,
-            pymsn.Presence.OUT_TO_LUNCH:   LUNCH,
-            pymsn.Presence.INVISIBLE:      INVISIBLE,
-            pymsn.Presence.OFFLINE:        OFFLINE
+            papyon.Presence.ONLINE:         ONLINE,
+            papyon.Presence.AWAY:           AWAY,
+            papyon.Presence.BUSY:           BUSY,
+            papyon.Presence.IDLE:           IDLE,
+            papyon.Presence.BE_RIGHT_BACK:  BRB,
+            papyon.Presence.ON_THE_PHONE:   PHONE,
+            papyon.Presence.OUT_TO_LUNCH:   LUNCH,
+            papyon.Presence.INVISIBLE:      INVISIBLE,
+            papyon.Presence.OFFLINE:        OFFLINE
             }
 
     to_presence_type = {
@@ -84,14 +84,14 @@ class ButterflyPresenceMapping(object):
 
 class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         telepathy.server.ConnectionInterfaceSimplePresence,
-        pymsn.event.ContactEventInterface,
-        pymsn.event.ProfileEventInterface):
+        papyon.event.ContactEventInterface,
+        papyon.event.ProfileEventInterface):
 
     def __init__(self):
         telepathy.server.ConnectionInterfacePresence.__init__(self)
         telepathy.server.ConnectionInterfaceSimplePresence.__init__(self)
-        pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
-        pymsn.event.ProfileEventInterface.__init__(self, self.msn_client)
+        papyon.event.ContactEventInterface.__init__(self, self.msn_client)
+        papyon.event.ProfileEventInterface.__init__(self, self.msn_client)
 
         dbus_interface = 'org.freedesktop.Telepathy.Connection.Interface.SimplePresence'
 
@@ -146,7 +146,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         if status == ButterflyPresenceMapping.OFFLINE:
             self.Disconnect()
 
-        presence = ButterflyPresenceMapping.to_pymsn[status]
+        presence = ButterflyPresenceMapping.to_papyon[status]
         message = arguments.get('message', u'').encode("utf-8")
 
         logger.info("Setting Presence to '%s'" % presence)
@@ -193,7 +193,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             self.Disconnect()
 
         try:
-            presence = ButterflyPresenceMapping.to_pymsn[status]
+            presence = ButterflyPresenceMapping.to_papyon[status]
         except KeyError:
             raise telepathy.errors.InvalidArgument
         message = message.encode("utf-8")
@@ -262,23 +262,23 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
                 True, False)
         }
 
-    # pymsn.event.ContactEventInterface
+    # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):
         handle = ButterflyHandleFactory(self, 'contact',
                 contact.account, contact.network_id)
         logger.info("Contact %r presence changed to '%s'" % (handle, contact.presence))
         self._presence_changed(handle, contact.presence, contact.personal_message)
 
-    # pymsn.event.ContactEventInterface
+    # papyon.event.ContactEventInterface
     on_contact_personal_message_changed = on_contact_presence_changed
 
-    # pymsn.event.ProfileEventInterface
+    # papyon.event.ProfileEventInterface
     def on_profile_presence_changed(self):
         profile = self.msn_client.profile
         self._presence_changed(ButterflyHandleFactory(self, 'self'),
                 profile.presence, profile.personal_message)
 
-    # pymsn.event.ProfileEventInterface
+    # papyon.event.ProfileEventInterface
     on_profile_personal_message_changed = on_profile_presence_changed
 
     @async

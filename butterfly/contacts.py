@@ -22,7 +22,7 @@ import time
 
 import telepathy
 import telepathy.errors
-import pymsn
+import papyon
 import dbus
 
 __all__ = ['ButterflyContacts']
@@ -31,8 +31,8 @@ logger = logging.getLogger('Butterfly.Contacts')
 
 class ButterflyContacts(
         telepathy.server.ConnectionInterfaceContacts,
-        pymsn.event.ContactEventInterface,
-        pymsn.event.ProfileEventInterface):
+        papyon.event.ContactEventInterface,
+        papyon.event.ProfileEventInterface):
 
     attributes = {
         telepathy.CONNECTION : 'contact-id',
@@ -43,8 +43,8 @@ class ButterflyContacts(
 
     def __init__(self):
         telepathy.server.ConnectionInterfaceContacts.__init__(self)
-        pymsn.event.ContactEventInterface.__init__(self, self.msn_client)
-        pymsn.event.ProfileEventInterface.__init__(self, self.msn_client)
+        papyon.event.ContactEventInterface.__init__(self, self.msn_client)
+        papyon.event.ProfileEventInterface.__init__(self, self.msn_client)
 
         dbus_interface = telepathy.CONNECTION_INTERFACE_CONTACTS
 

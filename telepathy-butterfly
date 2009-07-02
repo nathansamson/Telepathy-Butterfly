@@ -88,6 +88,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     mainloop = gobject.MainLoop(is_running=True)
+    gobject.threads_init()
 
     while mainloop.is_running():
         try:

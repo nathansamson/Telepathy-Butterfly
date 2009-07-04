@@ -7,6 +7,7 @@ Enhancements:
 
 Fixes:
  * Use the presence type busy for busy presence (fd.o #22619)
+ * Fix crash on nudge reception (fd.o #22350)
 
 telepathy-butterfly-0.3.4 (16-06-2009)
 ======================================

@@ -125,7 +125,7 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
-        text = unicode(_("sends you a nudge"), "utf-8")
+        text = unicode("sends you a nudge", "utf-8")
         logger.info("User %r sent a nudge" % handle)
         self.Received(id, timestamp, handle, type, 0, text)
         self._recv_id += 1

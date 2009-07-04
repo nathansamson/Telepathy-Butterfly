@@ -112,7 +112,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
                 telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
                 True, True, arguments),
             ButterflyPresenceMapping.BUSY:(
-                telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
+                telepathy.CONNECTION_PRESENCE_TYPE_BUSY,
                 True, True, arguments),
             ButterflyPresenceMapping.IDLE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
@@ -240,7 +240,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
                 telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
                 True, True),
             ButterflyPresenceMapping.BUSY:(
-                telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
+                telepathy.CONNECTION_PRESENCE_TYPE_BUSY,
                 True, True),
             ButterflyPresenceMapping.IDLE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,

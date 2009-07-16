@@ -208,7 +208,7 @@ class ButterflyStreamHandler (
 
     #papyon.event.MediaStreamEventInterface
     def on_stream_closed(self):
-        print "Stream %i closed" % self._id
+        print "Media Stream %i closed" % self._id
         self._state = 0
         self.emit("state-changed", self._state)
         self.Close()

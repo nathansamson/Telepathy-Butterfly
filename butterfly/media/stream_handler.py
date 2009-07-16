@@ -137,7 +137,8 @@ class ButterflyStreamHandler (
 
     def Ready(self, codecs):
         print "Stream %i is ready" % self._id
-        webcam = (self._session.type is MediaSessionType.WEBCAM)
+        webcam = (self._session.type is MediaSessionType.WEBCAM_SEND or
+                  self._session.type is MediaSessionType.WEBCAM_RECV)
 
         if self._remote_candidates:
             self.SetRemoteCandidateList(self._remote_candidates)

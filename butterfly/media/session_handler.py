@@ -38,7 +38,12 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self._stream_handlers = {}
         self._next_stream_id = 0
         self._type = session.type
-        self._subtype = self._type is MediaSessionType.WEBCAM and "msn" or "rtp"
+        if self._type == MediaSessionType.WEBCAM_SEND:
+            self._subtype = "msncamsend"
+        elif self._type == MediaSessionType.WEBCAM_RECV:
+            self._subtype = "msncamrecv"
+        else:
+            self._subtype = "rtp"
         self._ready = False
         self._pending_handlers = []
 

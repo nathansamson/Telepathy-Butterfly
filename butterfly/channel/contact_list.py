@@ -29,7 +29,11 @@ from butterfly.handle import ButterflyHandleFactory
 __all__ = ['ButterflyContactListChannelFactory']
 
 
-def ButterflyContactListChannelFactory(connection, handle):
+def ButterflyContactListChannelFactory(connection, manager, handle, props):
+    handle = connection.handle(
+        props[telepathy.CHANNEL_INTERFACE + '.TargetHandleType'],
+        props[telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
+
     if handle.get_name() == 'subscribe':
         channel_class = ButterflySubscribeListChannel
     elif handle.get_name() == 'publish':
@@ -42,7 +46,7 @@ def ButterflyContactListChannelFactory(connection, handle):
         channel_class = ButterflyDenyListChannel
     else:
         raise TypeError("Unknown list type : " + handle.get_name())
-    return channel_class(connection, handle)
+    return channel_class(connection, manager, props)
 
 
 class ButterflyListChannel(
@@ -51,9 +55,9 @@ class ButterflyListChannel(
         papyon.event.AddressBookEventInterface):
     "Abstract Contact List channels"
 
-    def __init__(self, connection, handle):
+    def __init__(self, connection, manager, props):
         self._conn_ref = weakref.ref(connection)
-        telepathy.server.ChannelTypeContactList.__init__(self, connection, handle)
+        telepathy.server.ChannelTypeContactList.__init__(self, connection, manager, props)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         papyon.event.AddressBookEventInterface.__init__(self, connection.msn_client)
         self._populate(connection)
@@ -127,8 +131,8 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
     'subscribed', basically this list contains the contact for whom you are
     supposed to receive presence notification."""
 
-    def __init__(self, connection, handle):
-        ButterflyListChannel.__init__(self, connection, handle)
+    def __init__(self, connection, manager, props):
+        ButterflyListChannel.__init__(self, connection, manager, props)
         papyon.event.ContactEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD |
                 telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
@@ -179,8 +183,8 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
 class ButterflyPublishListChannel(ButterflyListChannel,
         papyon.event.ContactEventInterface):
 
-    def __init__(self, connection, handle):
-        ButterflyListChannel.__init__(self, connection, handle)
+    def __init__(self, connection, manager, props):
+        ButterflyListChannel.__init__(self, connection, manager, props)
         papyon.event.ContactEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(0, 0)
 

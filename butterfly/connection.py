@@ -20,6 +20,7 @@
 import weakref
 import logging
 
+import dbus
 import telepathy
 import papyon
 import papyon.event
@@ -29,7 +30,7 @@ from butterfly.aliasing import ButterflyAliasing
 from butterfly.avatars import ButterflyAvatars
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.contacts import ButterflyContacts
-from butterfly.channel_manager import ChannelManager
+from butterfly.channel_manager import ButterflyChannelManager
 
 __all__ = ['ButterflyConnection']
 
@@ -37,6 +38,7 @@ logger = logging.getLogger('Butterfly.Connection')
 
 
 class ButterflyConnection(telepathy.server.Connection,
+        telepathy.server.ConnectionInterfaceRequests,
         ButterflyPresence,
         ButterflyAliasing,
         ButterflyAvatars,
@@ -85,10 +87,11 @@ class ButterflyConnection(telepathy.server.Connection,
             self._msn_client = papyon.Client(server, proxies)
             self._account = (parameters['account'].encode('utf-8'),
                     parameters['password'].encode('utf-8'))
-            self._channel_manager = ChannelManager(self)
+            self._channel_manager = ButterflyChannelManager(self)
 
             # Call parent initializers
             telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
+            telepathy.server.ConnectionInterfaceRequests.__init__(self)
             ButterflyPresence.__init__(self)
             ButterflyAliasing.__init__(self)
             ButterflyAvatars.__init__(self)
@@ -165,26 +168,32 @@ class ButterflyConnection(telepathy.server.Connection,
             self.add_client_handle(handle, sender)
         return handles
 
-    def RequestChannel(self, type, handle_type, handle_id, suppress_handler):
+    def _generate_props(self, channel_type, handle, suppress_handler):
+        return {
+            telepathy.CHANNEL_INTERFACE + '.ChannelType': channel_type,
+            telepathy.CHANNEL_INTERFACE + '.TargetHandle': 0 if handle is None else handle.get_id(),
+            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': telepathy.HANDLE_TYPE_NONE if handle is None else handle.get_type(),
+            telepathy.CHANNEL_INTERFACE + '.Requested': suppress_handler
+            }
+
+    @dbus.service.method(telepathy.CONNECTION, in_signature='suub',
+        out_signature='o', async_callbacks=('_success', '_error'))
+    def RequestChannel(self, type, handle_type, handle_id, suppress_handler,
+            _success, _error):
         self.check_connected()
-
-        channel = None
         channel_manager = self._channel_manager
-        handle = self.handle(handle_type, handle_id)
 
-        if type == telepathy.CHANNEL_TYPE_CONTACT_LIST:
-            channel = channel_manager.channel_for_list(handle, suppress_handler)
-        elif type == telepathy.CHANNEL_TYPE_TEXT:
-            if handle_type != telepathy.HANDLE_TYPE_CONTACT:
-                raise telepathy.NotImplemented("Only Contacts are allowed")
-            contact = handle.contact
-            if contact.presence == papyon.Presence.OFFLINE:
-                raise telepathy.NotAvailable('Contact not available')
-            channel = channel_manager.channel_for_text(handle, None, suppress_handler)
+        if handle_id == 0:
+            handle = None
         else:
-            raise telepathy.NotImplemented("unknown channel type %s" % type)
+            handle = self.handle(handle_type, handle_id)
+        props = self._generate_props(type, handle, suppress_handler)
+        self._validate_handle(props)
 
-        return channel._object_path
+        channel = channel_manager.channel_for_props(props, signal=False)
+
+        _success(channel._object_path)
+        self.signal_new_channels([channel])
 
     # papyon.event.ClientEventInterface
     def on_client_state_changed(self, state):
@@ -193,19 +202,35 @@ class ButterflyConnection(telepathy.server.Connection,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
         elif state == papyon.event.ClientState.SYNCHRONIZED:
             handle = ButterflyHandleFactory(self, 'list', 'subscribe')
-            self._channel_manager.channel_for_list(handle)
+            props = self._generate_props(telepathy.CHANNEL_TYPE_CONTACT_LIST,
+                handle, False)
+            self._channel_manager.channel_for_props(props, signal=True)
+
             handle = ButterflyHandleFactory(self, 'list', 'publish')
-            self._channel_manager.channel_for_list(handle)
+            props = self._generate_props(telepathy.CHANNEL_TYPE_CONTACT_LIST,
+                handle, False)
+            self._channel_manager.channel_for_props(props, signal=True)
+
             #handle = ButterflyHandleFactory(self, 'list', 'hide')
-            #self._channel_manager.channel_for_list(handle)
+            #props = self._generate_props(telepathy.CHANNEL_TYPE_CONTACT_LIST,
+            #    handle, False)
+            #self._channel_manager.channel_for_props(props, signal=True)
+
             #handle = ButterflyHandleFactory(self, 'list', 'allow')
-            #self._channel_manager.channel_for_list(handle)
+            #props = self._generate_propstelepathy.CHANNEL_TYPE_CONTACT_LIST,
+            #    handle, False)
+            #self._channel_manager.channel_for_props(props, signal=True)
+
             #handle = ButterflyHandleFactory(self, 'list', 'deny')
-            #self._channel_manager.channel_for_list(handle)
+            #props = self._generate_props(telepathy.CHANNEL_TYPE_CONTACT_LIST,
+            #    handle, False)
+            #self._channel_manager.channel_for_props(props, signal=True)
 
             for group in self.msn_client.address_book.groups:
                 handle = ButterflyHandleFactory(self, 'group', group.name)
-                self._channel_manager.channel_for_list(handle)
+                props = self._generate_props(
+                    telepathy.CHANNEL_TYPE_CONTACT_LIST, handle, False)
+                self._channel_manager.channel_for_props(props, signal=True)
         elif state == papyon.event.ClientState.OPEN:
             self.StatusChanged(telepathy.CONNECTION_STATUS_CONNECTED,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
@@ -240,13 +265,17 @@ class ButterflyConnection(telepathy.server.Connection,
     def on_invite_conversation(self, conversation):
         logger.debug("Conversation invite")
         #FIXME: get rid of this crap and implement group support
-        participants = conversation.participants 
+        participants = conversation.participants
         for p in participants:
             participant = p
             break
         handle = ButterflyHandleFactory(self, 'contact',
                 participant.account, participant.network_id)
-        channel = self._channel_manager.channel_for_text(handle, conversation)
+
+        props = self._generate_props(telepathy.CHANNEL_TYPE_TEXT,
+            handle, False)
+        channel = self._channel_manager.channel_for_props(props,
+            signal=True, conversation=conversation)
 
     def _advertise_disconnected(self):
         self._manager.disconnected(self)

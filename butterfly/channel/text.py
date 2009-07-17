@@ -39,13 +39,12 @@ class ButterflyTextChannel(
         telepathy.server.ChannelInterfaceChatState,
         papyon.event.ConversationEventInterface):
 
-    def __init__(self, connection, conversation, chan_manager):
+    def __init__(self, conn, manager, conversation, props):
         self._recv_id = 0
         self._conversation = conversation
-        self._conn_ref = weakref.ref(connection)
-        self._chan_manager_ref = weakref.ref(chan_manager)
+        self._conn_ref = weakref.ref(conn)
 
-        telepathy.server.ChannelTypeText.__init__(self, connection, None)
+        telepathy.server.ChannelTypeText.__init__(self, conn, manager, props)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
         papyon.event.ConversationEventInterface.__init__(self, self._conversation)
@@ -71,7 +70,6 @@ class ButterflyTextChannel(
 
     def Close(self):
         self._conversation.leave()
-        self._chan_manager_ref().remove_text_channel(self)
         telepathy.server.ChannelTypeText.Close(self)
         self.remove_from_connection()
 

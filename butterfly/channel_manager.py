@@ -27,53 +27,49 @@ from butterfly.channel.group import ButterflyGroupChannel
 from butterfly.channel.text import ButterflyTextChannel
 from butterfly.handle import ButterflyHandleFactory
 
-__all__ = ['ChannelManager']
+__all__ = ['ButterflyChannelManager']
 
 logger = logging.getLogger('Butterfly.ChannelManager')
 
-
-class ChannelManager(object):
+class ButterflyChannelManager(telepathy.server.ChannelManager):
     def __init__(self, connection):
-        self._conn_ref = weakref.ref(connection)
-        self._list_channels = weakref.WeakValueDictionary()
-        self._text_channels = weakref.WeakValueDictionary()
+        telepathy.server.ChannelManager.__init__(self, connection)
 
-    def close(self):
-        for channel in self._list_channels.values():
-            channel.remove_from_connection()# so that dbus lets it die.
-        for channel in self._text_channels.values():
-            channel.Close()
+        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
+            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': telepathy.HANDLE_TYPE_CONTACT}
+        self._implement_channel_class(telepathy.CHANNEL_TYPE_TEXT,
+            self._get_text_channel, fixed, [])
 
-    def channel_for_list(self, handle, suppress_handler=False):
-        if handle in self._list_channels:
-            channel = self._list_channels[handle]
+        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_CONTACT_LIST}
+        self._implement_channel_class(telepathy.CHANNEL_TYPE_CONTACT_LIST,
+            self._get_list_channel, fixed, [])
+
+    def _get_list_channel(self, props):
+        _, surpress_handler, handle = self._get_type_requested_handle(props)
+
+        logger.debug('New contact list channel')
+        if handle.get_type() == telepathy.HANDLE_TYPE_GROUP:
+            channel = ButterflyGroupChannel(self._conn, self, props)
         else:
-            if handle.get_type() == telepathy.HANDLE_TYPE_GROUP:
-                channel = ButterflyGroupChannel(self._conn_ref(), handle)
-            else:
-                channel = ButterflyContactListChannelFactory(self._conn_ref(), handle)
-            self._list_channels[handle] = channel
-            self._conn_ref().add_channel(channel, handle, suppress_handler)
+            channel = ButterflyContactListChannelFactory(self._conn,
+                self, handle, props)
         return channel
 
-    def channel_for_text(self, handle, conversation=None, suppress_handler=False):
-        if handle in self._text_channels:
-            channel = self._text_channels[handle]
-        else:
-            logger.debug("Requesting new text channel")
-            contact = handle.contact
+    def _get_text_channel(self, props, conversation=None):
+        _, surpress_handler, handle = self._get_type_requested_handle(props)
 
-            if conversation is None:
-                client = self._conn_ref().msn_client
-                conversation = papyon.Conversation(client, [contact])
-            channel = ButterflyTextChannel(self._conn_ref(), conversation, self)
-            self._text_channels[handle] = channel
-            self._conn_ref().add_channel(channel, handle, suppress_handler)
+        if handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
+            raise telepathy.NotImplemented('Only contacts are allowed')
+
+        contact = handle.contact
+
+        if contact.presence == papyon.Presence.OFFLINE:
+            raise telepathy.NotAvailable('Contact not available')
+
+        logger.debug('New text channel')
+
+        if conversation is None:
+            client = self._conn.msn_client
+            conversation = papyon.Conversation(client, [contact])
+        channel = ButterflyTextChannel(self._conn, self, conversation, props)
         return channel
-
-    def remove_text_channel(self, text_channel):
-        logger.debug("Removing channel %s" % text_channel)
-        for handle, chan in self._text_channels.items():
-            if chan == text_channel:
-                del self._text_channels[handle]
-

@@ -4,9 +4,11 @@ telepathy-butterfly-0.3.5 (UNRELEASED)
 Dependencies:
  * Drop pymsn dependency
  * papyon 0.4.0
+ * telepathy-python 0.15.9
 
 Enhancements:
  * Migrate from pymsn to papyon as the MSN backend library
+ * Implement the Requests connection interface
 
 Fixes:
  * Use the presence type busy for busy presence (fd.o #22619)

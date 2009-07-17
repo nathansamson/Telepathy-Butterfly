@@ -35,10 +35,10 @@ logger = logging.getLogger('Butterfly.GroupChannel')
 class ButterflyGroupChannel(ButterflyListChannel,
             papyon.event.AddressBookEventInterface):
 
-    def __init__(self, connection, handle):
+    def __init__(self, connection, manager, props):
         self.__pending_add = []
         self.__pending_remove = []
-        ButterflyListChannel.__init__(self, connection, handle)
+        ButterflyListChannel.__init__(self, connection, manager, props)
         papyon.event.AddressBookEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD | 
                 telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
@@ -46,8 +46,8 @@ class ButterflyGroupChannel(ButterflyListChannel,
         # FIXME: Move the server-side group creation into the GroupHandle.__init__
         @async
         def create_group():
-            if handle.group is None:
-                connection.msn_client.address_book.add_group(handle.name)
+            if self._handle.group is None:
+                connection.msn_client.address_book.add_group(self._handle.name)
         create_group()
 
     def AddMembers(self, contacts, message):

@@ -37,32 +37,56 @@ class ButterflyTextChannel(
         telepathy.server.ChannelTypeText,
         telepathy.server.ChannelInterfaceGroup,
         telepathy.server.ChannelInterfaceChatState,
+        papyon.event.ContactEventInterface,
         papyon.event.ConversationEventInterface):
 
     def __init__(self, conn, manager, conversation, props):
+        _, surpress_handler, handle = self._get_type_requested_handle(props)
         self._recv_id = 0
-        self._conversation = conversation
         self._conn_ref = weakref.ref(conn)
+
+        contact = handle.contact
+        if conversation is None:
+            if contact.presence != papyon.Presence.OFFLINE:
+                client = conn.msn_client
+                conversation = papyon.Conversation(client, [contact])
+        self._conversation = conversation
+        if self._conversation:
+            self._offline_contact = None
+            self._offline_handle = None
+            papyon.event.ConversationEventInterface.__init__(self, self._conversation)
+        else:
+            self._offline_handle = handle
+            self._offline_contact = contact
 
         telepathy.server.ChannelTypeText.__init__(self, conn, manager, props)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
-        papyon.event.ConversationEventInterface.__init__(self, self._conversation)
+        papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)
+
+        # FIXME : We should connect to the oim event interface
+        # 1/ to check for incoming message? (or do we do that more generally in connection?
+        # 2/ to check if our message has been sent (how do we notify empathy?)
+
+        # FIXME : We need to send some ref to the oimbox
 
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
         self.__add_initial_participants()
 
     def SetChatState(self, state):
+        # Not useful if we dont have a conversation.
         if state == telepathy.CHANNEL_CHAT_STATE_COMPOSING:
             self._conversation.send_typing_notification()
         handle = ButterflyHandleFactory(self._conn_ref(), 'self')
         self.ChatStateChanged(handle, state)
 
     def Send(self, message_type, text):
+        #FIXME : Check if we have a convesation else send offline message
         if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
             self._conversation.send_text_message(papyon.ConversationMessage(text))
         elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
                 text == u"nudge":
+                # FIXME : Can we send offline nudge?
             self._conversation.send_nudge()
         else:
             raise telepathy.NotImplemented("Unhandled message type")
@@ -91,6 +115,8 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         logger.info("User %s left" % unicode(handle))
+        # FIXME : Here we should add the last user who left as the offline user so we may still send
+        # him offlines messages (I guess)
         if len(self._members) == 1:
             self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_GONE)
         else:
@@ -128,13 +154,31 @@ class ButterflyTextChannel(
         self.Received(id, timestamp, handle, type, 0, text)
         self._recv_id += 1
 
+    # papyon.event.ContactEventInterface
+    def on_contact_presence_changed(self, contact):
+        handle = ButterflyHandleFactory(self, 'contact',
+                contact.account, contact.network_id)
+        #FIXME : Check if it's our offline contact, 
+        # if yes create a conversation and invite him,
+        # then set offline contact as None
+        #FIXME : What happen during the time a contact is invited
+        # and the time he accept the invitation, if message are send
+        # during this time, does he still get them?
+        #FIXME : Does user getting offline automatically leave the discussion
+        # or do we have to remove them manually?
+
     @async
     def __add_initial_participants(self):
         handles = []
         handles.append(self._conn.GetSelfHandle())
-        for participant in self._conversation.participants:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                    participant.account, participant.network_id)
-            handles.append(handle)
+        if self._conversation:
+            for participant in self._conversation.participants:
+                handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                        participant.account, participant.network_id)
+                handles.append(handle)
+        else:
+            #FIXME : Should this be as pending?
+            handles.append(self._offline_handle)
+
         self.MembersChanged('', handles, [], [], [],
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)

@@ -68,16 +68,9 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
         if handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
             raise telepathy.NotImplemented('Only contacts are allowed')
 
-        contact = handle.contact
-
-        if contact.presence == papyon.Presence.OFFLINE:
-            raise telepathy.NotAvailable('Contact not available')
 
         logger.debug('New text channel')
 
-        if conversation is None:
-            client = self._conn.msn_client
-            conversation = papyon.Conversation(client, [contact])
         channel = ButterflyTextChannel(self._conn, self, conversation, props)
         return channel
 

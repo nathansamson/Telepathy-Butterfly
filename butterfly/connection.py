@@ -258,6 +258,9 @@ class ButterflyConnection(telepathy.server.Connection,
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR
         elif type == papyon.event.ClientErrorType.AUTHENTICATION:
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
+        elif type == papyon.event.ClientErrorType.PROTOCOL and \
+             error == papyon.event.ProtocolError.OTHER_CLIENT:
+            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NAME_IN_USE
         else:
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
 

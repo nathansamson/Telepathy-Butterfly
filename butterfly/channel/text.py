@@ -41,7 +41,7 @@ class ButterflyTextChannel(
         papyon.event.ConversationEventInterface):
 
     def __init__(self, conn, manager, conversation, props):
-        _, surpress_handler, handle = self._get_type_requested_handle(props)
+        _, surpress_handler, handle = manager._get_type_requested_handle(props)
         self._recv_id = 0
         self._conn_ref = weakref.ref(conn)
 
@@ -68,32 +68,40 @@ class ButterflyTextChannel(
         # 1/ to check for incoming message? (or do we do that more generally in connection?
         # 2/ to check if our message has been sent (how do we notify empathy?)
 
-        # FIXME : We need to send some ref to the oimbox
+        self._oim_box_ref = weakref.ref(conn.msn_client.oim_box)
 
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
         self.__add_initial_participants()
 
     def SetChatState(self, state):
         # Not useful if we dont have a conversation.
-        if state == telepathy.CHANNEL_CHAT_STATE_COMPOSING:
-            self._conversation.send_typing_notification()
-        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
-        self.ChatStateChanged(handle, state)
+        if self._conversation is not None:
+            if state == telepathy.CHANNEL_CHAT_STATE_COMPOSING:
+                self._conversation.send_typing_notification()
+            handle = ButterflyHandleFactory(self._conn_ref(), 'self')
+            self.ChatStateChanged(handle, state)
 
     def Send(self, message_type, text):
-        #FIXME : Check if we have a convesation else send offline message
-        if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
-            self._conversation.send_text_message(papyon.ConversationMessage(text))
-        elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
-                text == u"nudge":
-                # FIXME : Can we send offline nudge?
-            self._conversation.send_nudge()
+        if self._conversation is not None:
+            if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+                self._conversation.send_text_message(papyon.ConversationMessage(text))
+            elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
+                    text == u"nudge":
+                self._conversation.send_nudge()
+            else:
+                raise telepathy.NotImplemented("Unhandled message type")
+            self.Sent(int(time.time()), message_type, text)
         else:
-            raise telepathy.NotImplemented("Unhandled message type")
-        self.Sent(int(time.time()), message_type, text)
+            if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+                self._oim_box_ref().send_message(self._offline_contact, text)
+                #FIXME : Check if the message was sent correctly?
+            else:
+                raise telepathy.NotImplemented("Unhandled message type for offline contact")
+            self.Sent(int(time.time()), message_type, text)
 
     def Close(self):
-        self._conversation.leave()
+        if self._conversation is not None:
+            self._conversation.leave()
         telepathy.server.ChannelTypeText.Close(self)
         self.remove_from_connection()
 
@@ -156,7 +164,7 @@ class ButterflyTextChannel(
 
     # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):
-        handle = ButterflyHandleFactory(self, 'contact',
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         #FIXME : Check if it's our offline contact, 
         # if yes create a conversation and invite him,

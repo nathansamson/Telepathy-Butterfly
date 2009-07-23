@@ -123,11 +123,18 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         logger.info("User %s left" % unicode(handle))
-        # FIXME : Here we should add the last user who left as the offline user so we may still send
-        # him offlines messages (I guess)
         if len(self._members) == 1:
             self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_GONE)
+        elif len(self._members) == 2:
+            # Add the last user who left as the offline contact so we may still send
+            # him offlines messages and destroy the conversation
+            self._conversation.leave()
+            self._conversation = None
+            self._offline_handle = handle
+            self._offline_contact = contact
         else:
+        #If there is only us and a offline contact don't remove him from
+        #the members since we still send him messages
             self.MembersChanged('', [], [handle], [], [],
                     handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 

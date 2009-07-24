@@ -65,11 +65,17 @@ class ButterflyAliasing(
                         (not contact.is_member(papyon.Membership.FORWARD)):
                     handle.pending_alias = alias
                     continue
-                infos = {ContactGeneral.ANNOTATIONS : \
-                            {ContactAnnotations.NICKNAME : alias.encode('utf-8')}
+
+                new_alias = alias.encode("utf-8")
+                old_alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
+                    get(ContactAnnotations.NICKNAME, None)
+                if new_alias == old_alias:
+                    continue
+
+                infos = {ContactGeneral.ANNOTATIONS :
+                            {ContactAnnotations.NICKNAME : new_alias}
                         }
-                self.msn_client.address_book.\
-                    update_contact_infos(contact, infos)
+                self.msn_client.address_book.update_contact_infos(contact, infos)
             else:
                 self.msn_client.profile.display_name = alias.encode('utf-8')
                 logger.info("Self alias changed to '%s'" % alias)

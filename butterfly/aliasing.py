@@ -118,7 +118,9 @@ class ButterflyAliasing(
             alias = unicode(display_name, 'utf-8')
         else:
             contact = handle.contact
-            if contact is None:
+            if handle.pending_alias is not None:
+                alias = handle.pending_alias
+            elif contact is None:
                 alias = unicode(handle.account, 'utf-8')
             else:
                 alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\

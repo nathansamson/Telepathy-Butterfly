@@ -26,6 +26,7 @@ import papyon
 from butterfly.channel.contact_list import ButterflyContactListChannelFactory
 from butterfly.channel.group import ButterflyGroupChannel
 from butterfly.channel.text import ButterflyTextChannel
+from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 
 __all__ = ['ButterflyChannelManager']
@@ -44,6 +45,11 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
         fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_CONTACT_LIST}
         self._implement_channel_class(telepathy.CHANNEL_TYPE_CONTACT_LIST,
             self._get_list_channel, fixed, [])
+
+        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)}
+        self._implement_channel_class(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+            self._get_media_channel, fixed, [telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
 
     def _get_list_channel(self, props):
         _, surpress_handler, handle = self._get_type_requested_handle(props)
@@ -74,3 +80,22 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
             conversation = papyon.Conversation(client, [contact])
         channel = ButterflyTextChannel(self._conn, self, conversation, props)
         return channel
+
+    def _get_media_channel(self, props, call=None):
+        _, surpress_handler, handle = self._get_type_requested_handle(props)
+
+        if handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
+            raise telepathy.NotImplemented('Only contacts are allowed')
+
+        contact = handle.contact
+
+        if contact.presence == papyon.Presence.OFFLINE:
+            raise telepathy.NotAvailable('Contact not available')
+
+        logger.debug('New media channel')
+
+        if call is None:
+            client = self._conn.msn_client
+            call = client.call_manager.create_call(contact)
+
+        return ButterflyMediaChannel(self._conn, self, call, handle, props)

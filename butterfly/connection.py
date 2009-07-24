@@ -280,6 +280,17 @@ class ButterflyConnection(telepathy.server.Connection,
         channel = self._channel_manager.channel_for_props(props,
             signal=True, conversation=conversation)
 
+    # papyon.event.InviteEventInterface
+    def on_invite_conference(self, call):
+        logger.debug("Call invite")
+        handle = ButterflyHandleFactory(self, 'contact', call.contact.account,
+                call.contact.network_id)
+
+        props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+                handle, False)
+        channel = self._channel_manager.channel_for_props(props,
+                signal=True, call=call)
+
     def _advertise_disconnected(self):
         self._manager.disconnected(self)
 

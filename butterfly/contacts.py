@@ -38,7 +38,8 @@ class ButterflyContacts(
         telepathy.CONNECTION : 'contact-id',
         telepathy.CONNECTION_INTERFACE_SIMPLE_PRESENCE : 'presence',
         telepathy.CONNECTION_INTERFACE_ALIASING : 'alias',
-        telepathy.CONNECTION_INTERFACE_AVATARS : 'token'
+        telepathy.CONNECTION_INTERFACE_AVATARS : 'token',
+        telepathy.CONNECTION_INTERFACE_CAPABILITIES : 'caps'
         }
 
     def __init__(self):
@@ -74,7 +75,9 @@ class ButterflyContacts(
             telepathy.CONNECTION_INTERFACE_ALIASING :
                 lambda x: self.GetAliases(x).items(),
             telepathy.CONNECTION_INTERFACE_AVATARS :
-                lambda x: self.GetKnownAvatarTokens(x).items()
+                lambda x: self.GetKnownAvatarTokens(x).items(),
+            telepathy.CONNECTION_INTERFACE_CAPABILITIES :
+                lambda x: self.GetCapabilities(x).items()
             }
 
         #Hold handles if needed

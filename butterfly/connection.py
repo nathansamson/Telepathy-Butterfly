@@ -29,6 +29,7 @@ from butterfly.presence import ButterflyPresence
 from butterfly.aliasing import ButterflyAliasing
 from butterfly.avatars import ButterflyAvatars
 from butterfly.handle import ButterflyHandleFactory
+from butterfly.capabilities import ButterflyCapabilities
 from butterfly.contacts import ButterflyContacts
 from butterfly.channel_manager import ButterflyChannelManager
 
@@ -42,6 +43,7 @@ class ButterflyConnection(telepathy.server.Connection,
         ButterflyPresence,
         ButterflyAliasing,
         ButterflyAvatars,
+        ButterflyCapabilities,
         ButterflyContacts,
         papyon.event.ClientEventInterface,
         papyon.event.InviteEventInterface):
@@ -95,6 +97,7 @@ class ButterflyConnection(telepathy.server.Connection,
             ButterflyPresence.__init__(self)
             ButterflyAliasing.__init__(self)
             ButterflyAvatars.__init__(self)
+            ButterflyCapabilities.__init__(self)
             ButterflyContacts.__init__(self)
             papyon.event.ClientEventInterface.__init__(self, self._msn_client)
             papyon.event.InviteEventInterface.__init__(self, self._msn_client)

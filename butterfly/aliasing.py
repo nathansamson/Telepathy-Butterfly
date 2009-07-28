@@ -143,5 +143,5 @@ class ButterflyAliasing(
 
         alias = unicode(alias, 'utf-8')
         logger.info("Contact %r alias changed to '%s'" % (handle, alias))
-        self.AliasesChanged(((handle, alias), ))
+        self.AliasesChanged([(handle, alias)])
 

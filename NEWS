@@ -3,7 +3,7 @@ telepathy-butterfly-0.3.5 (UNRELEASED)
 
 Dependencies:
  * Drop pymsn dependency
- * papyon 0.4.0
+ * papyon 0.4.1
  * telepathy-python 0.15.9
 
 Enhancements:

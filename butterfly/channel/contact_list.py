@@ -78,7 +78,8 @@ class ButterflyListChannel(
             if ad: added.add(handle)
             if lp: local_pending.add(handle)
             if rp: remote_pending.add(handle)
-            self.MembersChanged('', added, (), local_pending, remote_pending, 0,
+            msg = contact.attributes.get('invite_message', '')
+            self.MembersChanged(msg, added, (), local_pending, remote_pending, 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
     # papyon.event.AddressBookEventInterface

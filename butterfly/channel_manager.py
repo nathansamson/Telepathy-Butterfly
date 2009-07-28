@@ -19,6 +19,7 @@
 import logging
 import weakref
 
+import dbus
 import telepathy
 import papyon
 
@@ -36,7 +37,7 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
         telepathy.server.ChannelManager.__init__(self, connection)
 
         fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
-            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': telepathy.HANDLE_TYPE_CONTACT}
+            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)}
         self._implement_channel_class(telepathy.CHANNEL_TYPE_TEXT,
             self._get_text_channel, fixed, [])
 

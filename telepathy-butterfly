@@ -30,6 +30,12 @@ if telepathy.version < (0, 15, 8, 1):
     print >> sys.stderr, 'Critical: telepathy-python >= 0.15.8.1 required. Exiting.'
     sys.exit(1)
 
+import papyon
+if papyon.version < (0, 4, 1):
+    print >> sys.stderr, 'Critical: papyon >= 0.4.1 required. Exiting.'
+    sys.exit(1)
+
+
 from telepathy.utils import debug_divert_messages
 
 debug_divert_messages(os.getenv('BUTTERFLY_LOGFILE'))

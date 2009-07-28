@@ -227,7 +227,6 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         if self._contains_handle(handle):
-            contact = handle.contact
             if contact.is_member(papyon.Membership.PENDING):
                 # Nothing worth our attention
                 return

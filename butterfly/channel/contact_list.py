@@ -151,7 +151,8 @@ class ButterflyListChannel(
     def on_addressbook_contact_deleted(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
-        if self._contains_handle(handle):
+        ad, lp, rp = self._filter_contact(contact)
+        if self._contains_handle(handle) and not ad:
             self.MembersChanged('', (), [handle], (), (), 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 

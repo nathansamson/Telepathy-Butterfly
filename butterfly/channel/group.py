@@ -109,9 +109,10 @@ class ButterflyGroupChannel(ButterflyListChannel,
         ab.delete_group(group)
 
     def _filter_contact(self, contact):
-        for group in contact.groups:
-            if group.name == self._handle.name:
-                return (True, False, False)
+        if contact.is_member(papyon.Membership.FORWARD):
+            for group in contact.groups:
+                if group.name == self._handle.name:
+                    return (True, False, False)
         return (False, False, False)
 
     def on_addressbook_group_added(self, group):

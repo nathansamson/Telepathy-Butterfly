@@ -324,7 +324,7 @@ class ButterflyPublishListChannel(ButterflyListChannel,
                 # Nothing worth our attention
                 return
 
-            if contact.is_member(papyon.Membership.FORWARD):
+            if contact.is_member(papyon.Membership.ALLOW):
                 # Contact accepted
                 self.MembersChanged('', [handle], (), (), (), 0,
                         telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)

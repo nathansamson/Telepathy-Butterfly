@@ -295,6 +295,9 @@ class ButterflyPublishListChannel(ButterflyListChannel,
     def _add(self, handle_id, message, finished_cb):
         handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
         contact = handle.contact
+        if contact is not None and contact.is_member(papyon.Membership.ALLOW):
+            return True
+
         account = handle.account
         network = handle.network
         ab = self._conn.msn_client.address_book

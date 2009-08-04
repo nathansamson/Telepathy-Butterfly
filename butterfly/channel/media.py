@@ -127,14 +127,6 @@ class ButterflyMediaChannel(
         print "Remove members", handles, message, reason
 
     #papyon.event.call.CallEventInterface
-    def on_call_incoming(self):
-        print "RING"
-
-    #papyon.event.call.CallEventInterface
-    def on_call_ringing(self):
-        print "RING"
-
-    #papyon.event.call.CallEventInterface
     def on_call_accepted(self):
         self.on_call_answered(3, 0)
 

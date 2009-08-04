@@ -38,19 +38,18 @@ class ButterflyCapabilities(
         papyon.event.ContactEventInterface.__init__(self, self.msn_client)
         dbus_interface = telepathy.CONNECTION_INTERFACE_CAPABILITIES
 
-    @dbus.service.method('org.freedesktop.Telepathy.Connection.Interface.Capabilities', in_signature='a(su)as', out_signature='a(su)')
-    def AdvertiseCapabilities(self, Add, Remove):
-        for caps, specs in Add:
+    def AdvertiseCapabilities(self, add, remove):
+        for caps, specs in add:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
                 if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
                     self._self_handle.profile.client_id.has_webcam = True
                     self._self_handle.profile.client_id.supports_rtc_video = True
-        for caps in Remove:
+        for caps in remove:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
                 self._self_handle.profile.client_id.has_webcam = False
 
         return telepathy.server.ConnectionInterfaceCapabilities.\
-            AdvertiseCapabilities(self, Add, Remove)
+            AdvertiseCapabilities(self, add, remove)
 
     # papyon.event.ContactEventInterface
     def on_contact_client_capabilities_changed(self, contact):

@@ -131,7 +131,7 @@ class ButterflyListChannel(
         return []
 
     # papyon.event.AddressBookEventInterface
-    def on_addressbook_messenger_contact_added(self, contact):
+    def on_addressbook_contact_added(self, contact):
         added = set()
         local_pending = set()
         remote_pending = set()

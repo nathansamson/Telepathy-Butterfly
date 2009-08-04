@@ -29,6 +29,71 @@ from butterfly.handle import ButterflyHandleFactory
 __all__ = ['ButterflyContactListChannelFactory']
 
 
+class HandleMutex(object):
+    def __init__(self):
+        self._handles = set()
+        self._keys = {}
+        self._callbacks = {}
+
+    def is_locked(self, handle):
+        return (handle in self._handles)
+
+    def is_owned(self, key, handle):
+        return (handle in self._handles and self._keys[handle] == key)
+
+    def lock(self, key, handle):
+        if self.is_locked(handle):
+            return False
+        print "Locking", handle, key
+        self._handles.add(handle)
+        self._keys[handle] = key
+        return True
+
+    def unlock(self, key, handle):
+        if not self.is_owned(key, handle):
+            return
+        print "Unlocking", handle, key
+        self._handles.remove(handle)
+        del self._keys[handle]
+        callbacks = self._callbacks
+        self._callbacks[handle] = []
+        for callback in callbacks.get(handle, []):
+            callback[0](*callback[1:])
+
+    def add_callback(self, key, handle, callback):
+        if self.is_owned(key, handle):
+            print "Mutex owned", key, handle
+            return
+        if not self.is_locked(handle):
+            callback[0](*callback[1:])
+        else:
+            print "Adding callback", handle
+            self._callbacks.setdefault(handle, []).append(callback)
+
+class Lockable(object):
+    def __init__(self, mutex, key, cb_name):
+        self._mutex = mutex
+        self._key = key
+        self._cb_name = cb_name
+
+    def __call__(self, func):
+        def method(object, handle, *args, **kwargs):
+            def finished_cb(*user_data):
+                self._mutex.unlock(self._key, handle)
+
+            def unlocked_cb():
+                self._mutex.lock(self._key, handle)
+                kwargs[self._cb_name] = finished_cb
+                if func(object, handle, *args, **kwargs):
+                    finished_cb()
+
+            self._mutex.add_callback(self._key, handle, (unlocked_cb,))
+
+        return method
+
+mutex = HandleMutex()
+
+
 def ButterflyContactListChannelFactory(connection, manager, handle, props):
     handle = connection.handle(
         props[telepathy.CHANNEL_INTERFACE + '.TargetHandleType'],
@@ -139,33 +204,45 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
                 telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
 
     def AddMembers(self, contacts, message):
-        ab = self._conn.msn_client.address_book
         for h in contacts:
-            handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, h)
-            contact = handle.contact
-            if contact is None:
-                account = handle.account
-            elif contact.is_member(papyon.Membership.FORWARD):
-                continue
-            else:
-                account = contact.account
-            groups = list(handle.pending_groups)
-            handle.pending_groups = set()
-            ab.add_messenger_contact(account,
-                    invite_message=message.encode('utf-8'),
-                    groups=groups)
+            self._add(h, message)
 
     def RemoveMembers(self, contacts, message):
-        ab = self._conn.msn_client.address_book
         for h in contacts:
-            handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, h)
-            contact = handle.contact
-            if contact.is_member(papyon.Membership.FORWARD):
-                ab.delete_contact(contact)
+            self._remove(h)
 
     def _filter_contact(self, contact):
         return (contact.is_member(papyon.Membership.FORWARD) and not
                 contact.is_member(papyon.Membership.PENDING), False, False)
+
+    @Lockable(mutex, 'add_subscribe', 'finished_cb')
+    def _add(self, handle_id, message, finished_cb):
+        handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+        if handle.contact is not None and \
+           handle.contact.is_member(papyon.Membership.FORWARD):
+            return True
+
+        account = handle.account
+        network = handle.network
+        groups = list(handle.pending_groups)
+        handle.pending_groups = set()
+        ab = self._conn.msn_client.address_book
+        ab.add_messenger_contact(account, network,
+                auto_allow=False,
+                invite_message=message.encode('utf-8'),
+                groups=groups,
+                done_cb=(finished_cb,),
+                failed_cb=(finished_cb,))
+
+    @Lockable(mutex, 'rem_subscribe', 'finished_cb')
+    def _remove(self, handle_id, finished_cb):
+        handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+        contact = handle.contact
+        if contact is None or not contact.is_member(papyon.Membership.FORWARD):
+            return True
+        ab = self._conn.msn_client.address_book
+        ab.delete_contact(contact, done_cb=(finished_cb,),
+                failed_cb=(finished_cb,))
 
     # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):
@@ -190,21 +267,12 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         self.GroupFlagsChanged(0, 0)
 
     def AddMembers(self, contacts, message):
-        ab = self._conn.msn_client.address_book
-        for contact_handle_id in contacts:
-            contact_handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT,
-                        contact_handle_id)
-            contact = contact_handle.contact
-            ab.accept_contact_invitation(contact, False)
+        for handle_id in contacts:
+            self._add(handle_id, message)
 
     def RemoveMembers(self, contacts, message):
-        ab = self._conn.msn_client.address_book
-        for contact_handle_id in contacts:
-            contact_handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT,
-                        contact_handle_id)
-            contact = contact_handle.contact
-            if contact.is_member(papyon.Membership.PENDING):
-                ab.decline_contact_invitation(contact)
+        for handle_id in contacts:
+            self._remove(handle_id)
 
     def GetLocalPendingMembersWithInfo(self):
         result = []
@@ -222,6 +290,27 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         return (contact.is_member(papyon.Membership.REVERSE),
                 contact.is_member(papyon.Membership.PENDING),
                 False)
+
+    @Lockable(mutex, 'add_publish', 'finished_cb')
+    def _add(self, handle_id, message, finished_cb):
+        handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+        contact = handle.contact
+        account = handle.account
+        network = handle.network
+        ab = self._conn.msn_client.address_book
+        ab.accept_contact_invitation(contact, False,
+                done_cb=(finished_cb,), failed_cb=(finished_cb,))
+
+    @Lockable(mutex, 'rem_publish', 'finished_cb')
+    def _remove(self, handle_id, finished_cb):
+        handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+        contact = handle.contact
+        ab = self._conn.msn_client.address_book
+        if contact.is_member(papyon.Membership.PENDING):
+            ab.decline_contact_invitation(contact, False, done_cb=finished_cb,
+                    failed_cb=finished_cb)
+        else:
+            return True
 
     # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):

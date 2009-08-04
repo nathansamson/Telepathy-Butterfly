@@ -301,8 +301,12 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         account = handle.account
         network = handle.network
         ab = self._conn.msn_client.address_book
-        ab.accept_contact_invitation(contact, False,
-                done_cb=(finished_cb,), failed_cb=(finished_cb,))
+        if contact is not None and contact.is_member(papyon.Membership.PENDING):
+            ab.accept_contact_invitation(contact, False,
+                    done_cb=(finished_cb,), failed_cb=(finished_cb,))
+        else:
+            ab.allow_contact(account, network,
+                    done_cb=(finished_cb,), failed_cb=(finished_cb,))
 
     @Lockable(mutex, 'rem_publish', 'finished_cb')
     def _remove(self, handle_id, finished_cb):
@@ -312,6 +316,9 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         if contact.is_member(papyon.Membership.PENDING):
             ab.decline_contact_invitation(contact, False, done_cb=finished_cb,
                     failed_cb=finished_cb)
+        elif contact.is_member(papyon.Membership.ALLOW):
+            ab.disallow_contact(contact, done_cb=(finished_cb,),
+                    failed_cb=(finished_cb,))
         else:
             return True
 

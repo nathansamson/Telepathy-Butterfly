@@ -287,7 +287,7 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         return result
 
     def _filter_contact(self, contact):
-        return (contact.is_member(papyon.Membership.REVERSE),
+        return (contact.is_member(papyon.Membership.ALLOW),
                 contact.is_member(papyon.Membership.PENDING),
                 False)
 

@@ -228,7 +228,8 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
         groups = list(handle.pending_groups)
         handle.pending_groups = set()
         ab = self._conn.msn_client.address_book
-        ab.add_messenger_contact(account, network,
+        ab.add_messenger_contact(account,
+                network_id=network,
                 auto_allow=False,
                 invite_message=message.encode('utf-8'),
                 groups=groups,

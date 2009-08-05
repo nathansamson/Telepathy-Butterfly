@@ -22,9 +22,11 @@ import weakref
 import telepathy
 import papyon
 
-__all__ = ['ButterflyHandleFactory']
+__all__ = ['ButterflyHandleFactory', 'network_to_extension']
 
 logger = logging.getLogger('Butterfly.Handle')
+
+network_to_extension = {papyon.NetworkID.EXTERNAL: " (yahoo)"}
 
 
 def ButterflyHandleFactory(connection, type, *args):
@@ -81,7 +83,7 @@ class ButterflySelfHandle(ButterflyHandle):
 
     def __init__(self, connection, id):
         handle_type = telepathy.HANDLE_TYPE_CONTACT
-        handle_name = connection._account[0] + "#" + str(papyon.NetworkID.MSN)
+        handle_name = connection._account[0]
         self._connection = connection
         ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
 
@@ -92,8 +94,9 @@ class ButterflySelfHandle(ButterflyHandle):
 
 class ButterflyContactHandle(ButterflyHandle):
     def __init__(self, connection, id, contact_account, contact_network):
+        extension = network_to_extension.get(contact_network, "")
         handle_type = telepathy.HANDLE_TYPE_CONTACT
-        handle_name = "#".join([contact_account, str(contact_network)])
+        handle_name = contact_account + extension
         self.account = contact_account
         self.network = contact_network
         self.pending_groups = set()
@@ -102,12 +105,8 @@ class ButterflyContactHandle(ButterflyHandle):
 
     @property
     def contact(self):
-        result = self._conn.msn_client.address_book.contacts.\
-                search_by_account(self.account).\
-                search_by_network_id(self.network)
-        if len(result) == 0:
-            return None
-        return result[0]
+        return self._conn.msn_client.address_book.search_contact(self.account,
+                self.network)
 
 
 class ButterflyListHandle(ButterflyHandle):

@@ -44,7 +44,6 @@ class HandleMutex(object):
     def lock(self, key, handle):
         if self.is_locked(handle):
             return False
-        print "Locking", handle, key
         self._handles.add(handle)
         self._keys[handle] = key
         return True
@@ -52,7 +51,6 @@ class HandleMutex(object):
     def unlock(self, key, handle):
         if not self.is_owned(key, handle):
             return
-        print "Unlocking", handle, key
         self._handles.remove(handle)
         del self._keys[handle]
         callbacks = self._callbacks
@@ -62,12 +60,10 @@ class HandleMutex(object):
 
     def add_callback(self, key, handle, callback):
         if self.is_owned(key, handle):
-            print "Mutex owned", key, handle
             return
         if not self.is_locked(handle):
             callback[0](*callback[1:])
         else:
-            print "Adding callback", handle
             self._callbacks.setdefault(handle, []).append(callback)
 
 class Lockable(object):

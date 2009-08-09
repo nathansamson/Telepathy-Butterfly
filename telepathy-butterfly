@@ -25,6 +25,10 @@ import os
 import sys
 import logging
 
+if sys.version_info < (2, 5):
+    print >> sys.stderr, 'Critical: python >= 2.5 required. Exiting.'
+    sys.exit(1)
+
 import telepathy
 if telepathy.version < (0, 15, 9):
     print >> sys.stderr, 'Critical: telepathy-python >= 0.15.9 required. Exiting.'

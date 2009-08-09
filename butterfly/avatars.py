@@ -18,7 +18,7 @@
 
 import logging
 import imghdr
-import sha
+import hashlib
 import dbus
 
 import telepathy
@@ -92,7 +92,7 @@ class ButterflyAvatars(\
         msn_object = papyon.p2p.MSNObject(self.msn_client.profile,
                          len(avatar),
                          papyon.p2p.MSNObjectType.DISPLAY_PICTURE,
-                         sha.new(avatar).hexdigest() + '.tmp',
+                         hashlib.sha1(avatar).hexdigest() + '.tmp',
                          "",
                          data=StringIO.StringIO(avatar))
         self.msn_client.profile.msn_object = msn_object

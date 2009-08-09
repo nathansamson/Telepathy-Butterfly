@@ -2,6 +2,7 @@ telepathy-butterfly-0.5.1 (UNRELEASED)
 ======================================
 
 Dependencies:
+ * python 2.5
  * papyon 0.4.2
  * telepathy-python 0.15.9
 

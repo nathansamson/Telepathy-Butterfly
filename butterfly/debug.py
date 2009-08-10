@@ -1,6 +1,6 @@
 # telepathy-butterfly - an MSN connection manager for Telepathy
 #
-# Copyright (C) 2006-2007 Ali Sabil <ali.sabil@gmail.com>
+# Copyright (C) 2009 Collabora Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,5 +16,22 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from connection_manager import *
-from debug import *
+import telepathy
+
+class ButterflyDebug(telepathy.server.Debug):
+    """Butterfly debug interface
+
+    Implements the org.freedesktop.Telepathy.Debug interface"""
+
+    def __init__(self, conn_manager):
+        telepathy.server.Debug.__init__(self, conn_manager)
+
+    def get_record_name(self, record):
+        name = record.name
+        if name.startswith("Butterfly."):
+            domain, category = name.split('.', 1)
+        else:
+            domain = "papyon"
+            category = name
+        name = domain.lower() + "/" + category.lower()
+        return name

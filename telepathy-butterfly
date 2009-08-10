@@ -46,6 +46,7 @@ debug_divert_messages(os.getenv('BUTTERFLY_LOGFILE'))
 logging.basicConfig(level=logging.DEBUG)
 
 from butterfly import ButterflyConnectionManager
+from butterfly import ButterflyDebug
 from butterfly.util.decorator import async
 
 logger = logging.getLogger('Butterfly')
@@ -81,6 +82,7 @@ if __name__ == '__main__':
 
     try:
         manager = ButterflyConnectionManager(shutdown_func=shutdown_callback)
+        handler = ButterflyDebug(manager)
     except dbus.exceptions.NameExistsException:
         logger.warning('Failed to acquire bus name, connection manager already running?')
         sys.exit(1)

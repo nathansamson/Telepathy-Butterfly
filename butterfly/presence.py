@@ -147,10 +147,12 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             self.Disconnect()
 
         presence = ButterflyPresenceMapping.to_papyon[status]
-        message = arguments.get('message', u'').encode("utf-8")
+        message = arguments.get('message', u'')
 
         logger.info("Setting Presence to '%s'" % presence)
         logger.info("Setting Personal message to '%s'" % message)
+
+        message.encode("utf-8")
 
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:
             self._initial_presence = presence
@@ -196,10 +198,11 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             presence = ButterflyPresenceMapping.to_papyon[status]
         except KeyError:
             raise telepathy.errors.InvalidArgument
-        message = message.encode("utf-8")
 
         logger.info("Setting Presence to '%s'" % presence)
         logger.info("Setting Personal message to '%s'" % message)
+
+        message = message.encode("utf-8")
 
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:
             self._initial_presence = presence
@@ -266,7 +269,8 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
     def on_contact_presence_changed(self, contact):
         handle = ButterflyHandleFactory(self, 'contact',
                 contact.account, contact.network_id)
-        logger.info("Contact %r presence changed to '%s'" % (handle, contact.presence))
+        logger.info("Contact %s presence changed to '%s'" % (unicode(handle),
+            contact.presence))
         self._presence_changed(handle, contact.presence, contact.personal_message)
 
     # papyon.event.ContactEventInterface

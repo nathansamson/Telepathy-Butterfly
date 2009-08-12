@@ -42,7 +42,7 @@ class ButterflyHandleMeta(type):
         obj, newly_created = cls.__new__(cls, connection, *args)
         if newly_created:
             obj.__init__(connection, connection.get_handle_id(), *args)
-            logger.info("New Handle %r" % obj)
+            logger.info("New Handle %s" % unicode(obj))
         return obj 
 
 
@@ -62,7 +62,7 @@ class ButterflyHandle(telepathy.server.Handle):
         telepathy.server.Handle.__init__(self, id, handle_type, name)
         self._conn = weakref.proxy(connection)
 
-    def __repr__(self):
+    def __unicode__(self):
         type_mapping = {telepathy.HANDLE_TYPE_CONTACT : 'Contact',
                 telepathy.HANDLE_TYPE_ROOM : 'Room',
                 telepathy.HANDLE_TYPE_LIST : 'List',
@@ -127,7 +127,7 @@ class ButterflyGroupHandle(ButterflyHandle):
     def group(self):
         for group in self._conn.msn_client.address_book.groups:
             # Microsoft seems to like case insensitive stuff
-            if group.name.lower() == self.name.lower():
+            if group.name.decode("utf-8").lower() == self.name.lower():
                 return group
         return None
 

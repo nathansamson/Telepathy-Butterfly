@@ -142,6 +142,6 @@ class ButterflyAliasing(
             alias = contact.display_name
 
         alias = unicode(alias, 'utf-8')
-        logger.info("Contact %r alias changed to '%s'" % (handle, alias))
+        logger.info("Contact %s alias changed to '%s'" % (unicode(handle), alias))
         self.AliasesChanged([(handle, alias)])
 

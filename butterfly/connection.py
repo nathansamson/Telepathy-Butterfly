@@ -139,7 +139,6 @@ class ButterflyConnection(telepathy.server.Connection,
 
         handles = []
         for name in names:
-            name = name.encode('utf-8')
             if handle_type == telepathy.HANDLE_TYPE_CONTACT:
                 name = name.rsplit('#', 1)
                 contact_name = name[0]
@@ -227,7 +226,8 @@ class ButterflyConnection(telepathy.server.Connection,
             #self._channel_manager.channel_for_props(props, signal=True)
 
             for group in self.msn_client.address_book.groups:
-                handle = ButterflyHandleFactory(self, 'group', group.name)
+                handle = ButterflyHandleFactory(self, 'group',
+                        group.name.decode("utf-8"))
                 props = self._generate_props(
                     telepathy.CHANNEL_TYPE_CONTACT_LIST, handle, False)
                 self._channel_manager.channel_for_props(props, signal=True)

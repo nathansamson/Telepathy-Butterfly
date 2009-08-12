@@ -82,7 +82,7 @@ class ButterflyTextChannel(
     def on_conversation_user_joined(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
-        logger.info("User %r joined" % handle)
+        logger.info("User %s joined" % unicode(handle))
         self.MembersChanged('', [handle], [], [], [],
                 handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
@@ -90,7 +90,7 @@ class ButterflyTextChannel(
     def on_conversation_user_left(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
-        logger.info("User %r left" % handle)
+        logger.info("User %s left" % unicode(handle))
         if len(self._members) == 1:
             self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_GONE)
         else:
@@ -101,7 +101,7 @@ class ButterflyTextChannel(
     def on_conversation_user_typing(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
-        logger.info("User %r is typing" % handle)
+        logger.info("User %s is typing" % unicode(handle))
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
     # papyon.event.ConversationEventInterface
@@ -112,7 +112,7 @@ class ButterflyTextChannel(
                 sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         message = message.content
-        logger.info("User %r sent a message" % handle)
+        logger.info("User %s sent a message" % unicode(handle))
         self.Received(id, timestamp, handle, type, 0, message)
         self._recv_id += 1
 
@@ -124,7 +124,7 @@ class ButterflyTextChannel(
                 sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
         text = unicode("sends you a nudge", "utf-8")
-        logger.info("User %r sent a nudge" % handle)
+        logger.info("User %s sent a nudge" % unicode(handle))
         self.Received(id, timestamp, handle, type, 0, text)
         self._recv_id += 1
 

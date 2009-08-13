@@ -48,7 +48,7 @@ class ButterflyStreamHandler (
 
         self._state = telepathy.MEDIA_STREAM_STATE_CONNECTING
         self._direction = stream.direction
-        if self._stream.controlling:
+        if self._stream.created_locally:
             self._pending_send = telepathy.MEDIA_STREAM_PENDING_REMOTE_SEND
         else:
             self._pending_send = telepathy.MEDIA_STREAM_PENDING_LOCAL_SEND
@@ -93,7 +93,7 @@ class ButterflyStreamHandler (
 
     @property
     def created_locally(self):
-        return self._stream.controlling
+        return self._stream.created_locally
 
     @property
     def nat_traversal(self):
@@ -197,14 +197,14 @@ class ButterflyStreamHandler (
     def on_remote_candidates_received(self, candidates):
         list = self.convert_media_candidates(candidates)
         self._remote_candidates = list
-        if self._stream.controlling:
+        if self._stream.created_locally:
             self.SetRemoteCandidateList(list)
 
     #papyon.event.MediaStreamEventInterface
     def on_remote_codecs_received(self, codecs):
         list = self.convert_media_codecs(codecs)
         self._remote_codecs = list
-        if self._stream.controlling:
+        if self._stream.created_locally:
             self.SetRemoteCodecs(list)
 
     #papyon.event.MediaStreamEventInterface

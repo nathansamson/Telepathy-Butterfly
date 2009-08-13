@@ -156,6 +156,9 @@ class ButterflyMediaChannel(
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_added(self, stream):
+        if stream.created_locally:
+            return # Stream handler is already existing
+
         handler = self._session_handler.NewStream(stream)
         logger.info("Media Stream %i added" % handler.id)
         self.StreamAdded(handler.id, self._handle, handler.type)

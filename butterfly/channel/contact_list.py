@@ -53,9 +53,9 @@ class HandleMutex(object):
             return
         self._handles.remove(handle)
         del self._keys[handle]
-        callbacks = self._callbacks
+        callbacks = self._callbacks.get(handle, [])[:]
         self._callbacks[handle] = []
-        for callback in callbacks.get(handle, []):
+        for callback in callbacks:
             callback[0](*callback[1:])
 
     def add_callback(self, key, handle, callback):

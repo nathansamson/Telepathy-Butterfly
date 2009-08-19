@@ -167,10 +167,6 @@ class ButterflyFileTransferChannel(
             self._session.send(buffer)
         self.socket = sock
 
-    def on_chunk_transferred(self, session, chunk):
-        self._transferred += len(chunk)
-        self.TransferredBytesChanged(self._transferred)
-
     def on_transfer_complete(self, session, data):
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)

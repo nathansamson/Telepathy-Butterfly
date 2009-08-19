@@ -136,6 +136,11 @@ class ButterflyFileTransferChannel(
 
     def Close(self):
         logger.debug("Close")
+        if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                                 telepathy.FILE_TRANSFER_STATE_COMPLETED):
+            self._session.cancel()
+            self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                           telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_CANCELLED)
         telepathy.server.ChannelTypeFileTransfer.Close(self)
         self.remove_from_connection()
 
@@ -154,6 +159,8 @@ class ButterflyFileTransferChannel(
         channel = gobject.IOChannel(sock.fileno())
         channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
         channel.add_watch(gobject.IO_IN, self.on_socket_connected)
+        channel.add_watch(gobject.IO_HUP | gobject.IO_ERR,
+                self.on_socket_disconnected)
         return channel
 
     def on_socket_connected(self, channel, condition):
@@ -167,6 +174,12 @@ class ButterflyFileTransferChannel(
             buffer = DataBuffer(sock, self.size)
             self._session.send(buffer)
         self.socket = sock
+
+    def on_socket_disconnected(self, channel, condition):
+        logger.debug("Telepathy socket disconnected")
+        self._session.cancel()
+        self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
 
     def on_transfer_complete(self, session, data):
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,

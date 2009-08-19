@@ -135,6 +135,7 @@ class ButterflyFileTransferChannel(
         return self.socket.getsockname()
 
     def Close(self):
+        logger.debug("Close")
         telepathy.server.ChannelTypeFileTransfer.Close(self)
         self.remove_from_connection()
 

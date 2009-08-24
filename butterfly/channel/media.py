@@ -57,20 +57,21 @@ class ButterflyMediaChannel(
         self._session_handler = ButterflySessionHandler(self._conn, self, call.media_session)
         self.NewSessionHandler(self._session_handler, self._session_handler.subtype)
 
-        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
-        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REMOVE, 0)
-        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REJECT, 0)
+        flags = (telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE |
+                 telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REMOVE |
+                 telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REJECT)
+        self.GroupFlagsChanged(flags, 0)
         self.__add_initial_participants()
 
     def Close(self):
-        print "Channel closed by client"
+        logger.info("Channel closed by client")
         self._call.end()
 
     def GetSessionHandlers(self):
         return [(self._session_handler, self._session_handler.subtype)]
 
     def ListStreams(self):
-        print "ListStreams"
+        logger.info("List streams")
         streams = dbus.Array([], signature="a(uuuuuu)")
         for handler in self._session_handler.ListStreams():
             streams.append((handler.id, self._handle, handler.type,
@@ -78,7 +79,7 @@ class ButterflyMediaChannel(
         return streams
 
     def RequestStreams(self, handle, types):
-        print "RequestStreams %r %r %r" % (handle, self._handle, types)
+        logger.info("Request streams %r %r %r" % (handle, self._handle, types))
         if self._handle.get_id() == 0:
             self._handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle)
 
@@ -93,11 +94,11 @@ class ButterflyMediaChannel(
         return streams
 
     def RequestStreamDirection(self, id, direction):
-        print "RequestStreamDirection %r %r" % (id, direction)
+        logger.info("Request stream direction %r %r" % (id, direction))
         self._session_handler.GetStream(id).direction = direction
 
     def RemoveStreams(self, streams):
-        print "RemoveStreams %r" % streams
+        logger.info("Remove streams %r" % streams)
         for id in streams:
             self._session_handler.RemoveStream(id)
         if not self._session_handler.HasStreams():
@@ -113,7 +114,7 @@ class ButterflyMediaChannel(
         return info
 
     def AddMembers(self, handles, message):
-        print "Add members", handles, message
+        logger.info("Add members %r: %s" % (handles, message))
         for handle in handles:
             print handle, self.GetSelfHandle()
             if handle == int(self.GetSelfHandle()):
@@ -121,18 +122,18 @@ class ButterflyMediaChannel(
                     self._call.accept()
 
     def RemoveMembers(self, handles, message):
-        print "Remove members", handles, message
+        logger.info("Remove members %r: %s" % (handles, message))
 
     def RemoveMembersWithReason(self, handles, message, reason):
-        print "Remove members", handles, message, reason
+        logger.info("Remove members %r: %s (%i)" % (handles, message, reason))
 
     #papyon.event.call.CallEventInterface
     def on_call_accepted(self):
-        self.on_call_answered(3, 0)
+        self.on_call_answered(telepathy.MEDIA_STREAM_DIRECTION_BIDIRECTIONAL, 0)
 
     #papyon.event.call.CallEventInterface
     def on_call_rejected(self, response):
-        self.on_call_answered(0, 0)
+        self.on_call_answered(telepathy.MEDIA_STREAM_DIRECTION_NONE, 0)
 
     def on_call_answered(self, direction, pending_send):
         for handler in self._session_handler.ListStreams():
@@ -141,14 +142,14 @@ class ButterflyMediaChannel(
 
     #papyon.event.call.CallEventInterface
     def on_call_ended(self):
-        print "Call ended"
+        logger.info("Call has ended")
         telepathy.server.ChannelTypeStreamedMedia.Close(self)
         self.remove_from_connection()
         self._session_handler.remove_from_connection()
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_created(self, stream):
-        print "Media Stream created upon peer request"
+        logger.info("Media Stream created upon peer request")
         handler = self._session_handler.HandleStream(stream)
         handler.connect("state-changed", self.on_stream_state_changed)
         handler.connect("error", self.on_stream_error)
@@ -156,7 +157,7 @@ class ButterflyMediaChannel(
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_added(self, stream):
         handler = self._session_handler.NewStream(stream)
-        print "Media Stream %i added" % handler.id
+        logger.info("Media Stream %i added" % handler.id)
         self.StreamAdded(handler.id, self._handle, handler.type)
         self.StreamDirectionChanged(handler.id, handler.direction,
                 handler.pending_send)
@@ -164,7 +165,7 @@ class ButterflyMediaChannel(
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_removed(self, stream):
         handler = self._session_handler.FindStream(stream)
-        print "Media Stream %i removed" % handler.id
+        logger.info("Media Stream %i removed" % handler.id)
         self._session_handler.RemoveStream(handler.id)
         del handler
 
@@ -172,7 +173,7 @@ class ButterflyMediaChannel(
     def on_contact_presence_changed(self, contact):
         if contact == self._call.peer and \
            contact.presence == papyon.Presence.OFFLINE:
-            print "%s is now offline, closing channel" % contact
+            logger.info("%s is now offline, closing channel" % contact)
             self.Close()
 
     #StreamHandler event
@@ -190,12 +191,12 @@ class ButterflyMediaChannel(
         local_pending = []
         remote_pending = []
 
-        if False:
-            remote_pending.append(self._handle)
-            added.append(self._conn.GetSelfHandle())
-        else:
+        if self._call.incoming:
             local_pending.append(self._conn.GetSelfHandle())
             added.append(self._handle)
+        else:
+            remote_pending.append(self._handle)
+            added.append(self._conn.GetSelfHandle())
 
         self.MembersChanged('', added, [], local_pending, remote_pending,
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)

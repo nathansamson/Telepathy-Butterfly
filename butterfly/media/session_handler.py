@@ -27,9 +27,12 @@ import papyon.event
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflyStreamHandler
+from butterfly.media.constants import *
 from papyon.media.constants import *
 
 __all__ = ['ButterflySessionHandler']
+
+logger = logging.getLogger('Butterfly.SessionHandler')
 
 class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
     def __init__(self, connection, channel, session):
@@ -38,12 +41,6 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         self._stream_handlers = {}
         self._next_stream_id = 0
         self._type = session.type
-        if self._type == MediaSessionType.WEBCAM_SEND:
-            self._subtype = "msncamsend"
-        elif self._type == MediaSessionType.WEBCAM_RECV:
-            self._subtype = "msncamrecv"
-        else:
-            self._subtype = "rtp"
         self._ready = False
         self._pending_handlers = []
 
@@ -57,7 +54,12 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
 
     @property
     def subtype(self):
-        return self._subtype
+        if self._type == MediaSessionType.WEBCAM_SEND:
+            return "msncamsend"
+        elif self._type == MediaSessionType.WEBCAM_RECV:
+            return "msncamrecv"
+        else:
+            return "rtp"
 
     @property
     def type(self):
@@ -67,14 +69,14 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         return "%s/stream%d" % (self._object_path, id)
 
     def Ready(self):
-        print "Session ready", self._pending_handlers
+        logger.info("Session ready")
         self._ready = True
         for handler in self._pending_handlers:
             self.NewStream(handler=handler)
         self._pending_handlers = []
 
     def Error(self, code, message):
-        print "Session error", code, message
+        logger.error("Session received error %i: %s" % (code, message))
 
     def GetStream(self, id):
         return self._stream_handlers[id]
@@ -92,19 +94,16 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
     def ListStreams(self):
         return self._stream_handlers.values()
 
-    def CreateStream(self, type, direction):
-        if type == telepathy.MEDIA_STREAM_TYPE_AUDIO:
-            media_type = "audio"
-        else:
-            media_type = "video"
-        stream = self._session.create_stream(media_type, direction, True)
+    def CreateStream(self, stream_type, direction):
+        name = StreamNames[stream_type]
+        stream = self._session.create_stream(name, direction, True)
         handler = self.HandleStream(stream)
         self._session.add_pending_stream(stream)
         return handler
 
     def HandleStream(self, stream):
         handler = ButterflyStreamHandler(self._conn, self, stream)
-        print "Session add stream handler", handler.id
+        logger.info("Added stream handler %i" % handler.id)
         self._stream_handlers[handler.id] = handler
         return handler
 
@@ -114,13 +113,13 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         if not self._ready:
             self._pending_handlers.append(handler)
             return handler
-        print "Session new stream handler", handler.id
+        logger.info("New stream handler %i" % handler.id)
         path = self.get_stream_path(handler.id)
         self.NewStreamHandler(path, handler.id, handler.type, handler.direction)
         return handler
 
     def RemoveStream(self, id):
-        print "Session remove stream handler", id
+        logger.info("Removed stream handler %i" % id)
         if id in self._stream_handlers:
             handler = self._stream_handlers[id]
             handler.remove_from_connection()

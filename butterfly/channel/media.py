@@ -149,6 +149,9 @@ class ButterflyMediaChannel(
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_created(self, stream):
+        if stream.created_locally:
+            return # Stream handler is already existing
+
         logger.info("Media Stream created upon peer request")
         handler = self._session_handler.HandleStream(stream)
         handler.connect("state-changed", self.on_stream_state_changed)
@@ -156,9 +159,6 @@ class ButterflyMediaChannel(
 
     #papyon.event.media.MediaSessionEventInterface
     def on_stream_added(self, stream):
-        if stream.created_locally:
-            return # Stream handler is already existing
-
         handler = self._session_handler.NewStream(stream)
         logger.info("Media Stream %i added" % handler.id)
         self.StreamAdded(handler.id, self._handle, handler.type)

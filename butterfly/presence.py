@@ -22,6 +22,7 @@
 import logging
 import time
 
+import dbus
 import telepathy
 import telepathy.constants
 import telepathy.errors
@@ -235,7 +236,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
     def get_statuses(self):
         # you get one of these for each status
         # {name:(Type, May_Set_On_Self, Can_Have_Message}
-        return {
+        return dbus.Dictionary({
             ButterflyPresenceMapping.ONLINE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_AVAILABLE,
                 True, True),
@@ -263,7 +264,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             ButterflyPresenceMapping.OFFLINE:(
                 telepathy.CONNECTION_PRESENCE_TYPE_OFFLINE,
                 True, False)
-        }
+        }, signature='s(ubb)')
 
     # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):

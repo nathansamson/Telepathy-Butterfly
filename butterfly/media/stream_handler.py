@@ -161,7 +161,7 @@ class ButterflyStreamHandler (
         self.Close()
 
     def NewNativeCandidate(self, id, transports):
-        logger.info("Stream %i received new native candidate %i" % (self._id, id))
+        logger.info("Stream %i received new native candidate %s" % (self._id, id))
         candidates = []
         for transport in transports:
             candidates.append(self.convert_tp_candidate(id, transport))

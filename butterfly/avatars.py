@@ -79,11 +79,8 @@ class ButterflyAvatars(\
                 contact = handle.contact
                 if contact is not None:
                     msn_object = contact.msn_object
-                else:
-                    msn_object = None
-                if msn_object is not None:
-                    self.msn_client.msn_object_store.request(msn_object,\
-                            (self._msn_object_retrieved, handle))
+                    self.msn_client.msn_object_store.request(msn_object,
+                            (self._msn_object_retrieved, handle), peer=contact)
 
     def SetAvatar(self, avatar, mime_type):
         self._avatar_known = True

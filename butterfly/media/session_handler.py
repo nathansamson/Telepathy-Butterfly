@@ -98,7 +98,7 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         name = StreamNames[stream_type]
         stream = self._session.create_stream(name, direction, True)
         handler = self.HandleStream(stream)
-        self._session.add_pending_stream(stream)
+        self._session.add_stream(stream)
         return handler
 
     def HandleStream(self, stream):

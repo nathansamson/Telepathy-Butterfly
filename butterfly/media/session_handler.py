@@ -82,11 +82,10 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         return self._stream_handlers[id]
 
     def FindStream(self, stream):
-        ret = None
         for handler in self.ListStreams():
-            if handler.stream == stream:
-                ret = handler
-        return ret
+            if handler.stream.name == stream.name:
+                return handler
+        return None
 
     def HasStreams(self):
         return bool(self._stream_handlers)

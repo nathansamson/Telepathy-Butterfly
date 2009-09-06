@@ -65,10 +65,6 @@ class ButterflyTextChannel(
         telepathy.server.ChannelInterfaceChatState.__init__(self)
         papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)
 
-        # FIXME : We should connect to the oim event interface
-        # 1/ to check for incoming message? (or do we do that more generally in connection?
-        # 2/ to check if our message has been sent (how do we notify empathy?)
-
         self._oim_box_ref = weakref.ref(conn.msn_client.oim_box)
 
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
@@ -146,6 +142,7 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         logger.info("User %s left" % unicode(handle))
+        # There was only us and we are leaving, is it necessary?
         if len(self._members) == 1:
             self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_GONE)
         elif len(self._members) == 2:
@@ -156,8 +153,8 @@ class ButterflyTextChannel(
             self._offline_handle = handle
             self._offline_contact = contact
         else:
-        #If there is only us and a offline contact don't remove him from
-        #the members since we still send him messages
+            #If there is only us and a offline contact don't remove him from
+            #the members since we still send him messages
             self.MembersChanged('', [], [handle], [], [],
                     handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
 
@@ -180,7 +177,38 @@ class ButterflyTextChannel(
         self.Received(id, timestamp, handle, type, 0, message)
         self._recv_id += 1
 
+    # papyon.event.ConversationEventInterface
+    def on_conversation_nudge_received(self, sender):
+        id = self._recv_id
+        timestamp = int(time.time())
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                sender.account, sender.network_id)
+        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
+        text = unicode("sends you a nudge", "utf-8")
+        logger.info("User %s sent a nudge" % unicode(handle))
+        self.Received(id, timestamp, handle, type, 0, text)
+        self._recv_id += 1
+
+    # papyon.event.ContactEventInterface
+    def on_contact_presence_changed(self, contact):
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                contact.account, contact.network_id)
+        # Recreate a conversation if our contact join
+        if self._offline_contact == contact and contact.presence != papyon.Presence.OFFLINE:
+            logger.info('Contact %s connected, inviting him to the text channel' % unicode(contact))
+            client = self._conn_ref().msn_client
+            self._conversation = papyon.Conversation(client, [contact])
+            papyon.event.ConversationEventInterface.__init__(self, self._conversation)
+            self._offline_contact = None
+            self._offline_handle = None
+        #FIXME : I really hope there is no race condition between the time
+        # the contact accept the invitation and the time we send him a message
+        # Can a user refuse an invitation? what happens then?
+
+
+    # Public API
     def on_offline_message_received(self, message):
+        # @message a papyon.OfflineIM.OfflineMessage
         id = self._recv_id
         sender = message.sender
         timestamp = time.mktime(message.date.timetuple())
@@ -198,38 +226,6 @@ class ButterflyTextChannel(
 
         self._recv_id += 1
 
-    # papyon.event.ConversationEventInterface
-    def on_conversation_nudge_received(self, sender):
-        id = self._recv_id
-        timestamp = int(time.time())
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                sender.account, sender.network_id)
-        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
-        text = unicode("sends you a nudge", "utf-8")
-        logger.info("User %s sent a nudge" % unicode(handle))
-        self.Received(id, timestamp, handle, type, 0, text)
-        self._recv_id += 1
-
-    # papyon.event.ContactEventInterface
-    def on_contact_presence_changed(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
-        if self._offline_contact == contact and contact.presence != papyon.Presence.OFFLINE:
-            logger.info('Contact %s connected, inviting him to the text channel' % unicode(contact))
-            client = self._conn_ref().msn_client
-            self._conversation = papyon.Conversation(client, [contact])
-            papyon.event.ConversationEventInterface.__init__(self, self._conversation)
-            self._offline_contact = None
-            self._offline_handle = None
-        #FIXME : Check if it's our offline contact, 
-        # if yes create a conversation and invite him,
-        # then set offline contact as None
-        #FIXME : What happen during the time a contact is invited
-        # and the time he accept the invitation, if message are send
-        # during this time, does he still get them?
-        #FIXME : Does user getting offline automatically leave the discussion
-        # or do we have to remove them manually?
-
     @async
     def __add_initial_participants(self):
         handles = []
@@ -240,7 +236,6 @@ class ButterflyTextChannel(
                         participant.account, participant.network_id)
                 handles.append(handle)
         else:
-            #FIXME : Should this be as pending?
             handles.append(self._offline_handle)
 
         self.MembersChanged('', handles, [], [], [],

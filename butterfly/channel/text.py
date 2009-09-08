@@ -78,8 +78,8 @@ class ButterflyTextChannel(
         if self._conversation is not None:
             if state == telepathy.CHANNEL_CHAT_STATE_COMPOSING:
                 self._conversation.send_typing_notification()
-            handle = ButterflyHandleFactory(self._conn_ref(), 'self')
-            self.ChatStateChanged(handle, state)
+        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
+        self.ChatStateChanged(handle, state)
 
     def Send(self, message_type, text):
         if self._conversation is not None:

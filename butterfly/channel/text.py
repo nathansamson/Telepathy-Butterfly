@@ -115,8 +115,9 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         logger.info("User %s joined" % unicode(handle))
-        self.MembersChanged('', [handle], [], [], [],
-                handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
+        if handle not in self._members:
+            self.MembersChanged('', [handle], [], [], [],
+                    handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_left(self, contact):

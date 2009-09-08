@@ -46,7 +46,8 @@ class ButterflyConnection(telepathy.server.Connection,
         ButterflyCapabilities,
         ButterflyContacts,
         papyon.event.ClientEventInterface,
-        papyon.event.InviteEventInterface):
+        papyon.event.InviteEventInterface,
+        papyon.event.OfflineMessagesEventInterface):
 
     _mandatory_parameters = {
             'account' : 's',
@@ -101,6 +102,8 @@ class ButterflyConnection(telepathy.server.Connection,
             ButterflyContacts.__init__(self)
             papyon.event.ClientEventInterface.__init__(self, self._msn_client)
             papyon.event.InviteEventInterface.__init__(self, self._msn_client)
+            papyon.event.OfflineMessagesEventInterface.__init__(self, self._msn_client)
+
 
             self.set_self_handle(ButterflyHandleFactory(self, 'self'))
 
@@ -306,6 +309,28 @@ class ButterflyConnection(telepathy.server.Connection,
                 handle, False)
         channel = self._channel_manager.channel_for_props(props, signal=True,
                 call=session)
+
+    # papyon.event.OfflineMessagesEventInterface
+    def on_oim_messages_received(self, messages):
+        # We got notified we received some offlines messages so we
+        #are going to fetch them
+        self.msn_client.oim_box.fetch_messages(messages)
+
+    # papyon.event.OfflineMessagesEventInterface
+    def on_oim_messages_fetched(self, messages):
+        for message in messages:
+            # Request butterfly text channel (creation, what happen when it exist)
+            sender = message.sender
+            logger.info('received offline message from %s : %s' % (sender.account, message.text))
+            handle = ButterflyHandleFactory(self, 'contact',
+                    sender.account, sender.network_id)
+            props = self._generate_props(telepathy.CHANNEL_TYPE_TEXT,
+                handle, False)
+            channel = self._channel_manager.channel_for_props(props,
+                signal=True)
+            # Notify it of the message
+            channel.on_offline_message_received(message)
+        self.msn_client.oim_box.delete_messages(messages)
 
     def _advertise_disconnected(self):
         self._manager.disconnected(self)

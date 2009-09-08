@@ -160,6 +160,20 @@ class ButterflyTextChannel(
         self.Received(id, timestamp, handle, type, 0, message)
         self._recv_id += 1
 
+    def on_offline_message_received(self, message):
+        id = self._recv_id
+        sender = message.sender
+        timestamp = time.mktime(message.date.timetuple())
+        text = message.text
+
+        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                sender.account, sender.network_id)
+        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
+        logger.info("User %r sent a offline message" % handle)
+        self.Received(id, timestamp, handle, type, 0, text)
+
+        self._recv_id += 1
+
     # papyon.event.ConversationEventInterface
     def on_conversation_nudge_received(self, sender):
         id = self._recv_id

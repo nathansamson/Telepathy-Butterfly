@@ -45,6 +45,7 @@ class ButterflyTextChannel(
         self._recv_id = 0
         self._conn_ref = weakref.ref(conn)
 
+        self._pending_offline_messages = {}
         contact = handle.contact
         if conversation is None:
             if contact.presence != papyon.Presence.OFFLINE:
@@ -112,6 +113,25 @@ class ButterflyTextChannel(
     def GetSelfHandle(self):
         return self._conn.GetSelfHandle()
 
+    # Rededefine AcknowledgePendingMessages to remove offline messages
+    # from the oim box.
+    def AcknowledgePendingMessages(self, ids):
+        telepathy.server.ChannelTypeText.AcknowledgePendingMessages(self, ids)
+        messages = []
+        for id in ids:
+            if id in self._pending_offline_messages.keys():
+                messages.append(self._pending_offline_messages[id])
+                del self._pending_offline_messages[id]
+        self._oim_box_ref().delete_messages(messages)
+
+    # Rededefine ListPendingMessages to remove offline messages
+    # from the oim box.
+    def ListPendingMessages(self, clear):
+        if clear:
+            messages = self._pending_offline_messages.values()
+            self._oim_box_ref().delete_messages(messages)
+        return telepathy.server.ChannelTypeText.ListPendingMessages(self, clear)
+
     # papyon.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
@@ -165,6 +185,10 @@ class ButterflyTextChannel(
         sender = message.sender
         timestamp = time.mktime(message.date.timetuple())
         text = message.text
+
+        # Map the id to the offline message so we can remove it
+        # when acked by the client
+        self._pending_offline_messages[id] = message
 
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 sender.account, sender.network_id)

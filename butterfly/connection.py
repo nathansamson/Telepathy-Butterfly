@@ -330,7 +330,6 @@ class ButterflyConnection(telepathy.server.Connection,
                 signal=True)
             # Notify it of the message
             channel.on_offline_message_received(message)
-        self.msn_client.oim_box.delete_messages(messages)
 
     def _advertise_disconnected(self):
         self._manager.disconnected(self)

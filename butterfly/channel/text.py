@@ -84,6 +84,7 @@ class ButterflyTextChannel(
     def Send(self, message_type, text):
         if self._conversation is not None:
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+                logger.info("Sending message : %s" % unicode(text))
                 self._conversation.send_text_message(papyon.ConversationMessage(text))
             elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
                     text == u"nudge":
@@ -93,6 +94,7 @@ class ButterflyTextChannel(
             self.Sent(int(time.time()), message_type, text)
         else:
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+                logger.info("Sending offline message : %s" % unicode(text))
                 self._oim_box_ref().send_message(self._offline_contact, text)
                 #FIXME : Check if the message was sent correctly?
             else:
@@ -174,6 +176,13 @@ class ButterflyTextChannel(
     def on_contact_presence_changed(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
+        if self._offline_contact == contact and contact.presence != papyon.Presence.OFFLINE:
+            logger.info('Contact %s connected, inviting him to the text channel' % unicode(contact))
+            client = self._conn_ref().msn_client
+            self._conversation = papyon.Conversation(client, [contact])
+            papyon.event.ConversationEventInterface.__init__(self, self._conversation)
+            self._offline_contact = None
+            self._offline_handle = None
         #FIXME : Check if it's our offline contact, 
         # if yes create a conversation and invite him,
         # then set offline contact as None

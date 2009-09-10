@@ -297,7 +297,7 @@ class ButterflyConnection(telepathy.server.Connection,
 
     # papyon.event.InviteEventInterface
     def on_invite_webcam(self, session, producer):
-        direction = producer and "send" or "receive"
+        direction = (producer and "send") or "receive"
         logger.debug("Invitation to %s webcam" % direction)
 
         handle = ButterflyHandleFactory(self, 'contact', session.peer.account,

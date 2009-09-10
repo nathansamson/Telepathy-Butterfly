@@ -18,6 +18,7 @@
 
 import telepathy
 
+# MSN stun server address and port
 STUN_SERVER_IP = "64.14.48.28"
 STUN_SERVER_PORT = 3478
 

@@ -207,7 +207,7 @@ class ButterflyTextChannel(
 
 
     # Public API
-    def on_offline_message_received(self, message):
+    def offline_message_received(self, message):
         # @message a papyon.OfflineIM.OfflineMessage
         id = self._recv_id
         sender = message.sender

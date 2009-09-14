@@ -329,7 +329,7 @@ class ButterflyConnection(telepathy.server.Connection,
             channel = self._channel_manager.channel_for_props(props,
                 signal=True)
             # Notify it of the message
-            channel.on_offline_message_received(message)
+            channel.offline_message_received(message)
 
     def _advertise_disconnected(self):
         self._manager.disconnected(self)

@@ -7,6 +7,7 @@ currently supporting:
 
 * single-user chats
 * multi-user chats
+* audio and video calls
 
 Telepathy is a D-Bus framework for unifying real time communication,
 including instant messaging, voice calls and video calls. It abstracts
@@ -34,9 +35,7 @@ x.y.z) determines stability - stable branches have y even, development
 branches have y odd.
 
 Unreleased builds straight from git identify themselves as version
-"x.y.z.1". These are compiled with -Werror, so they might stop working
-if your gcc version issues more warnings than ours. If this is a problem
-for you, use a release tarball.
+"x.y.z.1".
 
 Contact info
 ============

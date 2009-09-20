@@ -79,6 +79,15 @@ class ButterflyTextChannel(
         self.ChatStateChanged(handle, state)
 
     def Send(self, message_type, text):
+        if self._conversation is None and self._offline_contact.presence != papyon.Presence.OFFLINE:
+            contact = self._offline_contact
+            logger.info('Contact %s still connected, inviting him to the text channel before sending message' % unicode(contact))
+            client = self._conn_ref().msn_client
+            self._conversation = papyon.Conversation(client, [contact])
+            papyon.event.ConversationEventInterface.__init__(self, self._conversation)
+            self._offline_contact = None
+            self._offline_handle = None
+
         if self._conversation is not None:
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 logger.info("Sending message : %s" % unicode(text))

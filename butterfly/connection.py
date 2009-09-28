@@ -173,13 +173,19 @@ class ButterflyConnection(telepathy.server.Connection,
             self.add_client_handle(handle, sender)
         return handles
 
-    def _generate_props(self, channel_type, handle, suppress_handler):
-        return {
+    def _generate_props(self, channel_type, handle, suppress_handler, initiator_handle=None):
+        props = {
             telepathy.CHANNEL_INTERFACE + '.ChannelType': channel_type,
             telepathy.CHANNEL_INTERFACE + '.TargetHandle': 0 if handle is None else handle.get_id(),
             telepathy.CHANNEL_INTERFACE + '.TargetHandleType': telepathy.HANDLE_TYPE_NONE if handle is None else handle.get_type(),
             telepathy.CHANNEL_INTERFACE + '.Requested': suppress_handler
             }
+
+        if initiator_handle is not None:
+            props[telepathy.CHANNEL_INTERFACE + '.InitiatorHandle'] = initiator_handle.id
+
+        return props
+
 
     @dbus.service.method(telepathy.CONNECTION, in_signature='suub',
         out_signature='o', async_callbacks=('_success', '_error'))
@@ -283,7 +289,7 @@ class ButterflyConnection(telepathy.server.Connection,
                 participant.account, participant.network_id)
 
         props = self._generate_props(telepathy.CHANNEL_TYPE_TEXT,
-            handle, False)
+            handle, False, initiator_handle=handle)
         channel = self._channel_manager.channel_for_props(props,
             signal=True, conversation=conversation)
 
@@ -294,7 +300,8 @@ class ButterflyConnection(telepathy.server.Connection,
                 call.peer.network_id)
 
         props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-                handle, False)
+                handle, False, initiator_handle=handle)
+
         channel = self._channel_manager.channel_for_props(props,
                 signal=True, call=call)
 
@@ -306,7 +313,7 @@ class ButterflyConnection(telepathy.server.Connection,
         handle = ButterflyHandleFactory(self, 'contact', session.peer.account,
                 session.peer.network_id)
         props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-                handle, False)
+                handle, False, initiator_handle=handle)
         channel = self._channel_manager.channel_for_props(props, signal=True,
                 call=session)
 

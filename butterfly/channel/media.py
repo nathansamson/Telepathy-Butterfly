@@ -28,6 +28,8 @@ from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflySessionHandler
 
+from telepathy.interfaces import CHANNEL_INTERFACE
+
 __all__ = ['ButterflyMediaChannel']
 
 logger = logging.getLogger('Butterfly.MediaChannel')
@@ -53,6 +55,27 @@ class ButterflyMediaChannel(
 
         self._call = call
         self._handle = handle
+
+        self._implement_property_get(CHANNEL_INTERFACE, {
+                'InitiatorHandle': lambda: self._initiator.id,
+                'InitiatorID': lambda: self._initiator.name
+                })
+
+
+        self._add_immutables({
+                'InitiatorHandle': CHANNEL_INTERFACE,
+                'InitiatorID': CHANNEL_INTERFACE,
+                })
+
+        if CHANNEL_INTERFACE + '.InitiatorHandle' in props:
+            self._initiator = conn.handle(telepathy.HANDLE_TYPE_CONTACT,
+                props[CHANNEL_INTERFACE + '.InitiatorHandle'])
+        elif CHANNEL_INTERFACE + '.InitiatorID' in props:
+            self._initiator = ButterflyHandleFactory(conn, 'contact',
+                id=props[CHANNEL_INTERFACE + '.InitiatorHandle'])
+        else:
+            logger.warning('InitiatorID or InitiatorHandle not set on new channel')
+            self._initiator = None
 
         self._session_handler = ButterflySessionHandler(self._conn, self, call.media_session)
         self.NewSessionHandler(self._session_handler, self._session_handler.subtype)

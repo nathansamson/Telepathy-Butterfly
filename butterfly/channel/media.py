@@ -28,7 +28,7 @@ from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflySessionHandler
 
-from telepathy.interfaces import CHANNEL_INTERFACE
+from telepathy.interfaces import CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP
 
 __all__ = ['ButterflyMediaChannel']
 
@@ -61,6 +61,8 @@ class ButterflyMediaChannel(
                 'InitiatorID': lambda: self._initiator.name
                 })
 
+        self._implement_property_get(CHANNEL_INTERFACE_GROUP,
+            {'LocalPendingMembers': lambda: self.GetLocalPendingMembersWithInfo() })
 
         self._add_immutables({
                 'InitiatorHandle': CHANNEL_INTERFACE,
@@ -130,7 +132,7 @@ class ButterflyMediaChannel(
         return self._conn.GetSelfHandle()
 
     def GetLocalPendingMembersWithInfo(self):
-        info = []
+        info = dbus.Array([], signature="(uuus)")
         for member in self._local_pending:
             info.append((member, self._handle, 0, ''))
         return info

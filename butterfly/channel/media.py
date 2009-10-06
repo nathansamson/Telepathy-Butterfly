@@ -119,7 +119,8 @@ class ButterflyMediaChannel(
 
     def RequestStreamDirection(self, id, direction):
         logger.info("Request stream direction %r %r" % (id, direction))
-        self._session_handler.GetStream(id).direction = direction
+        # FIXME: Need to implement changing the stream direction
+        #self._session_handler.GetStream(id).direction = direction
 
     def RemoveStreams(self, streams):
         logger.info("Remove streams %r" % streams)

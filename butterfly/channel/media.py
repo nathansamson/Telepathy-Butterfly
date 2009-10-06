@@ -210,7 +210,6 @@ class ButterflyMediaChannel(
     def on_stream_state_changed(self, handler, state):
         self.StreamStateChanged(handler.id, state)
 
-    @async
     def __add_initial_participants(self):
         added = []
         local_pending = []

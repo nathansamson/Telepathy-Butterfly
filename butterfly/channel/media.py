@@ -78,7 +78,6 @@ class ButterflyMediaChannel(
             self._initiator = None
 
         self._session_handler = ButterflySessionHandler(self._conn, self, call.media_session)
-        self.NewSessionHandler(self._session_handler, self._session_handler.subtype)
 
         flags = (telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE |
                  telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REMOVE |

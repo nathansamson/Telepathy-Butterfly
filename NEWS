@@ -4,6 +4,7 @@ telepathy-butterfly-0.5.2 (UNRELEASED)
 Dependencies:
 
 Enhancements:
+  * Implement offline messages support (fd.o #21402)
 
 Fixes:
 

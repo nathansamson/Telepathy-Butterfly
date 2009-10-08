@@ -7,6 +7,8 @@ Enhancements:
   * Implement offline messages support (fd.o #21402)
 
 Fixes:
+  * Allow for webcam session to be received correctly
+  * Make it possible to receive some more calls
 
 telepathy-butterfly-0.5.1 (14-09-2009)
 ======================================

@@ -57,7 +57,7 @@ class ButterflyMediaChannel(
         self._handle = handle
 
         self._implement_property_get(CHANNEL_INTERFACE, {
-                'InitiatorHandle': lambda: self._initiator.id,
+                'InitiatorHandle': lambda: dbus.UInt32(self._initiator.id),
                 'InitiatorID': lambda: self._initiator.name
                 })
 

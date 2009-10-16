@@ -130,9 +130,10 @@ class ButterflyConnection(telepathy.server.Connection,
         return self._handles[handle_type, handle_id]
 
     def Connect(self):
-        logger.info("Connecting")
-        self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
-        self._msn_client.login(*self._account)
+        if self._status == telepathy.CONNECTION_STATUS_DISCONNECTED:
+            logger.info("Connecting")
+            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NONE_SPECIFIED
+            self._msn_client.login(*self._account)
 
     def Disconnect(self):
         logger.info("Disconnecting")

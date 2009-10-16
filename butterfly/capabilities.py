@@ -40,14 +40,14 @@ class ButterflyCapabilities(
         dbus_interface = telepathy.CONNECTION_INTERFACE_CAPABILITIES
 
     def AdvertiseCapabilities(self, add, remove):
-        for caps, specs in add:
-            if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
-                if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
-                    self._self_handle.profile.client_id.has_webcam = True
-                    self._self_handle.profile.client_id.supports_rtc_video = True
-        for caps in remove:
-            if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
-                self._self_handle.profile.client_id.has_webcam = False
+        #for caps, specs in add:
+            #if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
+                #if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
+                    #self._self_handle.profile.client_id.has_webcam = True
+                    #self._self_handle.profile.client_id.supports_rtc_video = True
+        #for caps in remove:
+            #if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
+                #self._self_handle.profile.client_id.has_webcam = False
 
         return telepathy.server.ConnectionInterfaceCapabilities.\
             AdvertiseCapabilities(self, add, remove)

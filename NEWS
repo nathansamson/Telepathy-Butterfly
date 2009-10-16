@@ -1,5 +1,7 @@
-telepathy-butterfly-0.5.2 (UNRELEASED)
+telepathy-butterfly-0.5.2 (20-10-2009)
 ======================================
+
+The "la bouteille de rosé sur mon bureau" release.
 
 Dependencies:
 
@@ -9,6 +11,7 @@ Enhancements:
 Fixes:
   * Allow for webcam session to be received correctly
   * Make it possible to receive some more calls
+  * Ignore call to connection.Connect() when connect{ed,ing} as per spec
 
 telepathy-butterfly-0.5.1 (14-09-2009)
 ======================================

@@ -106,14 +106,14 @@ class ButterflyCapabilities(
         spec_caps = 0
 
         caps = contact.client_capabilities
-        if caps.supports_sip_invite:
-            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
-            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
-            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
-            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
+        #if caps.supports_sip_invite:
+            #gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+            #gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
+            #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
+            #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
 
-            if caps.has_webcam:
-                spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
+            #if caps.has_webcam:
+                #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
 
         return gen_caps, spec_caps
 

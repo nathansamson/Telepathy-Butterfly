@@ -26,7 +26,7 @@ __all__ = ['ButterflyHandleFactory', 'network_to_extension']
 
 logger = logging.getLogger('Butterfly.Handle')
 
-network_to_extension = {papyon.NetworkID.EXTERNAL: " (yahoo)"}
+network_to_extension = {papyon.NetworkID.EXTERNAL: "#yahoo"}
 
 
 def ButterflyHandleFactory(connection, type, *args):

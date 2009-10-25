@@ -101,7 +101,7 @@ class ButterflyTextChannel(
         else:
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 logger.info("Sending offline message : %s" % unicode(text))
-                self._oim_box_ref().send_message(self._offline_contact, text)
+                self._oim_box_ref().send_message(self._offline_contact, text.encode("utf-8"))
                 #FIXME : Check if the message was sent correctly?
             else:
                 raise telepathy.NotImplemented("Unhandled message type for offline contact")

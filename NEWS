@@ -6,6 +6,7 @@ Dependencies:
 Enhancements:
 
 Fixes:
+  * Fix sending non-ascii offline messages (fd.o #24725)
 
 telepathy-butterfly-0.5.2 (20-10-2009)
 ======================================

@@ -207,7 +207,9 @@ class ButterflyMediaChannel(
     #StreamHandler event
     def on_stream_error(self, handler, error, message):
         self.StreamError(handler.id, error, message)
-        self._call.media_session.remove_stream(handler.stream)
+        # TODO: properly remove the stream without ending the whole
+        # call unless it was the last stream of the session.
+        self._call.end()
 
     #StreamHandler event
     def on_stream_state_changed(self, handler, state):

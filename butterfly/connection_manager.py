@@ -48,25 +48,27 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
 
         result = []
         connection_class = self._protos[proto]
+        secret_parameters = connection_class._secret_parameters
         mandatory_parameters = connection_class._mandatory_parameters
         optional_parameters = connection_class._optional_parameters
         default_parameters = connection_class._parameter_defaults
 
         for parameter_name, parameter_type in mandatory_parameters.iteritems():
-            param = (parameter_name,
-                    telepathy.CONN_MGR_PARAM_FLAG_REQUIRED,
-                    parameter_type,
-                    '')
+            flags = telepathy.CONN_MGR_PARAM_FLAG_REQUIRED
+            if parameter_name in secret_parameters:
+                flags |= telepathy.CONN_MGR_PARAM_FLAG_SECRET
+            param = (parameter_name, flags,  parameter_type, '')
             result.append(param)
 
         for parameter_name, parameter_type in optional_parameters.iteritems():
+            flags = 0
+            default = ''
+            if parameter_name in secret_parameters:
+                flags |= telepathy.CONN_MGR_PARAM_FLAG_SECRET
             if parameter_name in default_parameters:
-                param = (parameter_name,
-                        telepathy.CONN_MGR_PARAM_FLAG_HAS_DEFAULT,
-                        parameter_name,
-                        default_parameters[parameter_name])
-            else:
-                param = (parameter_name, 0, parameter_name, '')
+                flags |= telepathy.CONN_MGR_PARAM_FLAG_HAS_DEFAULT
+                default = default_parameters[parameter_name]
+            param = (parameter_name, flags, parameter_type, default)
             result.append(param)
 
         return result

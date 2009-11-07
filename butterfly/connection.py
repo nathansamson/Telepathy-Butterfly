@@ -49,6 +49,11 @@ class ButterflyConnection(telepathy.server.Connection,
         papyon.event.InviteEventInterface,
         papyon.event.OfflineMessagesEventInterface):
 
+    _secret_parameters = set([
+            'password',
+            'http-proxy-password',
+            'https-proxy-password'
+            ])
     _mandatory_parameters = {
             'account' : 's',
             'password' : 's'

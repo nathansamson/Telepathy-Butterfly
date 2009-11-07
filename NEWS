@@ -6,6 +6,7 @@ Dependencies:
 Enhancements:
 
 Fixes:
+  * Fix the callback when refusing a contact (fd.o #24965)
 
 telepathy-butterfly-0.5.3 (25-10-2009)
 ======================================

@@ -312,8 +312,8 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         contact = handle.contact
         ab = self._conn.msn_client.address_book
         if contact.is_member(papyon.Membership.PENDING):
-            ab.decline_contact_invitation(contact, False, done_cb=finished_cb,
-                    failed_cb=finished_cb)
+            ab.decline_contact_invitation(contact, False, done_cb=(finished_cb,),
+                    failed_cb=(finished_cb,))
         elif contact.is_member(papyon.Membership.ALLOW):
             ab.disallow_contact(contact, done_cb=(finished_cb,),
                     failed_cb=(finished_cb,))

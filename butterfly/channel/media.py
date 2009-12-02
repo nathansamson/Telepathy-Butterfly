@@ -28,7 +28,9 @@ from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflySessionHandler
 
-from telepathy.interfaces import CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP
+from telepathy.interfaces import CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP,\
+    CHANNEL_TYPE_STREAMED_MEDIA
+from telepathy.constants import MEDIA_STREAM_TYPE_AUDIO, MEDIA_STREAM_TYPE_VIDEO
 
 __all__ = ['ButterflyMediaChannel']
 
@@ -86,6 +88,21 @@ class ButterflyMediaChannel(
                  telepathy.CHANNEL_GROUP_FLAG_MESSAGE_REJECT)
         self.GroupFlagsChanged(flags, 0)
         self.__add_initial_participants()
+
+        types = []
+        initial_audio_prop = CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio'
+        initial_video_prop = CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'
+        self._add_immutables({
+                'InitialAudio': CHANNEL_TYPE_STREAMED_MEDIA,
+                'InitialVideo': CHANNEL_TYPE_STREAMED_MEDIA,
+                })
+        if props.get(initial_audio_prop, False):
+            types.append(MEDIA_STREAM_TYPE_AUDIO)
+        if props.get(initial_video_prop, False):
+            types.append(MEDIA_STREAM_TYPE_VIDEO)
+        self.RequestStreams(handle, types)
+        
+
 
     def Close(self):
         logger.info("Channel closed by client")

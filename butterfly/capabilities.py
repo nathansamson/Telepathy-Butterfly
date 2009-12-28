@@ -63,7 +63,7 @@ class ButterflyCapabilities(
         if contact.is_member(contact.Membership.FORWARD):
             handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                     contact.account, contact.network_id)
-            self.add_text_capabilities(handle)
+            self.add_text_capabilities([handle])
 
     def add_text_capabilities(self, contacts_handles):
         """Add the create capability for text channel to these contacts."""

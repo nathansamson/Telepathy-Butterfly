@@ -96,13 +96,14 @@ class ButterflyMediaChannel(
                 'InitialAudio': CHANNEL_TYPE_STREAMED_MEDIA,
                 'InitialVideo': CHANNEL_TYPE_STREAMED_MEDIA,
                 })
+
         if props.get(initial_audio_prop, False):
             types.append(MEDIA_STREAM_TYPE_AUDIO)
         if props.get(initial_video_prop, False):
             types.append(MEDIA_STREAM_TYPE_VIDEO)
-        self.RequestStreams(handle, types)
-        
 
+        if types:
+            self.RequestStreams(handle, types)
 
     def Close(self):
         logger.info("Channel closed by client")

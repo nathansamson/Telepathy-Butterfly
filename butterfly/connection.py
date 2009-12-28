@@ -250,6 +250,7 @@ class ButterflyConnection(telepathy.server.Connection,
                     telepathy.CHANNEL_TYPE_CONTACT_LIST, handle, False)
                 self._channel_manager.channel_for_props(props, signal=True)
         elif state == papyon.event.ClientState.OPEN:
+            self._populate_capabilities()
             self.StatusChanged(telepathy.CONNECTION_STATUS_CONNECTED,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
             presence = self._initial_presence

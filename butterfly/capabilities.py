@@ -23,6 +23,7 @@ import telepathy
 import papyon
 import papyon.event
 
+from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 
 __all__ = ['ButterflyCapabilities']
@@ -54,6 +55,33 @@ class ButterflyCapabilities(
     # papyon.event.ContactEventInterface
     def on_contact_client_capabilities_changed(self, contact):
         self._update_capabilities(contact)
+
+    # papyon.event.AddressBookEventInterface
+    def on_addressbook_contact_added(self, contact):
+        """When we add a contact in our contact list, add the
+        capabilities to create text channel to the contact"""
+        if contact.is_member(contact.Membership.FORWARD):
+            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+                    contact.account, contact.network_id)
+            self.add_text_capabilities(handle)
+
+    def add_text_capabilities(self, contacts_handles):
+        """Add the create capability for text channel to these contacts."""
+        ret = []
+        for handle in contacts_handles:
+            ctype = telepathy.CHANNEL_TYPE_TEXT
+            if handle in self._caps:
+                old_gen, old_spec = self._caps[handle][ctype]
+            else:
+                old_gen = 0
+                old_spec = 0
+            new_gen = old_gen
+            new_gen |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+
+            diff = (int(handle), ctype, old_gen, new_gen, old_spec, old_spec)
+            ret.append(diff)
+
+        self.CapabilitiesChanged(ret)
 
     def _update_capabilities(self, contact):
         handle = ButterflyHandleFactory(self, 'contact',
@@ -88,3 +116,16 @@ class ButterflyCapabilities(
                 spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
 
         return gen_caps, spec_caps
+
+    @async
+    def _populate_capabilities(self):
+        """ Add the capability to create text channels to all contacts in our
+        contacts list."""
+        handles = set()
+        for contact in self.msn_client.address_book.contacts:
+            if contact.is_member(papyon.Membership.FORWARD):
+                handle = ButterflyHandleFactory(self, 'contact',
+                        contact.account, contact.network_id)
+                handles.add(handle)
+        self.add_text_capabilities(handles)
+

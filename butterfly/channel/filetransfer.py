@@ -69,6 +69,8 @@ class ButterflyFileTransferChannel(
                  })
 
         self.__add_initial_participants()
+        self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
+                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
 
     @property
     def state(self):
@@ -93,10 +95,10 @@ class ButterflyFileTransferChannel(
     @property
     def socket_types(self):
         return {
-            telepathy.SOCKET_ADDRESS_TYPE_IPV4:
-                [telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST,
-                 telepathy.SOCKET_ACCESS_CONTROL_PORT,
-                 telepathy.SOCKET_ACCESS_CONTROL_NETMASK],
+            #telepathy.SOCKET_ADDRESS_TYPE_IPV4:
+            #    [telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST,
+            #     telepathy.SOCKET_ACCESS_CONTROL_PORT,
+            #     telepathy.SOCKET_ACCESS_CONTROL_NETMASK],
             telepathy.SOCKET_ADDRESS_TYPE_UNIX:
                 [telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST,
                  telepathy.SOCKET_ACCESS_CONTROL_CREDENTIALS]}
@@ -120,11 +122,9 @@ class ButterflyFileTransferChannel(
         logger.debug("Accept file")
         self.socket = self.add_listener()
         self.channel = self.add_io_channel(self.socket)
-        self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
         self.InitialOffsetDefined(0)
-        self.set_state(telepathy.FILE_TRANSFER_STATE_OPEN,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+        self.set_state(telepathy.FILE_TRANSFER_STATE_ACCEPTED,
+                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
         return self.socket.getsockname()
 
     def ProvideFile(self, address_type, access_control, param):
@@ -148,6 +148,7 @@ class ButterflyFileTransferChannel(
         return self._conn.GetSelfHandle()
 
     def add_listener(self):
+        """Create a listener socket"""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
         sock.bind("/tmp/patatepoil%i.txt" % int(time.time()))
@@ -155,6 +156,7 @@ class ButterflyFileTransferChannel(
         return sock
 
     def add_io_channel(self, sock):
+        """Set up notification on the socket via a giochannel"""
         sock.setblocking(False)
         channel = gobject.IOChannel(sock.fileno())
         channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
@@ -164,11 +166,12 @@ class ButterflyFileTransferChannel(
         return channel
 
     def on_socket_connected(self, channel, condition):
-        logger.debug("Telepathy socket connected")
+        logger.debug("Client socket connected")
         sock = self.socket.accept()[0]
         if self._receiving:
             buffer = DataBuffer(sock)
             self._session.set_receive_data_buffer(buffer, self.size)
+            # Notify the other end we accepted the FT
             self._session.accept()
         else:
             buffer = DataBuffer(sock, self.size)
@@ -225,6 +228,7 @@ class DataBuffer(object):
         self._size = size
         self._offset = 0
         self._buffer = ""
+        self.add_channel()
 
     def seek(self, offset, position):
         if position == 0:
@@ -253,13 +257,18 @@ class DataBuffer(object):
         self._socket.send(data)
 
     def add_channel(self):
+        sock = self._socket
         sock.setblocking(False)
         channel = gobject.IOChannel(sock.fileno())
         channel.set_encoding(None)
         channel.set_buffered(False)
         channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
-        channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
+        channel.add_watch(gobject.IO_HUP | gobject.IO_ERR, self.on_error)
+        #channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
         self.channel = channel
+
+    def on_error(self, channel, condition):
+        logger.error("DataBuffer %s" % condition) 
 
     def on_stream_received(self, channel, condition):
         data = channel.read(1024)

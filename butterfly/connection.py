@@ -32,6 +32,7 @@ from butterfly.handle import ButterflyHandleFactory
 from butterfly.capabilities import ButterflyCapabilities
 from butterfly.contacts import ButterflyContacts
 from butterfly.channel_manager import ButterflyChannelManager
+from butterfly.mail_notification import ButterflyMailNotification
 
 __all__ = ['ButterflyConnection']
 
@@ -45,6 +46,7 @@ class ButterflyConnection(telepathy.server.Connection,
         ButterflyAvatars,
         ButterflyCapabilities,
         ButterflyContacts,
+        ButterflyMailNotification,
         papyon.event.ClientEventInterface,
         papyon.event.InviteEventInterface,
         papyon.event.OfflineMessagesEventInterface):
@@ -105,6 +107,7 @@ class ButterflyConnection(telepathy.server.Connection,
             ButterflyAvatars.__init__(self)
             ButterflyCapabilities.__init__(self)
             ButterflyContacts.__init__(self)
+            ButterflyMailNotification.__init__(self)
             papyon.event.ClientEventInterface.__init__(self, self._msn_client)
             papyon.event.InviteEventInterface.__init__(self, self._msn_client)
             papyon.event.OfflineMessagesEventInterface.__init__(self, self._msn_client)

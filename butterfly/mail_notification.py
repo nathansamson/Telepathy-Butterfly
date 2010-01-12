@@ -79,6 +79,9 @@ class ButterflyMailNotification(
 
 
     def Subscribe(self):
+        # Papyon does not have enable/disable feature on mail tracking and
+        # does not use more memory while monitoring may. Thus we can safely
+        # stub subscribe/unsubscribe method.
         pass
 
 
@@ -115,6 +118,7 @@ class ButterflyMailNotification(
         return (id, HTTP_METHOD_POST, post_data)
 
 
+    # papyon.event.MailboxEventInterface
     def on_mailbox_new_mail_received(self, mail_message):
         logger.debug("New Mail " + str(mail_message))
 
@@ -132,6 +136,7 @@ class ButterflyMailNotification(
         self.MailsReceived([mail])
 
 
+    # papyon.event.MailboxEventInterface
     def on_mailbox_unread_mail_count_changed(self, unread_mail_count,
             initial=False):
         logger.debug("Unread Mail Count Changed " + str(unread_mail_count))

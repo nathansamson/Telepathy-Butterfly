@@ -62,18 +62,18 @@ class ButterflyMailNotification(
         papyon.event.MailboxEventInterface.__init__(self, self.msn_client)
 
         self._implement_property_get(CONN_IFACE_MAIL_NOTIFICATION,
-            {'Capabilities': lambda: self._capabilities,
-             'UnreadMailCount': lambda: self._unread_mail_count,})
+            {'Capabilities': lambda: self.capabilities,
+             'UnreadMailCount': lambda: self.unread_mail_count,})
 
 
     @property
-    def _capabilities(self):
+    def capabilities(self):
         return MAIL_NOTIFICATION_HAS_PROP_UNREADMAILCOUNT \
                 | MAIL_NOTIFICATION_HAS_SIGNAL_MAILSRECEIVED
 
 
     @property
-    def _unread_mail_count(self):
+    def unread_mail_count(self):
         return self.msn_client.mailbox.unread_mail_count
 
 

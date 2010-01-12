@@ -89,15 +89,13 @@ class ButterflyMailNotification(
             in_signature='', out_signature='(sua(ss))',
             async_callbacks=('_success', '_error'))
     def RequestInboxURL(self, _success, _error):
-        def got_url(post_url, form_dict, _success):
+        def got_url(post_url, form_dict):
             post_data = []
             for key in form_dict:
                 post_data += ((key, form_dict[key]),)
             _success((post_url, HTTP_METHOD_POST, post_data))
 
-        self.msn_client.mailbox.request_inbox_url(
-                lambda post_url, form_dict: got_url(post_url, form_dict,
-                    _success))
+        self.msn_client.mailbox.request_inbox_url(got_url)
 
     def RequestMailURL(self, id, url_data):
         # Unserialize POST Data from base64 making sure it's good data.

@@ -18,6 +18,7 @@
 
 from base64 import b64encode, b64decode
 from butterfly.Connection_Interface_Mail_Notification import ConnectionInterfaceMailNotification
+from string import join
 import dbus.service
 import logging
 import papyon
@@ -110,7 +111,7 @@ class ButterflyMailNotification(
                 final_data = (b64decode(tmp_data[0]), b64decode(tmp_data[1]))
             except Exception, e:
                 raise telepathy.errors.InvalidArgument
-            post_data += (final_data,)
+            post_data += [final_data]
         return (id, HTTP_METHOD_POST, post_data)
 
 
@@ -118,16 +119,13 @@ class ButterflyMailNotification(
         logger.debug("New Mail " + str(mail_message))
 
         # Serialize with POST data in base64 as decribed in previous function.
-        url_data = ''
-        for key in mail_message.form_data:
-            if url_data != '':
-                url_data += '&'
-            url_data += b64encode(key) + ':' + \
-                b64encode(mail_message.form_data[key])
+        url_data = []
+        for key, value in mail_message.form_data.items():
+            url_data += [b64encode(key) + ':' + b64encode(value)]
 
         mail = {'id': mail_message.post_url,
                 'type': MAIL_TYPE_SINGLE,
-                'url_data': url_data,
+                'url_data': join(url_data,'&'),
                 'senders': [(mail_message.name, mail_message.address)],
                 'subject':  mail_message._subject}
 

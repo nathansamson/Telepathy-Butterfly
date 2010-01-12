@@ -1,6 +1,6 @@
 # telepathy-butterfly - an MSN connection manager for Telepathy
 #
-# Copyright (C) 2009 Collabora Ltd.
+# Copyright (C) 2010 Collabora Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 from base64 import b64encode, b64decode
-from butterfly.Connection_Interface_Mail_Notification import *
+from butterfly.Connection_Interface_Mail_Notification import ConnectionInterfaceMailNotification
 import dbus.service
 import logging
 import papyon

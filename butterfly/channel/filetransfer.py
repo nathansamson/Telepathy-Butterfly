@@ -151,7 +151,7 @@ class ButterflyFileTransferChannel(
         """Create a listener socket"""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-        sock.bind("/tmp/patatepoil%i.txt" % int(time.time()))
+        sock.bind("/tmp/butterfly-%i" % int(time.time()))
         sock.listen(1)
         return sock
 

@@ -71,7 +71,13 @@ class ButterflyMailNotification(
              'UnreadMailCount': lambda: self.unread_mail_count,})
 
 
-    def EnableMailNotification(self):
+    def enable_mail_notification_interface(self):
+        """Add MailNotification to the list of interfaces so
+        Connection.GetInterfaces() returns it when called. This should be
+        called before the connection is fully connected and only if the MSN
+        Account support e-mail notification (see 'EmailEnabled' feild in 
+        client profile)."""
+
         self._interfaces.add(CONN_IFACE_MAIL_NOTIFICATION)
 
 

@@ -31,6 +31,8 @@ import socket
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 
+from telepathy.interfaces import CHANNEL_TYPE_FILE_TRANSFER
+
 __all__ = ['ButterflyFileTransferChannel']
 
 logger = logging.getLogger('Butterfly.FileTransferChannel')
@@ -67,6 +69,11 @@ class ButterflyFileTransferChannel(
                  'TransferredBytes': lambda: self.transferred,
                  'InitialOffset': lambda: self.offset
                  })
+
+        self._add_immutables({
+                'Filename': CHANNEL_TYPE_FILE_TRANSFER,
+                'Size': CHANNEL_TYPE_FILE_TRANSFER,
+                })
 
         self.__add_initial_participants()
         self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,

@@ -6,6 +6,8 @@ Dependencies:
 Enhancements:
   * Implement the InitialAudio and InitialVideo properties when requesting a
     StreamedMedia channel (fd.o #25396)
+  * Advertise text capabilities of contacts (fd.o #24878)
+
 
 Fixes:
   * Fix the callback when refusing a contact (fd.o #24965)

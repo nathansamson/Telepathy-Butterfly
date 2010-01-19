@@ -1,13 +1,13 @@
-telepathy-butterfly-0.5.4 (UNRELEASED)
+telepathy-butterfly-0.5.4 (19-01-2010)
 ======================================
 
-Dependencies:
+The "Awesome Xmas presnt" release.
 
 Enhancements:
   * Implement the InitialAudio and InitialVideo properties when requesting a
     StreamedMedia channel (fd.o #25396)
   * Advertise text capabilities of contacts (fd.o #24878)
-
+  * Experimental MailNotification interface (fd.o #25995)
 
 Fixes:
   * Fix the callback when refusing a contact (fd.o #24965)

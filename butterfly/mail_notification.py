@@ -36,9 +36,12 @@ CONN_IFACE_MAIL_NOTIFICATION = \
     'org.freedesktop.Telepathy.Connection.Interface.MailNotification.DRAFT'
 
 # Mail_Notification_Flags (bitfield/set of flags, 0 for none)
-MAIL_NOTIFICATION_HAS_PROP_UNREADMAILCOUNT = 1
-MAIL_NOTIFICATION_HAS_PROP_UNREADMAILS = 2
-MAIL_NOTIFICATION_HAS_SIGNAL_MAILSRECEIVED = 4
+MAIL_NOTIFICATION_SUPPORTS_UNREAD_MAIL_COUNT = 1
+MAIL_NOTIFICATION_SUPPORTS_UNREAD_MAILS = 2
+MAIL_NOTIFICATION_EMITS_MAILS_RECEIVED = 4
+MAIL_NOTIFICATION_SUPPORTS_REQUEST_INBOX_URL = 8
+MAIL_NOTIFICATION_SUPPORTS_REQUEST_MAIL_URL = 16
+MAIL_NOTIFICATION_SUPPORTS_REQUEST_COMPOSE_URL = 32
 
 # HTTP_Method
 HTTP_METHOD_GET = 0
@@ -83,8 +86,10 @@ class ButterflyMailNotification(
 
     @property
     def capabilities(self):
-        return MAIL_NOTIFICATION_HAS_PROP_UNREADMAILCOUNT \
-                | MAIL_NOTIFICATION_HAS_SIGNAL_MAILSRECEIVED
+        return MAIL_NOTIFICATION_SUPPORTS_UNREAD_MAIL_COUNT \
+                | MAIL_NOTIFICATION_EMITS_MAILS_RECEIVED \
+                | MAIL_NOTIFICATION_SUPPORTS_REQUEST_INBOX_URL \
+                | MAIL_NOTIFICATION_SUPPORTS_REQUEST_MAIL_URL
 
 
     @property
@@ -143,7 +148,7 @@ class ButterflyMailNotification(
 
         mail = {'id': mail_message.post_url,
                 'type': MAIL_TYPE_SINGLE,
-                'url_data': join(url_data,'&'),
+                'url-data': join(url_data,'&'),
                 'senders': [(mail_message.name, mail_message.address)],
                 'subject':  mail_message._subject}
 

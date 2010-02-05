@@ -102,10 +102,6 @@ class ButterflyFileTransferChannel(
     @property
     def socket_types(self):
         return {
-            #telepathy.SOCKET_ADDRESS_TYPE_IPV4:
-            #    [telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST,
-            #     telepathy.SOCKET_ACCESS_CONTROL_PORT,
-            #     telepathy.SOCKET_ACCESS_CONTROL_NETMASK],
             telepathy.SOCKET_ADDRESS_TYPE_UNIX:
                 [telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST,
                  telepathy.SOCKET_ACCESS_CONTROL_CREDENTIALS]}
@@ -129,9 +125,11 @@ class ButterflyFileTransferChannel(
         logger.debug("Accept file")
         self.socket = self.add_listener()
         self.channel = self.add_io_channel(self.socket)
-        self.InitialOffsetDefined(0)
-        self.set_state(telepathy.FILE_TRANSFER_STATE_ACCEPTED,
+        self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
+        self.InitialOffsetDefined(0)
+        self.set_state(telepathy.FILE_TRANSFER_STATE_OPEN,
+                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
         return self.socket.getsockname()
 
     def ProvideFile(self, address_type, access_control, param):
@@ -186,10 +184,11 @@ class ButterflyFileTransferChannel(
         self.socket = sock
 
     def on_socket_disconnected(self, channel, condition):
-        logger.debug("Telepathy socket disconnected")
-        self._session.cancel()
-        self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
+        logger.debug("Client socket disconnected")
+        #TODO only cancel if the socket is disconnected while listening
+        #self._session.cancel()
+        #self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+        #               telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
 
     def on_transfer_complete(self, session, data):
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
@@ -235,7 +234,7 @@ class DataBuffer(object):
         self._size = size
         self._offset = 0
         self._buffer = ""
-        self.add_channel()
+        #self.add_channel()
 
     def seek(self, offset, position):
         if position == 0:
@@ -271,12 +270,18 @@ class DataBuffer(object):
         channel.set_buffered(False)
         channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
         channel.add_watch(gobject.IO_HUP | gobject.IO_ERR, self.on_error)
-        #channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
+        channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
         self.channel = channel
 
     def on_error(self, channel, condition):
-        logger.error("DataBuffer %s" % condition) 
+        logger.error("DataBuffer %s" % condition)
+
+    def on_stream_disconnected(self, channel, condition):
+        pass
+
 
     def on_stream_received(self, channel, condition):
+        logger.info("Received data to send")
         data = channel.read(1024)
-        self._session.send_chunk(data)
+        print data
+        #self._session.send_chunk(data)

@@ -70,14 +70,15 @@ class ButterflyMailNotification(
 
         self._implement_property_get(CONN_IFACE_MAIL_NOTIFICATION,
             {'MailNotificationFlags': lambda: self.mail_notification_flags,
-             'UnreadMailCount': lambda: self.unread_mail_count,})
+             'UnreadMailCount': lambda: self.unread_mail_count,
+             'MailAddress': lambda: self.mail_address})
 
 
     def enable_mail_notification_interface(self):
         """Add MailNotification to the list of interfaces so
         Connection.GetInterfaces() returns it when called. This should be
         called before the connection is fully connected and only if the MSN
-        Account support e-mail notification (see 'EmailEnabled' feild in 
+        Account support e-mail notification (see 'EmailEnabled' feild in
         client profile)."""
 
         self._interfaces.add(CONN_IFACE_MAIL_NOTIFICATION)
@@ -95,6 +96,9 @@ class ButterflyMailNotification(
     def unread_mail_count(self):
         return self.msn_client.mailbox.unread_mail_count
 
+    @property
+    def mail_address(self):
+        return self._account[0]
 
     def Subscribe(self):
         # Papyon does not have enable/disable feature on mail tracking and

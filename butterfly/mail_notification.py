@@ -36,12 +36,11 @@ CONN_IFACE_MAIL_NOTIFICATION = \
     'org.freedesktop.Telepathy.Connection.Interface.MailNotification.DRAFT'
 
 # Mail_Notification_Flags (bitfield/set of flags, 0 for none)
-MAIL_NOTIFICATION_SUPPORTS_UNREAD_MAIL_COUNT = 1
-MAIL_NOTIFICATION_SUPPORTS_UNREAD_MAILS = 2
-MAIL_NOTIFICATION_EMITS_MAILS_RECEIVED = 4
-MAIL_NOTIFICATION_SUPPORTS_REQUEST_INBOX_URL = 8
-MAIL_NOTIFICATION_SUPPORTS_REQUEST_MAIL_URL = 16
-MAIL_NOTIFICATION_SUPPORTS_REQUEST_COMPOSE_URL = 32
+MAIL_NOTIFICATION_FLAG_SUPPORTS_UNREAD_MAIL_COUNT = 1
+MAIL_NOTIFICATION_FLAG_SUPPORTS_UNREAD_MAILS = 2
+MAIL_NOTIFICATION_FLAG_EMITS_MAILS_RECEIVED = 4
+MAIL_NOTIFICATION_FLAG_SUPPORTS_REQUEST_INBOX_URL = 8
+MAIL_NOTIFICATION_FLAG_SUPPORTS_REQUEST_MAIL_URL = 16
 
 # HTTP_Method
 HTTP_METHOD_GET = 0
@@ -70,7 +69,7 @@ class ButterflyMailNotification(
         papyon.event.MailboxEventInterface.__init__(self, self.msn_client)
 
         self._implement_property_get(CONN_IFACE_MAIL_NOTIFICATION,
-            {'Capabilities': lambda: self.capabilities,
+            {'MailNotificationFlags': lambda: self.mail_notification_flags,
              'UnreadMailCount': lambda: self.unread_mail_count,})
 
 
@@ -85,11 +84,11 @@ class ButterflyMailNotification(
 
 
     @property
-    def capabilities(self):
-        return MAIL_NOTIFICATION_SUPPORTS_UNREAD_MAIL_COUNT \
-                | MAIL_NOTIFICATION_EMITS_MAILS_RECEIVED \
-                | MAIL_NOTIFICATION_SUPPORTS_REQUEST_INBOX_URL \
-                | MAIL_NOTIFICATION_SUPPORTS_REQUEST_MAIL_URL
+    def mail_notification_flags(self):
+        return MAIL_NOTIFICATION_FLAG_SUPPORTS_UNREAD_MAIL_COUNT \
+                | MAIL_NOTIFICATION_FLAG_EMITS_MAILS_RECEIVED \
+                | MAIL_NOTIFICATION_FLAG_SUPPORTS_REQUEST_INBOX_URL \
+                | MAIL_NOTIFICATION_FLAG_SUPPORTS_REQUEST_MAIL_URL
 
 
     @property

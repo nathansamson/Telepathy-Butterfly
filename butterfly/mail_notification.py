@@ -24,6 +24,7 @@ import logging
 import papyon
 import telepathy
 import telepathy.constants
+import telepathy.errors
 
 
 __all__ = ['ButterflyMailNotification']
@@ -102,8 +103,8 @@ class ButterflyMailNotification(
 
     def Subscribe(self):
         # Papyon does not have enable/disable feature on mail tracking and
-        # does not use more memory while monitoring may. Thus we can safely
-        # stub subscribe/unsubscribe method.
+        # does not use more memory while monitoring mail. Thus we can safely
+        # stub subscribe and unsubscribe methods.
         pass
 
 
@@ -123,21 +124,13 @@ class ButterflyMailNotification(
 
         self.msn_client.mailbox.request_inbox_url(got_url)
 
+
     def RequestMailURL(self, id, url_data):
-        # Unserialize POST Data from base64 making sure it's good data.
-        # Data is of the form <key>:<value>[&<key>:<value>]* where key
-        # and value are base64 encoded.
-        post_data = []
-        for data in url_data.split('&'):
-            tmp_data = data.split(':')
-            if len(tmp_data) is not 2:
-                raise telepathy.errors.InvalidArgument
-            try:
-                final_data = (b64decode(tmp_data[0]), b64decode(tmp_data[1]))
-            except Exception, e:
-                raise telepathy.errors.InvalidArgument
-            post_data += [final_data]
-        return (id, HTTP_METHOD_POST, post_data)
+        try:
+            post_data = url_data.items()
+            return (id, HTTP_METHOD_POST, post_data)
+        except AttributeError:
+            raise telepathy.errors.InvalidArgument("Wrong type for url-data")
 
 
     # papyon.event.MailboxEventInterface
@@ -150,7 +143,6 @@ class ButterflyMailNotification(
             url_data += [b64encode(key) + ':' + b64encode(value)]
 
         mail = {'id': mail_message.post_url,
-                'type': MAIL_TYPE_SINGLE,
                 'url-data': join(url_data,'&'),
                 'senders': [(mail_message.name, mail_message.address)],
                 'subject':  mail_message._subject}

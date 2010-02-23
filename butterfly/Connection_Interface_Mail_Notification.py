@@ -164,7 +164,7 @@ class ConnectionInterfaceMailNotification(dbus.service.Interface):
         """
         raise NotImplementedError
   
-    @dbus.service.method('org.freedesktop.Telepathy.Connection.Interface.MailNotification.DRAFT', in_signature='ss', out_signature='(sua(ss))')
+    @dbus.service.method('org.freedesktop.Telepathy.Connection.Interface.MailNotification.DRAFT', in_signature='sv', out_signature='(sua(ss))')
     def RequestMailURL(self, ID, URL_Data):
         """
         This method creates and returns a URL and optional POST data that

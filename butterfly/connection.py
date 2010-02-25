@@ -304,6 +304,9 @@ class ButterflyConnection(telepathy.server.Connection,
             handle, False, initiator_handle=handle)
         channel = self._channel_manager.channel_for_props(props,
             signal=True, conversation=conversation)
+        if channel._conversation is not conversation:
+            # If we get an existing channel, attach the conversation object to it
+            channel.attach_conversation(conversation)
 
     # papyon.event.InviteEventInterface
     def on_invite_conference(self, call):

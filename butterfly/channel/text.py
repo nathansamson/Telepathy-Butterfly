@@ -235,6 +235,21 @@ class ButterflyTextChannel(
 
         self._recv_id += 1
 
+    def attach_conversation(self, conversation):
+        # @conversation a papyon.ConversationInterface
+        if self._conversation:
+            if self._conversation is conversation:
+                logger.warning("Trying to reattach the same switchboard to a channel, do nothing")
+                return
+            else:
+                logger.warning("Attaching to a channel which already have a switchboard, leaving previous one")
+                self._conversation.leave()
+        else:
+            self._offline_contact = None
+            self._offline_handle = None
+        self._conversation = conversation
+        papyon.event.ConversationEventInterface.__init__(self, self._conversation)
+
     @async
     def __add_initial_participants(self):
         handles = []

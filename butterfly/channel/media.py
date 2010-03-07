@@ -97,10 +97,20 @@ class ButterflyMediaChannel(
                 'InitialVideo': CHANNEL_TYPE_STREAMED_MEDIA,
                 })
 
+        self._initial_video = False
+        self._initial_audio = False
+
         if props.get(initial_audio_prop, False):
             types.append(MEDIA_STREAM_TYPE_AUDIO)
+            self._initial_audio = True
         if props.get(initial_video_prop, False):
             types.append(MEDIA_STREAM_TYPE_VIDEO)
+            self._initial_video = True
+
+        self._implement_property_get(CHANNEL_TYPE_STREAMED_MEDIA, {
+                'InitialAudio': lambda: dbus.Boolean(self._initial_audio),
+                'InitialVideo': lambda: dbus.Boolean(self._initial_video),
+                })
 
         if types:
             self.RequestStreams(handle, types)

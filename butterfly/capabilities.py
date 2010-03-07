@@ -60,7 +60,7 @@ class ButterflyCapabilities(
     def on_addressbook_contact_added(self, contact):
         """When we add a contact in our contact list, add the
         capabilities to create text channel to the contact"""
-        if contact.is_member(contact.Membership.FORWARD):
+        if contact.is_member(Membership.FORWARD):
             handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                     contact.account, contact.network_id)
             self.add_text_capabilities([handle])

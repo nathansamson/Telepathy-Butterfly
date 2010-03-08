@@ -46,8 +46,9 @@ class ButterflyMediaChannel(
         papyon.event.ContactEventInterface,
         papyon.event.MediaSessionEventInterface):
 
-    def __init__(self, conn, manager, call, handle, props):
-        telepathy.server.ChannelTypeStreamedMedia.__init__(self, conn, manager, props)
+    def __init__(self, conn, manager, call, handle, props, object_path=None):
+        telepathy.server.ChannelTypeStreamedMedia.__init__(self, conn, manager, props,
+            object_path=object_path)
         telepathy.server.ChannelInterfaceCallState.__init__(self)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         telepathy.server.ChannelInterfaceMediaSignalling.__init__(self)

@@ -40,7 +40,7 @@ class ButterflyTextChannel(
         papyon.event.ContactEventInterface,
         papyon.event.ConversationEventInterface):
 
-    def __init__(self, conn, manager, conversation, props):
+    def __init__(self, conn, manager, conversation, props, object_path=None):
         _, surpress_handler, handle = manager._get_type_requested_handle(props)
         self._recv_id = 0
         self._conn_ref = weakref.ref(conn)
@@ -60,7 +60,8 @@ class ButterflyTextChannel(
             self._offline_handle = handle
             self._offline_contact = contact
 
-        telepathy.server.ChannelTypeText.__init__(self, conn, manager, props)
+        telepathy.server.ChannelTypeText.__init__(self, conn, manager, props,
+            object_path=object_path)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
         papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)

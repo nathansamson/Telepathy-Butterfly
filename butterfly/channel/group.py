@@ -35,10 +35,11 @@ logger = logging.getLogger('Butterfly.GroupChannel')
 class ButterflyGroupChannel(ButterflyListChannel,
             papyon.event.AddressBookEventInterface):
 
-    def __init__(self, connection, manager, props):
+    def __init__(self, connection, manager, props, object_path=None):
         self.__pending_add = []
         self.__pending_remove = []
-        ButterflyListChannel.__init__(self, connection, manager, props)
+        ButterflyListChannel.__init__(self, connection, manager, props,
+            object_path=object_path)
         papyon.event.AddressBookEventInterface.__init__(self, connection.msn_client)
         self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD | 
                 telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)

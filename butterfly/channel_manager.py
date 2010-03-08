@@ -34,6 +34,9 @@ __all__ = ['ButterflyChannelManager']
 logger = logging.getLogger('Butterfly.ChannelManager')
 
 class ButterflyChannelManager(telepathy.server.ChannelManager):
+    __text_channel_id = 1
+    __media_channel_id = 1
+
     def __init__(self, connection):
         telepathy.server.ChannelManager.__init__(self, connection)
 
@@ -55,8 +58,12 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
         _, surpress_handler, handle = self._get_type_requested_handle(props)
 
         logger.debug('New contact list channel')
+
         if handle.get_type() == telepathy.HANDLE_TYPE_GROUP:
-            channel = ButterflyGroupChannel(self._conn, self, props)
+            # This mangling the handle name technique could possibly be better. We
+            # want tp_escape_as_identifier, really.
+            path = "RosterChannel/Group/%s" % unicode(handle.get_name()).encode('ascii', 'ignore')
+            channel = ButterflyGroupChannel(self._conn, self, props, object_path=path)
         else:
             channel = ButterflyContactListChannelFactory(self._conn,
                 self, handle, props)
@@ -71,7 +78,11 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 
         logger.debug('New text channel')
 
-        channel = ButterflyTextChannel(self._conn, self, conversation, props)
+        path = "ImChannel%d" % self.__text_channel_id
+        self.__text_channel_id += 1
+
+        channel = ButterflyTextChannel(self._conn, self, conversation, props,
+            object_path=path)
         return channel
 
     def _get_media_channel(self, props, call=None):
@@ -91,4 +102,9 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
             client = self._conn.msn_client
             call = client.call_manager.create_call(contact)
 
-        return ButterflyMediaChannel(self._conn, self, call, handle, props)
+
+        path = "MediaChannel/%d" % self.__media_channel_id
+        self.__media_channel_id += 1
+
+        return ButterflyMediaChannel(self._conn, self, call, handle, props,
+            object_path=path)

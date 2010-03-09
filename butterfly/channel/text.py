@@ -138,6 +138,14 @@ class ButterflyTextChannel(
             self._oim_box_ref().delete_messages(messages)
         return telepathy.server.ChannelTypeText.ListPendingMessages(self, clear)
 
+    # Group interface, only removing ourself is supported
+    def RemoveMembers(self, contacts, message):
+        if int(self.GetSelfHandle()) in contacts:
+            print "close channel"
+            self.Close()
+        else :
+            raise telepathy.PermissionDenied
+
     # papyon.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',

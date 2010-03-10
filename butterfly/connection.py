@@ -292,18 +292,19 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.InviteEventInterface
     def on_invite_conversation(self, conversation):
         logger.debug("Conversation invite")
-        #FIXME: get rid of this crap and implement group support
-        participants = conversation.participants
-        for p in participants:
-            participant = p
-            break
-        handle = ButterflyHandleFactory(self, 'contact',
-                participant.account, participant.network_id)
+
+        handle = None
+        if len(conversation.participants) == 1:
+            p = list(conversation.participants)[0]
+            handle = ButterflyHandleFactory(self, 'contact',
+                    p.account, p.network_id)
 
         props = self._generate_props(telepathy.CHANNEL_TYPE_TEXT,
             handle, False, initiator_handle=handle)
+
         channel = self._channel_manager.channel_for_props(props,
             signal=True, conversation=conversation)
+
         if channel._conversation is not conversation:
             # If we get an existing channel, attach the conversation object to it
             channel.attach_conversation(conversation)

@@ -29,6 +29,8 @@ from butterfly.channel.text import ButterflyTextChannel
 from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 
+from butterfly.Channel_Interface_Conference import CHANNEL_INTERFACE_CONFERENCE
+
 __all__ = ['ButterflyChannelManager']
 
 logger = logging.getLogger('Butterfly.ChannelManager')
@@ -40,19 +42,32 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
     def __init__(self, connection):
         telepathy.server.ChannelManager.__init__(self, connection)
 
-        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
-            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)}
-        self._implement_channel_class(telepathy.CHANNEL_TYPE_TEXT,
-            self._get_text_channel, fixed, [])
+        classes = [
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
+              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+             []),
 
-        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_CONTACT_LIST}
-        self._implement_channel_class(telepathy.CHANNEL_TYPE_CONTACT_LIST,
-            self._get_list_channel, fixed, [])
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
+              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_NONE)},
+             [CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels',
+              CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeHandles',
+              CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeIDs',
+              CHANNEL_INTERFACE_CONFERENCE + '.SupportsNonMerges'])
+            ]
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_TEXT, self._get_text_channel, classes)
 
-        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)}
-        self._implement_channel_class(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-            self._get_media_channel, fixed, [telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
+        classes = [
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_CONTACT_LIST},
+             [])
+            ]
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_CONTACT_LIST, self._get_list_channel, classes)
+
+        classes = [
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+             [telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
+            ]
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
 
     def _get_list_channel(self, props):
         _, surpress_handler, handle = self._get_type_requested_handle(props)

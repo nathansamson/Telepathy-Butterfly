@@ -72,11 +72,10 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
     def _get_text_channel(self, props, conversation=None):
         _, surpress_handler, handle = self._get_type_requested_handle(props)
 
-        if handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
-            raise telepathy.NotImplemented('Only contacts are allowed')
-
-
         logger.debug('New text channel')
+
+        if handle is not None and handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
+            raise telepathy.NotImplemented('Only contacts are allowed')
 
         path = "ImChannel%d" % self.__text_channel_id
         self.__text_channel_id += 1

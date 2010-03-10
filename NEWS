@@ -1,4 +1,23 @@
-telepathy-butterfly-0.5.4 (19-01-2010)
+telepathy-butterfly-0.5.5 (2010-03-10)
+======================================
+
+The "Objection" release.
+
+This release disables audio/video calls, which have been broken since Microsoft removed the necessary servers.
+
+Enhancements:
+  * Updated to the new MailNotification spec
+  * Attach new conversation to existing channel (fd.o #26644)
+  * Use prettier object path for channel (fd.o #26929)
+
+Fixes:
+  * Desactive A/V call (fd.o #26652)
+  * capabilities: fix typo (fd.o #26929)
+
+Dependencies :
+  * telepathy-python 0.15.16
+
+telepathy-butterfly-0.5.4 (2010-01-19)
 ======================================
 
 The "Awesome Xmas presnt" release.
@@ -12,7 +31,7 @@ Enhancements:
 Fixes:
   * Fix the callback when refusing a contact (fd.o #24965)
 
-telepathy-butterfly-0.5.3 (25-10-2009)
+telepathy-butterfly-0.5.3 (2009-10-25)
 ======================================
 
 The "I should have seen this coming " release.
@@ -20,7 +39,7 @@ The "I should have seen this coming " release.
 Fixes:
   * Fix sending non-ascii offline messages (fd.o #24725)
 
-telepathy-butterfly-0.5.2 (20-10-2009)
+telepathy-butterfly-0.5.2 (2009-10-20)
 ======================================
 
 The "la bouteille de rosé sur mon bureau" release.
@@ -35,7 +54,7 @@ Fixes:
   * Make it possible to receive some more calls
   * Ignore call to connection.Connect() when connect{ed,ing} as per spec
 
-telepathy-butterfly-0.5.1 (14-09-2009)
+telepathy-butterfly-0.5.1 (2009-09-14)
 ======================================
 
 The "if you look real closely you can see the butterflies mating" release.
@@ -52,7 +71,7 @@ Enhancements:
 Fixes:
  * Don't add a contact to the publish and subscribe lists at the same time
 
-telepathy-butterfly-0.5.0 (28-07-2009)
+telepathy-butterfly-0.5.0 (2009-07-28)
 ======================================
 
 The "opening couplet of an excellent nerd-rock song" release.
@@ -71,7 +90,7 @@ Fixes:
  * Fix crash on nudge reception (fd.o #22350)
  * Trigger "Name in use" error when another client logged in using the same account (fd.o #22555)
 
-telepathy-butterfly-0.3.4 (16-06-2009)
+telepathy-butterfly-0.3.4 (2009-06-16)
 ======================================
 
 Dependencies:
@@ -90,7 +109,7 @@ Fixes:
  * Fix GetSelfHandle in text channel, add handle in members
  * Remove closed text channel from the list (fd.o #22250)
 
-telepathy-butterfly-0.3.3 (06-01-2009)
+telepathy-butterfly-0.3.3 (2009-01-06)
 ======================================
 
 Dependencies:
@@ -108,7 +127,7 @@ Fixes:
 
  * Encode the user alias as UTF-8 when setting a new display name.
 
-telepathy-butterfly-0.3.2 (20-07-2008)
+telepathy-butterfly-0.3.2 (2008-07-20)
 ======================================
 
 Enhancements:
@@ -125,7 +144,7 @@ Fixes:
  * Fixed the configure script to generate a Makefile able to handle DISTDIR
  * Fixed GetKnownAvatarTokens for self handle when no avatar is known
 
-telepathy-butterfly-0.3.1 (16-01-2008)
+telepathy-butterfly-0.3.1 (2008-01-16)
 ======================================
 
 Fixes:
@@ -136,7 +155,7 @@ Fixes:
  * Fixed adding contacts to group during contact addition
  * Fixed utf-8 encoded handle names
 
-telepathy-butterfly-0.3.0 (12-01-2008)
+telepathy-butterfly-0.3.0 (2008-01-12)
 ======================================
 
 The "Blue Morpho" release.

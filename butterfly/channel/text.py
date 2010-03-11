@@ -412,10 +412,6 @@ class ButterflyTextChannel(
 
     @async
     def __add_initial_participants(self):
-        # Done in an idle so it doesn't fire before the new channel
-        # has even been announced.
-        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 0)
-
         handles = []
         handles.append(self._conn.GetSelfHandle())
         if self._conversation:

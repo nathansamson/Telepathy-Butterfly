@@ -53,7 +53,8 @@ class ButterflyTextChannel(
             object_path=object_path)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
 
-        if handle is None and CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' in props:
+        if handle.get_type() == telepathy.HANDLE_TYPE_NONE \
+                and CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' in props:
             logger.info('Getting channels from InitialChannels')
             ic_paths = props[CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels']
             ic = set()
@@ -144,7 +145,8 @@ class ButterflyTextChannel(
 
             self.__add_initial_participants()
             self.__is_group = True
-        elif conversation and handle is None and CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' not in props:
+        elif conversation and handle.get_type() == telepathy.HANDLE_TYPE_NONE \
+                and CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' not in props:
             self._offline_contact = None
             self._offline_handle = None
 

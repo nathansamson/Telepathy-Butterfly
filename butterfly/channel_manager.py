@@ -25,7 +25,9 @@ import papyon
 
 from butterfly.channel.contact_list import ButterflyContactListChannelFactory
 from butterfly.channel.group import ButterflyGroupChannel
-from butterfly.channel.text import ButterflyTextChannel
+from butterfly.channel.im import ButterflyImChannel
+from butterfly.channel.muc import ButterflyMucChannel
+from butterfly.channel.conference import ButterflyConferenceChannel
 from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 
@@ -101,14 +103,28 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 
         logger.debug('New text channel')
 
-        if handle.get_type() not in (telepathy.HANDLE_TYPE_CONTACT, telepathy.HANDLE_TYPE_NONE):
-            raise telepathy.NotImplemented('Only contacts are allowed')
-
-        path = "ImChannel%d" % self.__text_channel_id
+        path = "TextChannel%d" % self.__text_channel_id
         self.__text_channel_id += 1
 
-        channel = ButterflyTextChannel(self._conn, self, conversation, props,
-            object_path=path)
+        # Normal 1-1 chat
+        if handle.get_type() == telepathy.HANDLE_TYPE_CONTACT:
+            channel = ButterflyImChannel(self._conn, self, conversation, props,
+                object_path=path)
+
+        # MUC which has been upgraded from a 1-1 chat
+        elif handle.get_type() == telepathy.HANDLE_TYPE_NONE \
+                and CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' in props:
+            channel = ButterflyConferenceChannel(self._conn, self, conversation, props,
+                object_path=path)
+
+        # MUC invite
+        elif handle.get_type() == telepathy.HANDLE_TYPE_NONE:
+            channel = ButterflyMucChannel(self._conn, self, conversation, props,
+                object_path=path)
+
+        else:
+            raise telepathy.NotImplemented('Only contacts are allowed')
+
         return channel
 
     def _get_media_channel(self, props, call=None):

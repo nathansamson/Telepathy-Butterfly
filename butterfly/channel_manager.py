@@ -18,6 +18,7 @@
 
 import logging
 import weakref
+from string import ascii_letters, digits
 
 import dbus
 import telepathy
@@ -32,6 +33,46 @@ from butterfly.handle import ButterflyHandleFactory
 __all__ = ['ButterflyChannelManager']
 
 logger = logging.getLogger('Butterfly.ChannelManager')
+
+_ASCII_ALNUM = ascii_letters + digits
+
+# copy/pasted from tp-glib's libtpcodegen
+def escape_as_identifier(identifier):
+    """Escape the given string to be a valid D-Bus object path or service
+    name component, using a reversible encoding to ensure uniqueness.
+
+    The reversible encoding is as follows:
+
+    * The empty string becomes '_'
+    * Otherwise, each non-alphanumeric character is replaced by '_' plus
+      two lower-case hex digits; the same replacement is carried out on
+      the first character, if it's a digit
+    """
+    # '' -> '_'
+    if not identifier:
+        return '_'
+
+    # A bit of a fast path for strings which are already OK.
+    # We deliberately omit '_' because, for reversibility, that must also
+    # be escaped.
+    if (identifier.strip(_ASCII_ALNUM) == '' and
+        identifier[0] in ascii_letters):
+        return identifier
+
+    # The first character may not be a digit
+    if identifier[0] not in ascii_letters:
+        ret = ['_%02x' % ord(identifier[0])]
+    else:
+        ret = [identifier[0]]
+
+    # Subsequent characters may be digits or ASCII letters
+    for c in identifier[1:]:
+        if c in _ASCII_ALNUM:
+            ret.append(c)
+        else:
+            ret.append('_%02x' % ord(c))
+
+    return ''.join(ret)
 
 class ButterflyChannelManager(telepathy.server.ChannelManager):
     __text_channel_id = 1
@@ -60,9 +101,7 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
         logger.debug('New contact list channel')
 
         if handle.get_type() == telepathy.HANDLE_TYPE_GROUP:
-            # This mangling the handle name technique could possibly be better. We
-            # want tp_escape_as_identifier, really.
-            path = "RosterChannel/Group/%s" % unicode(handle.get_name()).encode('ascii', 'ignore')
+            path = "RosterChannel/Group/%s" % escape_as_identifier(handle.get_name())
             channel = ButterflyGroupChannel(self._conn, self, props, object_path=path)
         else:
             channel = ButterflyContactListChannelFactory(self._conn,

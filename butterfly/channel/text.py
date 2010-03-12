@@ -119,8 +119,8 @@ class ButterflyTextChannel(
                     self._send_typing_notification_timeout = \
                         gobject.timeout_add_seconds(5, self._send_typing_notification)
 
-            elif state == telepathy.CHANNEL_CHAT_STATE_ACTIVE:
-                # User has stopped typing.
+            else:
+                # User is gone/inactive/active/paused, which basically means "not typing".
                 # If we have a timeout for sending typing notifications, remove it.
                 if self._send_typing_notification_timeout != 0:
                     gobject.source_remove(self._send_typing_notification_timeout)

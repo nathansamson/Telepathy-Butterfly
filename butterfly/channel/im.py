@@ -59,9 +59,25 @@ class ButterflyImChannel(ButterflyTextChannel):
             self._offline_handle = handle
             self._offline_contact = contact
 
-        self._initial_id = handle.get_id()
+        self._initial_handle = handle
 
         self._oim_box_ref = weakref.ref(conn.msn_client.oim_box)
+
+    def steal_conversation(self):
+        # Set offline contact details for this 1-1 chat.
+        self._offline_handle = self._initial_handle
+        self._offline_contact = self._initial_handle.contact
+
+        # If this 1-1 chat has been idle for sometime, the switchboard will
+        # close, so the participant list will be an empty set. If we then
+        # create a channel with the conference interface and then try and
+        # extend from this conversation, there won't be any participants.
+        # Let's reinvite them now.
+        if self._conversation:
+            if len(self._conversation.participants) == 0:
+                self._conversation.invite_user(self._initial_handle.contact)
+
+        return ButterflyTextChannel.steal_conversation(self)
 
     def Send(self, message_type, text):
         if self._conversation is None and self._offline_contact.presence != papyon.Presence.OFFLINE:
@@ -111,7 +127,7 @@ class ButterflyImChannel(ButterflyTextChannel):
                 contact.account, contact.network_id)
         logger.info("User %s joined" % unicode(handle))
 
-        if self._initial_id == handle.get_id():
+        if self._initial_handle == handle:
             return
 
         props = {

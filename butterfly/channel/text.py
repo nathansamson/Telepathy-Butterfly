@@ -53,17 +53,6 @@ class ButterflyTextChannel(
         if self._conversation is None:
             return None
 
-        # This assumes there is only one participant in this text chat,
-        # which is fair.
-        participants = list(self._conversation.participants)
-        contact = participants[0]
-
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
-
-        self._offline_handle = handle
-        self._offline_contact = contact
-
         ret = self._conversation
         self._conversation = None
 

@@ -57,12 +57,16 @@ class ButterflyTextChannel(
 
     def _remove_typing_timeouts(self):
         # Remove any timeouts we had running.
+        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
+
         if self._send_typing_notification_timeout != 0:
             gobject.source_remove(self._send_typing_notification_timeout)
             self._send_typing_notification_timeout = 0
+            self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_ACTIVE)
 
-        for tag in self._typing_notifications.values():
+        for handle, tag in self._typing_notifications.items():
             gobject.source_remove(tag)
+            self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_ACTIVE)
         self._typing_notifications = dict()
 
     def steal_conversation(self):

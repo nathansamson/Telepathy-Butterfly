@@ -62,8 +62,7 @@ class ButterflyTextChannel(
             self._send_typing_notification_timeout = 0
 
         for tag in self._typing_notifications.values():
-            if tag != 0:
-                gobject.source_remove(tag)
+            gobject.source_remove(tag)
         self._typing_notifications = dict()
 
     def steal_conversation(self):
@@ -155,7 +154,7 @@ class ButterflyTextChannel(
     def _contact_typing_notification_timeout(self, handle):
         # Contact hasn't sent a typing notification for ten seconds. He or she
         # has probably stopped typing.
-        self._typing_notifications[handle] = 0
+        del self._typing_notifications[handle]
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_ACTIVE)
         return False
 
@@ -166,9 +165,9 @@ class ButterflyTextChannel(
         logger.info("User %s is typing" % unicode(handle))
 
         # Remove any previous timeout.
-        if self._typing_notifications.get(handle, 0) != 0:
+        if handle in self._typing_notifications:
             gobject.source_remove(self._typing_notifications[handle])
-            self._typing_notifications[handle] = 0
+            del self._typing_notifications[handle]
 
         # Add a new timeout of 10 seconds. If we don't receive another typing
         # notification in that time, the contact has probably stopped typing,

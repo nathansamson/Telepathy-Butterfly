@@ -185,13 +185,15 @@ class ButterflyConnection(telepathy.server.Connection,
     def _generate_props(self, channel_type, handle, suppress_handler, initiator_handle=None):
         props = {
             telepathy.CHANNEL_INTERFACE + '.ChannelType': channel_type,
-            telepathy.CHANNEL_INTERFACE + '.TargetHandle': 0 if handle is None else handle.get_id(),
-            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': telepathy.HANDLE_TYPE_NONE if handle is None else handle.get_type(),
+            telepathy.CHANNEL_INTERFACE + '.TargetHandle': handle.get_id(),
+            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': handle.get_type(),
             telepathy.CHANNEL_INTERFACE + '.Requested': suppress_handler
             }
 
         if initiator_handle is not None:
-            props[telepathy.CHANNEL_INTERFACE + '.InitiatorHandle'] = initiator_handle.id
+            if initiator_handle.get_type() is not telepathy.HANDLE_TYPE_NONE:
+                props[telepathy.CHANNEL_INTERFACE + '.InitiatorHandle'] = \
+                        initiator_handle.get_id()
 
         return props
 
@@ -203,8 +205,8 @@ class ButterflyConnection(telepathy.server.Connection,
         self.check_connected()
         channel_manager = self._channel_manager
 
-        if handle_id == 0:
-            handle = None
+        if handle_id == telepathy.HANDLE_TYPE_NONE:
+            handle = telepathy.server.handle.NoneHandle()
         else:
             handle = self.handle(handle_type, handle_id)
         props = self._generate_props(type, handle, suppress_handler)
@@ -292,18 +294,20 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.InviteEventInterface
     def on_invite_conversation(self, conversation):
         logger.debug("Conversation invite")
-        #FIXME: get rid of this crap and implement group support
-        participants = conversation.participants
-        for p in participants:
-            participant = p
-            break
-        handle = ButterflyHandleFactory(self, 'contact',
-                participant.account, participant.network_id)
+
+        if len(conversation.participants) == 1:
+            p = list(conversation.participants)[0]
+            handle = ButterflyHandleFactory(self, 'contact',
+                    p.account, p.network_id)
+        else:
+            handle = telepathy.server.handle.NoneHandle()
 
         props = self._generate_props(telepathy.CHANNEL_TYPE_TEXT,
             handle, False, initiator_handle=handle)
+
         channel = self._channel_manager.channel_for_props(props,
             signal=True, conversation=conversation)
+
         if channel._conversation is not conversation:
             # If we get an existing channel, attach the conversation object to it
             channel.attach_conversation(conversation)

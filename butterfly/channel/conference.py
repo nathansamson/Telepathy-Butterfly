@@ -50,6 +50,11 @@ class ButterflyConferenceChannel(
         logger.info('Stealing switchboard from channel %s' % steal_channel._object_path)
         self._conversation = steal_channel.steal_conversation()
 
+        # Make sure we actually have stolen a switchboard.
+        if self._conversation is None:
+            raise telepathy.Offline("Channel %s does not have a conversation; "
+                "did the contact go offline?" % steal_channel._object_path)
+
         # Connect to conversation events
         papyon.event.ConversationEventInterface.__init__(self, self._conversation)
 

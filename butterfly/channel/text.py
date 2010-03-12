@@ -50,6 +50,9 @@ class ButterflyTextChannel(
         papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)
 
     def steal_conversation(self):
+        if self._conversation is None:
+            return None
+
         # This assumes there is only one participant in this text chat,
         # which is fair.
         participants = list(self._conversation.participants)

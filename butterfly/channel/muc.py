@@ -46,6 +46,8 @@ class ButterflyMucChannel(
             self._conversation = conversation
             papyon.event.ConversationEventInterface.__init__(self, self._conversation)
 
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD, 1)
+
         # This is done in an idle so that classes which subclass this one
         # can do stuff in their __init__ but will still benefit from this method
         # being called.

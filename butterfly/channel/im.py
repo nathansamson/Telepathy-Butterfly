@@ -79,6 +79,15 @@ class ButterflyImChannel(ButterflyTextChannel):
 
         return ButterflyTextChannel.steal_conversation(self)
 
+    def get_participants(self):
+        # If we have no conversation, our contact is probably offline,
+        # so we don't actually want this to return our offline contact
+        # as adding him or her to a MUC won't work either.
+        if self._conversation is None:
+            return ButterflyTextChannel.get_participants(self)
+        else:
+            return set([self._initial_handle.contact])
+
     def Send(self, message_type, text):
         if self._conversation is None and self._offline_contact.presence != papyon.Presence.OFFLINE:
             contact = self._offline_contact

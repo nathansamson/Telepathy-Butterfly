@@ -118,7 +118,7 @@ class ButterflyConferenceChannel(
             if channel._conversation is None:
                 continue
 
-            for contact in channel._conversation.participants:
+            for contact in channel.get_participants():
                 if contact not in self._conversation.participants:
                     logger.info('Inviting %s into channel' % contact.id)
                     self._conversation.invite_user(contact)

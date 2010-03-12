@@ -65,6 +65,12 @@ class ButterflyTextChannel(
 
         return ret
 
+    def get_participants(self):
+        if self._conversation:
+            return self._conversation.participants
+        else:
+            return set()
+
     def SetChatState(self, state):
         # Not useful if we dont have a conversation.
         if self._conversation is not None:

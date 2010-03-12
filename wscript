@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-VERSION = '0.5.5'
+VERSION = '0.5.6'
 APPNAME = 'telepathy-butterfly'
 
 srcdir = '.'

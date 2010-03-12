@@ -1,3 +1,33 @@
+telepathy-butterfly-0.5.6 (2010-03-12)
+======================================
+
+This release is the first release where the previous mess of 1-1
+channels actually being unnamed MUCs is fixed! The conference channel
+interface introduces a method to represent a channel as a continuation
+of one or more than one other channel.
+
+As a result of this work, proper MUC support now works. Users can now
+invite other contacts, and be invited, to chatrooms.
+
+Enhancements:
+
+ * Implemented conference channel interface. Doing so also split up
+   ButterflyTextChannel into a base text channel class, with the same
+   name, and three subclasses. See the git logs for more
+   information.
+
+ * Copy the official client with respect to typing notifications.
+
+Fixes:
+
+ * Use escape_as_identifier in the channel manager so when we create
+   group channels with characters that aren't safe for object paths,
+   they are actually escaped.
+
+Dependencies:
+
+ * telepathy-python 0.15.17
+
 telepathy-butterfly-0.5.5 (2010-03-10)
 ======================================
 

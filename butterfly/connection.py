@@ -148,6 +148,20 @@ class ButterflyConnection(telepathy.server.Connection,
         self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_REQUESTED
         self._msn_client.logout()
 
+    def GetInterfaces(self):
+        # The self._interfaces set is only ever touched in ButterflyConnection.__init__,
+        # where connection interfaces are added.
+
+        # The mail notification interface is added then too, but also removed in its
+        # ButterflyMailNotification.__init__ because it might not actually be available.
+        # It is added before the connection status turns to connected, if available.
+
+        # The spec denotes that this method can return a subset of the actually
+        # available interfaces before connected. As the only possible change will
+        # be adding the mail notification interface before connecting, this is fine.
+
+        return self._interfaces
+
     def RequestHandles(self, handle_type, names, sender):
         self.check_connected()
         self.check_handle_type(handle_type)

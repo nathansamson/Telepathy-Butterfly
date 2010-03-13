@@ -1,3 +1,19 @@
+telepathy-butterfly-0.5.7 (????)
+======================================
+
+Enhancements:
+
+ * GetInterfaces on the connection will now return before the
+   connection status is CONNECTED which means Mission Control can see
+   that we have the (simple)presence interface and set an initial
+   presence that we should use once we become actually connected. This
+   stops the annoying transition of always connected as invisible and
+   then quickly changing to the value in RequestedPresence.
+
+Fixes:
+
+Dependencies:
+
 telepathy-butterfly-0.5.6 (2010-03-12)
 ======================================
 

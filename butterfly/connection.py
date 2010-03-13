@@ -256,6 +256,8 @@ class ButterflyConnection(telepathy.server.Connection,
                 self._channel_manager.channel_for_props(props, signal=True)
         elif state == papyon.event.ClientState.OPEN:
             self._populate_capabilities()
+            if self._client.profile.profile['EmailEnabled'] == '1':
+                self.enable_mail_notification_interface()
             self.StatusChanged(telepathy.CONNECTION_STATUS_CONNECTED,
                     telepathy.CONNECTION_STATUS_REASON_REQUESTED)
             presence = self._initial_presence
@@ -270,8 +272,6 @@ class ButterflyConnection(telepathy.server.Connection,
                 self._presence_changed(ButterflyHandleFactory(self, 'self'),
                         self._client.profile.presence,
                         self._client.profile.personal_message)
-            if self._client.profile.profile['EmailEnabled'] == '1':
-                self.enable_mail_notification_interface()
         elif state == papyon.event.ClientState.CLOSED:
             self.StatusChanged(telepathy.CONNECTION_STATUS_DISCONNECTED,
                     self.__disconnect_reason)

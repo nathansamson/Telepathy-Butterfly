@@ -38,9 +38,7 @@ __all__ = ['ButterflyFileTransferChannel']
 logger = logging.getLogger('Butterfly.FileTransferChannel')
 
 
-class ButterflyFileTransferChannel(
-        telepathy.server.ChannelTypeFileTransfer,
-        telepathy.server.ChannelInterfaceGroup):
+class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def __init__(self, conn, manager, session, handle, props):
         self._session = session
@@ -52,7 +50,6 @@ class ButterflyFileTransferChannel(
         self._transferred = 0
 
         telepathy.server.ChannelTypeFileTransfer.__init__(self, conn, manager, props)
-        telepathy.server.ChannelInterfaceGroup.__init__(self)
 
         session.connect("accepted", self.on_transfer_accepted)
         session.connect("progressed", self.on_transfer_progressed)
@@ -75,7 +72,6 @@ class ButterflyFileTransferChannel(
                 'Size': CHANNEL_TYPE_FILE_TRANSFER,
                 })
 
-        self.__add_initial_participants()
         self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
 
@@ -213,19 +209,6 @@ class ButterflyFileTransferChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         logger.info("User %r left" % handle)
-        if len(self._members) == 1:
-            self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_GONE)
-        else:
-            self.MembersChanged('', [], [handle], [], [],
-                    handle, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
-
-    @async
-    def __add_initial_participants(self):
-        pending = [self._conn.GetSelfHandle()]
-        handles = [self._handle]
-        self.MembersChanged('', handles, pending, [], [],
-                0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)
-
 
 class DataBuffer(object):
 

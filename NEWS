@@ -12,6 +12,9 @@ Enhancements:
 
 Fixes:
 
+ * fd.o#24699: Stop abusing (Message_Type_Action, "nudge") to send
+   nudges.
+
 Dependencies:
 
 telepathy-butterfly-0.5.6 (2010-03-12)

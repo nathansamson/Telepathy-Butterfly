@@ -134,9 +134,6 @@ class ButterflyTextChannel(
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 logger.info("Sending message : %s" % unicode(text))
                 self._conversation.send_text_message(papyon.ConversationMessage(text))
-            elif message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION and \
-                    text == u"nudge":
-                self._conversation.send_nudge()
             else:
                 raise telepathy.NotImplemented("Unhandled message type")
             self.Sent(int(time.time()), message_type, text)
@@ -195,12 +192,9 @@ class ButterflyTextChannel(
 
     # papyon.event.ConversationEventInterface
     def on_conversation_nudge_received(self, sender):
-        id = self._recv_id
-        timestamp = int(time.time())
+        # We used to use (MESSAGE_TYPE_ACTION, "nudge") to send nudges, and our own
+        # "$contact sent you a nudge" string when receiving, but that's not very nice.
+        # We should implement this properly at some point. See fd.o#24699.
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 sender.account, sender.network_id)
-        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_ACTION
-        text = unicode("sends you a nudge", "utf-8")
         logger.info("User %s sent a nudge" % unicode(handle))
-        self.Received(id, timestamp, handle, type, 0, text)
-        self._recv_id += 1

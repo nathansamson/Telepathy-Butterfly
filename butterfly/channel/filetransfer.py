@@ -118,6 +118,10 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
     def AcceptFile(self, address_type, access_control, param, offset):
         self._receiving = True
         logger.debug("Accept file")
+
+        if address_type not in self.socket_types.keys():
+            raise telepathy.NotImplemented("Socket type %u is unsupported" % address_type)
+
         self.socket = self.add_listener()
         self.channel = self.add_io_channel(self.socket)
         self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
@@ -130,6 +134,10 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
     def ProvideFile(self, address_type, access_control, param):
         self._receiving = False
         logger.debug("Provide file")
+
+        if address_type not in self.socket_types.keys():
+            raise telepathy.NotImplemented("Socket type %u is unsupported" % address_type)
+
         self.socket = self.add_listener()
         self.channel = self.add_io_channel(self.socket)
         return self.socket.getsockname()

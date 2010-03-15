@@ -219,6 +219,12 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 
         if session is None:
             type = telepathy.CHANNEL_TYPE_FILE_TRANSFER
+
+            if type + ".Filename" not in props or \
+                   type + ".Size" not in props:
+                raise telepathy.InvalidArgument(
+                    "New file transfer channel requires Filename and Size properties")
+
             filename = props[type + ".Filename"]
             size = props[type + ".Size"]
             client = self._conn.msn_client

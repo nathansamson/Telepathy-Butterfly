@@ -193,10 +193,6 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         #self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
         #               telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
 
-    def on_transfer_complete(self, session, data):
-        self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
-
     def on_transfer_accepted(self, session):
         self.set_state(telepathy.FILE_TRANSFER_STATE_ACCEPTED,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)

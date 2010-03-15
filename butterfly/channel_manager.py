@@ -125,10 +125,19 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 #            ]
 #        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
 
-        fixed = {telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_FILE_TRANSFER,
-            telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)}
-        self._implement_channel_class(telepathy.CHANNEL_TYPE_FILE_TRANSFER,
-            self._get_ft_channel, fixed, [telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
+        classes = [
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_FILE_TRANSFER,
+              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+              telepathy.CHANNEL_INTERFACE + '.TargetID',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentType',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Filename',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Size',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentHash',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Description',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Date'])
+            ]
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_FILE_TRANSFER, self._get_ft_channel, classes)
 
     def _get_list_channel(self, props):
         _, surpress_handler, handle = self._get_type_requested_handle(props)

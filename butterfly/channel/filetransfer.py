@@ -211,12 +211,6 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
 
-    # papyon.event.ConversationEventInterface
-    def on_conversation_user_left(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
-        logger.info("User %r left" % handle)
-
 class DataBuffer(object):
 
     def __init__(self, socket, size=0):

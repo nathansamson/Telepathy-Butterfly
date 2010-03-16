@@ -48,6 +48,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self._size = session.size
         self._transferred = 0
 
+        self._receiving = not props[telepathy.CHANNEL + '.Requested']
+
         telepathy.server.ChannelTypeFileTransfer.__init__(self, conn, manager, props)
 
         session.connect("accepted", self.on_transfer_accepted)
@@ -116,7 +118,6 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self.FileTransferStateChanged(state, reason)
 
     def AcceptFile(self, address_type, access_control, param, offset):
-        self._receiving = True
         logger.debug("Accept file")
 
         if address_type not in self.socket_types.keys():
@@ -132,7 +133,6 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         return self.socket.getsockname()
 
     def ProvideFile(self, address_type, access_control, param):
-        self._receiving = False
         logger.debug("Provide file")
 
         if address_type not in self.socket_types.keys():

@@ -40,17 +40,31 @@ logger = logging.getLogger('Butterfly.FileTransferChannel')
 class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def __init__(self, conn, manager, session, handle, props):
-        self._session = session
         self._handle = handle
         self._conn_ref = weakref.ref(conn)
         self._state = 0
-        self._filename = session.filename
-        self._size = session.size
         self._transferred = 0
 
         self._receiving = not props[telepathy.CHANNEL + '.Requested']
 
         telepathy.server.ChannelTypeFileTransfer.__init__(self, conn, manager, props)
+
+        # Incoming.
+        if session is None:
+            type = telepathy.CHANNEL_TYPE_FILE_TRANSFER
+            filename = props.get(type + ".Filename", None)
+            size = props.get(type + ".Size", None)
+
+            if filename is None or size is None:
+                raise telepathy.InvalidArgument(
+                    "New file transfer channel requires Filename and Size properties")
+
+            client = conn.msn_client
+            session = client.ft_manager.send(handle.contact, filename, size)
+
+        self._session = session
+        self._filename = session.filename
+        self._size = session.size
 
         session.connect("accepted", self.on_transfer_accepted)
         session.connect("progressed", self.on_transfer_progressed)

@@ -114,6 +114,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
     def set_state(self, state, reason):
         if self._state == state:
             return
+        logger.debug("State change: %u -> %u (reason: %u)" % (self._state, state, reason))
         self._state = state
         self.FileTransferStateChanged(state, reason)
 
@@ -194,6 +195,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         #               telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
 
     def on_transfer_accepted(self, session):
+        logger.debug("Transfer has been accepted")
         self.set_state(telepathy.FILE_TRANSFER_STATE_ACCEPTED,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
         self.set_state(telepathy.FILE_TRANSFER_STATE_OPEN,
@@ -204,6 +206,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self.TransferredBytesChanged(self._transferred)
 
     def on_transfer_completed(self, session, data):
+        logger.debug("Transfer completed")
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
 

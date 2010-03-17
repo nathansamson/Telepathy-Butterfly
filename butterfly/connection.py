@@ -119,6 +119,8 @@ class ButterflyConnection(telepathy.server.Connection,
             self._initial_presence = papyon.Presence.INVISIBLE
             self._initial_personal_message = None
 
+            self._manager.connected(self)
+
             logger.info("Connection to the account %s created" % account)
         except Exception, e:
             import traceback

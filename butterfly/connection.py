@@ -397,7 +397,7 @@ class ButterflyConnection(telepathy.server.Connection,
         self._manager.disconnected(self)
 
 
-def build_proxy_infos(self, parameters, proxy_type='http'):
+def build_proxy_infos(parameters, proxy_type='http'):
     server_key = proxy_type + '-proxy-server'
     port_key = proxy_type + '-proxy-port'
     username_key = proxy_type + '-proxy-username'

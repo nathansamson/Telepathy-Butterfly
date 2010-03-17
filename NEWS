@@ -1,4 +1,4 @@
-telepathy-butterfly-0.5.7 (????)
+telepathy-butterfly-0.5.7 (UNRELEASED)
 ======================================
 
 Enhancements:
@@ -9,6 +9,10 @@ Enhancements:
    presence that we should use once we become actually connected. This
    stops the annoying transition of always connected as invisible and
    then quickly changing to the value in RequestedPresence.
+
+ * The build system has been switched from waf to autotools, so the
+   people who actually hack on butterfly knows how the build system
+   works. Fixes fd.o#27053
 
 Fixes:
 

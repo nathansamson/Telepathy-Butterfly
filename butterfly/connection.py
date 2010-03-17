@@ -95,6 +95,14 @@ class ButterflyConnection(telepathy.server.Connection,
             if proxy is not None:
                 self._proxies['https'] = proxy
 
+            self._suggested_proxies = []
+
+            # If the HTTP proxy parameters have been set, don't try any
+            # others proxies automatically.
+            if 'http' not in self._proxies:
+                self._fill_suggested_proxies()
+                self._use_next_proxy()
+
             self._manager = weakref.proxy(manager)
             self._new_client(use_http=parameters['http-method'])
             self._account = (parameters['account'].encode('utf-8'),
@@ -139,6 +147,64 @@ class ButterflyConnection(telepathy.server.Connection,
         papyon.event.ClientEventInterface.__init__(self, self._msn_client)
         papyon.event.InviteEventInterface.__init__(self, self._msn_client)
         papyon.event.OfflineMessagesEventInterface.__init__(self, self._msn_client)
+
+    def _fill_suggested_proxies(self):
+        try:
+            import libproxy
+        except ImportError:
+            return
+
+        factory = libproxy.ProxyFactory()
+        proxies = factory.getProxies('http://gateway.messenger.msn.com/')
+
+        # Remove socks proxies that papyon doesn't support.
+        proxies = [p for p in proxies if not proxy.startswith('socks')]
+
+        if proxies:
+            self._suggested_proxies = proxies
+
+    def _use_next_proxy(self):
+        if not self._suggested_proxies:
+            return False
+
+        # Use the first one.
+        proxy = self._suggested_proxies.pop(0)
+
+        if proxy == 'direct://':
+            del self._proxies['http']
+            return True
+
+        # libproxy documentation states:
+        #
+        #  * The format of the returned proxy strings are as follows:
+        #  *   - http://[username:password@]proxy:port
+        #  *   - socks://[username:password@]proxy:port
+        #  *   - direct://
+        #
+        # We've already removed socks proxies, and dealt with direct://
+        # above, so the only other option is http://.
+
+        proxy = proxy[len('http://'):]
+
+        # Get username and password out.
+        if '@' in proxy:
+            auth, proxy = proxy.split('@')
+            user, password = auth.split(':')
+        else:
+            user = password = None
+
+        server, port = proxy.split(':')
+
+        self._proxies['http'] = \
+            papyon.ProxyInfos(host=server, port=int(port), type='http',
+                user=user, password=password)
+
+        if user:
+            logger.info('Using proxy: http://%s:***@%s:%u' % (user, server, int(port)))
+        else:
+            logger.info('Using proxy: http://%s:%u' % (server, int(port)))
+
+        return True
 
     @property
     def manager(self):
@@ -311,8 +377,11 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.ClientEventInterface
     def on_client_error(self, type, error):
         if type == papyon.event.ClientErrorType.NETWORK:
-            if self._tried_http is False:
-                logger.info("Failed to connect directly, trying HTTP")
+            # Only move onto the next proxy if we've not already tried HTTP.
+            if self._tried_http is False or \
+                   (self._tried_http is True and self._use_next_proxy()):
+                logger.info("Failed to connect, trying HTTP "
+                            "(possibly again with another proxy)")
                 self._new_client(use_http=True)
                 self._msn_client.login(*self._account)
             else:

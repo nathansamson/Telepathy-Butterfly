@@ -23,6 +23,9 @@ import telepathy
 import papyon
 import papyon.event
 
+from telepathy._generated.Connection_Interface_Contact_Capabilities \
+     import ConnectionInterfaceContactCapabilities
+
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 
@@ -32,12 +35,46 @@ logger = logging.getLogger('Butterfly.Capabilities')
 
 class ButterflyCapabilities(
         telepathy.server.ConnectionInterfaceCapabilities,
+        ConnectionInterfaceContactCapabilities,
         papyon.event.ContactEventInterface):
+
+    text_chat_class = \
+        ({telepathy.CHANNEL_INTERFACE + '.ChannelType':
+              telepathy.CHANNEL_TYPE_TEXT,
+          telepathy.CHANNEL_INTERFACE + '.TargetHandleType':
+              dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+         [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+          telepathy.CHANNEL_INTERFACE + '.TargetID'])
+
+    audio_chat_class = \
+        ({telepathy.CHANNEL_INTERFACE + '.ChannelType':
+              telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+          telepathy.CHANNEL_INTERFACE + '.TargetHandleType':
+              dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+         [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+          telepathy.CHANNEL_INTERFACE + '.TargetID',
+          telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio'])
+
+    av_chat_class = \
+        ({telepathy.CHANNEL_INTERFACE + '.ChannelType':
+              telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+          telepathy.CHANNEL_INTERFACE + '.TargetHandleType':
+              dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+         [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+          telepathy.CHANNEL_INTERFACE + '.TargetID',
+          telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio',
+          telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'])
+
 
     def __init__(self):
         telepathy.server.ConnectionInterfaceCapabilities.__init__(self)
+        ConnectionInterfaceContactCapabilities.__init__(self)
         papyon.event.ContactEventInterface.__init__(self, self.msn_client)
-        dbus_interface = telepathy.CONNECTION_INTERFACE_CAPABILITIES
+
+        # handle -> list(RCC)
+        self._contact_caps = {}
+        self._video_clients = []
+        self._update_capabilities_calls = []
 
     def AdvertiseCapabilities(self, add, remove):
         #for caps, specs in add:
@@ -51,6 +88,58 @@ class ButterflyCapabilities(
 
         return telepathy.server.ConnectionInterfaceCapabilities.\
             AdvertiseCapabilities(self, add, remove)
+
+    def GetContactCapabilities(self, handles):
+        if 0 in handles:
+            raise telepathy.InvalidHandle('Contact handle list contains zero')
+
+        ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
+        for i in handles:
+            handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, i)
+            ret[handle] = self._contact_caps[handle]
+
+        return ret
+
+    def UpdateCapabilities(self, caps):
+        if self._state != telepathy.CONNECTION_STATUS_CONNECTED:
+            self._update_capabilities_calls.append(caps)
+            return
+
+        # butterfly voip is disabled, so
+        return
+
+        # We only care about voip.
+        for client, classes, capabilities in caps:
+            video = False
+            for channel_class in classes:
+                # Does this client support video?
+                if channel_class[telepathy.CHANNEL_INTERFACE + '.ChannelType'] == \
+                        telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
+                    video = True
+                    self._video_clients.append(client)
+                else:
+                    # *Did* it used to support video?
+                    if client in self._video_clients:
+                        self._video_clients.remove(client)
+
+        changed = False
+
+        # We've got no more clients that support video; remove the cap.
+        if not video and not self._video_clients:
+            self._self_handle.profile.client_id.has_webcam = False
+            changed = True
+
+        # We want video.
+        if video and not self._self_handle.profile.client_id.has_webcam:
+            self._self_handle.profile.client_id.has_webcam = True
+            self._self_handle.profile.client_id.supports_rtc_video = True
+            changed = True
+
+        # Signal.
+        if changed:
+            updated = dbus.Dictionary({self._self_handle: self._contact_caps[self._self_handle]},
+                signature='ua(a{sv}as)')
+            self.ContactCapabilitiesChanged(updated)
 
     # papyon.event.ContactEventInterface
     def on_contact_client_capabilities_changed(self, contact):
@@ -68,6 +157,7 @@ class ButterflyCapabilities(
     def add_text_capabilities(self, contacts_handles):
         """Add the create capability for text channel to these contacts."""
         ret = []
+        cc_ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
         for handle in contacts_handles:
             ctype = telepathy.CHANNEL_TYPE_TEXT
             if handle in self._caps:
@@ -81,29 +171,54 @@ class ButterflyCapabilities(
             diff = (int(handle), ctype, old_gen, new_gen, old_spec, old_spec)
             ret.append(diff)
 
+            # ContactCapabilities
+            self._contact_caps.setdefault(handle, []).append(self.text_chat_class)
+            cc_ret[handle] = self._contact_caps[handle]
+
         self.CapabilitiesChanged(ret)
+        self.ContactCapabilitiesChanged(cc_ret)
 
     def _update_capabilities(self, contact):
         handle = ButterflyHandleFactory(self, 'contact',
                 contact.account, contact.network_id)
         ctype = telepathy.CHANNEL_TYPE_STREAMED_MEDIA
 
-        new_gen, new_spec = self._get_capabilities(contact)
+        new_gen, new_spec, rcc = self._get_capabilities(contact)
         if handle in self._caps:
             old_gen, old_spec = self._caps[handle][ctype]
         else:
             old_gen = 0
             old_spec = 0
 
-        if old_gen == new_gen and old_spec == new_spec:
+        if old_gen != new_gen or old_spec != new_spec:
+            diff = (int(handle), ctype, old_gen, new_gen, old_spec, new_spec)
+            self.CapabilitiesChanged([diff])
+
+        if rcc is None:
             return
 
-        diff = (int(handle), ctype, old_gen, new_gen, old_spec, new_spec)
-        self.CapabilitiesChanged([diff])
+        self._contact_caps.setdefault(handle, [])
+
+        if rcc in self._contact_caps[handle]:
+            return
+
+        if self.audio_chat_class in self._contact_caps[handle]:
+            self._contact_caps[handle].remove(self.audio_chat_class)
+
+        if self.audio_chat_class in self._contact_caps[handle]:
+            self._contact_caps[handle].remove(self.audio_chat_class)
+
+        self._contact_caps[handle].append(rcc)
+
+        ret = dbus.Dictionary({handle: self._contact_caps[handle]},
+            signature='ua(a{sv}as)')
+        self.ContactCapabilitiesChanged(ret)
 
     def _get_capabilities(self, contact):
         gen_caps = 0
         spec_caps = 0
+
+        rcc = None
 
         caps = contact.client_capabilities
         #if caps.supports_sip_invite:
@@ -114,14 +229,17 @@ class ButterflyCapabilities(
 
             #if caps.has_webcam:
                 #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
+                #rcc = self.av_chat_class
+            #else:
+                #rcc = self.audio_chat_class
 
-        return gen_caps, spec_caps
+        return gen_caps, spec_caps, rcc
 
     @async
     def _populate_capabilities(self):
         """ Add the capability to create text channels to all contacts in our
         contacts list."""
-        handles = set()
+        handles = set([self._self_handle])
         for contact in self.msn_client.address_book.contacts:
             if contact.is_member(papyon.Membership.FORWARD):
                 handle = ButterflyHandleFactory(self, 'contact',
@@ -129,3 +247,7 @@ class ButterflyCapabilities(
                 handles.add(handle)
         self.add_text_capabilities(handles)
 
+        # These caps were updated before we were online.
+        for caps in self._update_capabilities_calls:
+            self.UpdateCapabilities(caps)
+        self._update_capabilities_calls = []

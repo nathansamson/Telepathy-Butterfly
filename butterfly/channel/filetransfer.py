@@ -19,6 +19,9 @@
 import logging
 import weakref
 import time
+import tempfile
+import os
+import shutil
 
 import dbus
 import gobject
@@ -46,6 +49,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self._transferred = 0
 
         self._receiving = not props[telepathy.CHANNEL + '.Requested']
+        self.socket = None
+        self._tmpdir = None
 
         telepathy.server.ChannelTypeFileTransfer.__init__(self, conn, manager, props)
 
@@ -159,13 +164,29 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def Close(self):
         logger.debug("Close")
+        self.cleanup()
         if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                                 telepathy.FILE_TRANSFER_STATE_COMPLETED):
-            self._session.cancel()
+                              telepathy.FILE_TRANSFER_STATE_COMPLETED):
             self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
                            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_CANCELLED)
         telepathy.server.ChannelTypeFileTransfer.Close(self)
         self.remove_from_connection()
+
+    def cleanup(self):
+        if self._receiving and self.state == telepathy.FILE_TRANSFER_STATE_PENDING:
+            self._session.reject()
+
+        if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                              telepathy.FILE_TRANSFER_STATE_COMPLETED):
+            self._session.cancel()
+
+        if self.socket:
+            self.socket.close()
+            self.socket = None
+
+        if self._tmpdir:
+            shutil.rmtree(self._tmpdir)
+            self._tmpdir = None
 
     def GetSelfHandle(self):
         return self._conn.GetSelfHandle()
@@ -174,7 +195,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         """Create a listener socket"""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-        sock.bind("/tmp/butterfly-%i" % int(time.time()))
+        self._tmpdir = tempfile.mkdtemp(prefix="butterfly")
+        sock.bind(os.path.join(self._tmpdir, "ft-socket"))
         sock.listen(1)
         return sock
 
@@ -203,6 +225,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def on_socket_disconnected(self, channel, condition):
         logger.debug("Client socket disconnected")
+        #self.cleanup()
         #TODO only cancel if the socket is disconnected while listening
         #self._session.cancel()
         #self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
@@ -221,6 +244,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def on_transfer_completed(self, session, data):
         logger.debug("Transfer completed")
+        self.cleanup()
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
                        telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
 

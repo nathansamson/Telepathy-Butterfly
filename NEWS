@@ -1,5 +1,33 @@
-telepathy-butterfly-0.5.7 (UNRELEASED)
+telepathy-butterfly-0.5.7 (2010-03-22)
 ======================================
+
+IF YOU'RE PACKAGING THIS THEN YOU SHOULD TOTALLY READ THIS OR YOU'LL
+SCREW UP AND YOUR USERS WILL HATE YOU...
+
+ 1. We've moved from waf to autotools. This should be fairly obvious
+    though.
+
+ 2. More importantly, contacts no longer have the annoying #1 suffix
+    after their ID. The external network ID (which is Yahoo!) will
+    appear to distinguish between MSN and Yahoo!. These IDs will have
+    "#yahoo" appended.
+
+    Now, this is great, but this obviously means that logs might be
+    broken once users make the switch. I've written a little migration
+    tool for Empathy that is performed automatically when it notices
+    the user is running new butterfly. However, this is only in
+    Empathy >= 2.29.92.
+
+    If the user uses this butterfly release before using the new
+    empathy, then initially the log viewer will be ugly with
+    duplicates (#1 contacts, and non-#1 contacts), and when the user
+    finally uses said Empathy version, there is a chance not all logs
+    will be nicely migrated. Nothing should get lost, but really what
+    you should do is make this version of butterfly conflict with an
+    old Empathy. That's certainly what we're going to do in Debian.
+
+If you don't heed this advice and then start filing bugs when your
+users get annoyed, I will not be amused.
 
 Enhancements:
 
@@ -14,12 +42,16 @@ Enhancements:
    people who actually hack on butterfly knows how the build system
    works. Fixes fd.o#27053
 
+ * Contact IDs no longer have their network ID appended to their
+   passport email address, as described above. Fixes fd.o#25635
+
 Fixes:
 
  * fd.o#24699: Stop abusing (Message_Type_Action, "nudge") to send
    nudges.
 
-Dependencies:
+ * fd.o#27120: Be sure to register any new connection with actual
+   Connection Manager so it fires NewConnection.
 
 telepathy-butterfly-0.5.6 (2010-03-12)
 ======================================

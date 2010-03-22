@@ -28,8 +28,8 @@ import papyon.event
 from butterfly.presence import ButterflyPresence
 from butterfly.aliasing import ButterflyAliasing
 from butterfly.avatars import ButterflyAvatars
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.capabilities import ButterflyCapabilities
+from butterfly.handle import ButterflyHandleFactory, network_to_extension
 from butterfly.contacts import ButterflyContacts
 from butterfly.channel_manager import ButterflyChannelManager
 from butterfly.mail_notification import ButterflyMailNotification
@@ -171,23 +171,17 @@ class ButterflyConnection(telepathy.server.Connection,
         handles = []
         for name in names:
             if handle_type == telepathy.HANDLE_TYPE_CONTACT:
-                name = name.rsplit('#', 1)
-                contact_name = name[0]
-                if len(name) > 1:
-                    network_id = int(name[1])
-                else:
-                    network_id = papyon.NetworkID.MSN
+                network_id = papyon.NetworkID.MSN
+                for network, extension in network_to_extension.items():
+                    if name.endswith(extension):
+                        name = name[0:-len(extension)]
+                        network_id = network
+                        break
                 contacts = self.msn_client.address_book.contacts.\
-                        search_by_account(contact_name).\
+                        search_by_account(name).\
                         search_by_network_id(network_id)
-
-                if len(contacts) > 0:
-                    contact = contacts[0]
-                    handle = ButterflyHandleFactory(self, 'contact',
-                            contact.account, contact.network_id)
-                else:
-                    handle = ButterflyHandleFactory(self, 'contact',
-                            contact_name, network_id)
+                handle = ButterflyHandleFactory(self, 'contact',
+                        name, network_id)
             elif handle_type == telepathy.HANDLE_TYPE_LIST:
                 handle = ButterflyHandleFactory(self, 'list', name)
             elif handle_type == telepathy.HANDLE_TYPE_GROUP:

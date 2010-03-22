@@ -2,11 +2,11 @@
 AC_PREREQ(2.59c)
 
 dnl If not 1, append datestamp to the version number
-m4_define(telepathy_butterfly_released, 0)
+m4_define(telepathy_butterfly_released, 1)
 dnl The telepathy-python version number (must actually be numeric at the moment)
 m4_define(telepathy_butterfly_major_version, 0)
 m4_define(telepathy_butterfly_minor_version, 5)
-m4_define(telepathy_butterfly_micro_version, 6)
+m4_define(telepathy_butterfly_micro_version, 7)
 
 m4_define(telepathy_butterfly_maybe_datestamp,
           m4_esyscmd([if test x]telepathy_butterfly_released[ != x1; then date +.%Y%m%d | tr -d '\n\r'; fi]))

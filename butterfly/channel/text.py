@@ -23,11 +23,15 @@ import logging
 import weakref
 import time
 
+import dbus
 import telepathy
 import papyon
 import papyon.event
+from telepathy._generated.Channel_Interface_Messages import ChannelInterfaceMessages
+from telepathy.interfaces import CHANNEL_INTERFACE_MESSAGES
 
 from butterfly.handle import ButterflyHandleFactory
+from butterfly.util.decorator import async
 
 __all__ = ['ButterflyTextChannel']
 
@@ -36,6 +40,7 @@ logger = logging.getLogger('Butterfly.TextChannel')
 class ButterflyTextChannel(
         telepathy.server.ChannelTypeText,
         telepathy.server.ChannelInterfaceChatState,
+        ChannelInterfaceMessages,
         papyon.event.ContactEventInterface,
         papyon.event.ConversationEventInterface):
 
@@ -46,11 +51,27 @@ class ButterflyTextChannel(
         self._typing_notifications = dict()
 
         self._conversation = None
+        self._pending_messages2 = {}
 
         telepathy.server.ChannelTypeText.__init__(self, conn, manager, props,
             object_path=object_path)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
+        ChannelInterfaceMessages.__init__(self)
         papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)
+
+        self._implement_property_get(CHANNEL_INTERFACE_MESSAGES, {
+            'SupportedContentTypes': lambda: ["text/plain"] ,
+            'MessagePartSupportFlags': lambda: 0,
+            'DeliveryReportingSupport': lambda: telepathy.DELIVERY_REPORTING_SUPPORT_FLAG_RECEIVE_FAILURES,
+            'PendingMessages': lambda: self._pending_messages2
+            })
+
+        self._add_immutables({
+            'SupportedContentTypes': CHANNEL_INTERFACE_MESSAGES,
+            'MessagePartSupportFlags': CHANNEL_INTERFACE_MESSAGES,
+            'DeliveryReportingSupport': CHANNEL_INTERFACE_MESSAGES,
+            })
+
 
     def __del__(self):
         self._remove_typing_timeouts()
@@ -107,6 +128,46 @@ class ButterflyTextChannel(
             self._send_typing_notification_timeout = 0
             return False
 
+    def _send_text_message(self, message_type, text):
+        "Send a simple text message, return true if send correctly"""
+        if self._conversation is not None:
+            if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+                logger.info("Sending message : %s" % unicode(text))
+                self._conversation.send_text_message(papyon.ConversationMessage(text))
+            else:
+                raise telepathy.NotImplemented("Unhandled message type")
+            return True
+        else:
+            logger.warning('Tried sending a message with no conversation')
+            return False
+
+    # run in an glib's idle so we emit the signal after either Send or SendMessage return
+    @async
+    def _signal_text_sent(self, timestamp, message_type, text):
+            headers = {'message-sent' : timestamp,
+                       'message-type' : message_type
+                      }
+            body = {'content-type': 'text/plain',
+                    'content': text
+                   }
+            message = [headers, body]
+            self.Sent(timestamp, message_type, text)
+            self.MessageSent(message, 0, '')
+
+    def _signal_text_received(self, id, timestamp, sender, type, flags, text):
+        self.Received(id, timestamp, sender, type, flags, text)
+        headers = {'message-received' : timestamp,
+                   'pending-message-id' : int(id),
+                   'message-sender' : int(sender),
+                   'message-type' : type
+                  }
+
+        body = {'content-type': 'text/plain',
+                'content': text
+               }
+        message = [headers, body]
+        self.MessageReceived(message)
+
     def SetChatState(self, state):
         # Not useful if we dont have a conversation.
         if self._conversation is not None:
@@ -130,15 +191,9 @@ class ButterflyTextChannel(
         self.ChatStateChanged(handle, state)
 
     def Send(self, message_type, text):
-        if self._conversation is not None:
-            if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
-                logger.info("Sending message : %s" % unicode(text))
-                self._conversation.send_text_message(papyon.ConversationMessage(text))
-            else:
-                raise telepathy.NotImplemented("Unhandled message type")
-            self.Sent(int(time.time()), message_type, text)
-        else:
-            logger.warning('Tried sending a message with no conversation')
+        if self._send_text_message(message_type, text):
+            timestamp = int(time.time())
+            self._signal_text_sent(timestamp, message_type, text)
 
     def Close(self):
         if self._conversation is not None:
@@ -146,6 +201,43 @@ class ButterflyTextChannel(
         self._remove_typing_timeouts()
         telepathy.server.ChannelTypeText.Close(self)
         self.remove_from_connection()
+
+    def GetPendingMessageContent(self, Message_ID, Parts):
+        # We don't support pending message
+        raise telepathy.InvalidArgument()
+
+    def SendMessage(self, Message, Flags):
+        headers = Message.pop(0)
+        message_type = int(headers['message-type'])
+        if message_type != telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
+                raise telepathy.NotImplemented("Unhandled message type")
+        text = None
+        for part in Message:
+            if part.get("content-type", None) ==  "text/plain":
+                text = part['content']
+                break
+        if text is None:
+                raise telepathy.NotImplemented("Unhandled message type")
+
+        if self._send_text_message(message_type, text):
+            timestamp = int(time.time())
+            self._signal_text_sent(timestamp, message_type, text)
+
+        return ''
+
+    def AcknowledgePendingMessages(self, ids):
+        for id in ids:
+            if id in self._pending_messages2:
+                del self._pending_messages2[id]
+
+        telepathy.server.ChannelTypeText.AcknowledgePendingMessages(self, ids)
+        self.PendingMessagesRemoved(ids)
+
+    def ListPendingMessages(self, clear):
+        ids = self._pending_messages2.keys()
+        self._pending_messages2 = {}
+        self.PendingMessagesRemoved(ids)
+        return telepathy.server.ChannelTypeText.ListPendingMessages(self, clear)
 
     # Redefine GetSelfHandle since we use our own handle
     #  as Butterfly doesn't have channel specific handles
@@ -187,7 +279,7 @@ class ButterflyTextChannel(
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         message = message.content
         logger.info("User %s sent a message" % unicode(handle))
-        self.Received(id, timestamp, handle, type, 0, message)
+        self._signal_text_received(id, timestamp, handle, type, 0, message)
         self._recv_id += 1
 
     # papyon.event.ConversationEventInterface
@@ -198,3 +290,9 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 sender.account, sender.network_id)
         logger.info("User %s sent a nudge" % unicode(handle))
+
+    @dbus.service.signal('org.freedesktop.Telepathy.Channel.Interface.Messages', signature='aa{sv}')
+    def MessageReceived(self, Message):
+        id = Message[0]['pending-message-id']
+        self._pending_messages2[id] = Message
+

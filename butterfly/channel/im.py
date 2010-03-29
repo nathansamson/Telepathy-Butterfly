@@ -91,7 +91,7 @@ class ButterflyImChannel(ButterflyTextChannel):
         else:
             return set([self._initial_handle.contact])
 
-    def Send(self, message_type, text):
+    def _send_text_message(self, message_type, text):
         if self._conversation is None and self._offline_contact.presence != papyon.Presence.OFFLINE:
             contact = self._offline_contact
             logger.info('Contact %s still connected, inviting him to the text channel before sending message' % unicode(contact))
@@ -103,7 +103,7 @@ class ButterflyImChannel(ButterflyTextChannel):
 
         if self._conversation is not None:
             # Actually send the message.
-            ButterflyTextChannel.Send(self, message_type, text)
+            return ButterflyTextChannel._send_text_message(self, message_type, text)
         else:
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 logger.info("Sending offline message : %s" % unicode(text))
@@ -111,12 +111,12 @@ class ButterflyImChannel(ButterflyTextChannel):
                 #FIXME : Check if the message was sent correctly?
             else:
                 raise telepathy.NotImplemented("Unhandled message type for offline contact")
-            self.Sent(int(time.time()), message_type, text)
+            return True
 
     # Rededefine AcknowledgePendingMessages to remove offline messages
     # from the oim box.
     def AcknowledgePendingMessages(self, ids):
-        telepathy.server.ChannelTypeText.AcknowledgePendingMessages(self, ids)
+        ButterflyTextChannel.AcknowledgePendingMessages(self, ids)
 
         messages = []
         for id in ids:
@@ -131,7 +131,7 @@ class ButterflyImChannel(ButterflyTextChannel):
         if clear:
             messages = self._pending_offline_messages.values()
             self._oim_box_ref().delete_messages(messages)
-        return telepathy.server.ChannelTypeText.ListPendingMessages(self, clear)
+        return ButterflyTextChannel.ListPendingMessages(self, clear)
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
@@ -188,7 +188,7 @@ class ButterflyImChannel(ButterflyTextChannel):
                 sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         logger.info("User %r sent a offline message" % handle)
-        self.Received(id, timestamp, handle, type, 0, text)
+        self._signal_text_received(id, timestamp, handle, type, 0, text)
 
         self._recv_id += 1
 

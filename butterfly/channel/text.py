@@ -129,7 +129,7 @@ class ButterflyTextChannel(
             return False
 
     def _send_text_message(self, message_type, text):
-        "Send a simple text message, return true if send correctly"""
+        "Send a simple text message, return true if sent correctly"
         if self._conversation is not None:
             if message_type == telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 logger.info("Sending message : %s" % unicode(text))
@@ -144,15 +144,15 @@ class ButterflyTextChannel(
     # run in an glib's idle so we emit the signal after either Send or SendMessage return
     @async
     def _signal_text_sent(self, timestamp, message_type, text):
-            headers = {'message-sent' : timestamp,
-                       'message-type' : message_type
-                      }
-            body = {'content-type': 'text/plain',
-                    'content': text
-                   }
-            message = [headers, body]
-            self.Sent(timestamp, message_type, text)
-            self.MessageSent(message, 0, '')
+        headers = {'message-sent' : timestamp,
+                   'message-type' : message_type
+                  }
+        body = {'content-type': 'text/plain',
+                'content': text
+               }
+        message = [headers, body]
+        self.Sent(timestamp, message_type, text)
+        self.MessageSent(message, 0, '')
 
     def _signal_text_received(self, id, timestamp, sender, type, flags, text):
         self.Received(id, timestamp, sender, type, flags, text)
@@ -202,17 +202,17 @@ class ButterflyTextChannel(
         telepathy.server.ChannelTypeText.Close(self)
         self.remove_from_connection()
 
-    def GetPendingMessageContent(self, Message_ID, Parts):
+    def GetPendingMessageContent(self, message_id, parts):
         # We don't support pending message
         raise telepathy.InvalidArgument()
 
-    def SendMessage(self, Message, Flags):
-        headers = Message.pop(0)
+    def SendMessage(self, message, flags):
+        headers = message.pop(0)
         message_type = int(headers['message-type'])
         if message_type != telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 raise telepathy.NotImplemented("Unhandled message type")
         text = None
-        for part in Message:
+        for part in message:
             if part.get("content-type", None) ==  "text/plain":
                 text = part['content']
                 break
@@ -292,7 +292,7 @@ class ButterflyTextChannel(
         logger.info("User %s sent a nudge" % unicode(handle))
 
     @dbus.service.signal('org.freedesktop.Telepathy.Channel.Interface.Messages', signature='aa{sv}')
-    def MessageReceived(self, Message):
-        id = Message[0]['pending-message-id']
-        self._pending_messages2[id] = Message
+    def MessageReceived(self, message):
+        id = message[0]['pending-message-id']
+        self._pending_messages2[id] = message
 

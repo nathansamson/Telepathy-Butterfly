@@ -43,6 +43,9 @@ class ButterflyImChannel(ButterflyTextChannel):
 
         _, _, handle = manager._get_type_requested_handle(props)
 
+        if handle.contact is None:
+            raise telepathy.NotAvailable('Contact not available')
+
         self._pending_offline_messages = {}
         contact = handle.contact
         if conversation is None:

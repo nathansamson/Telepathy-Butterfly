@@ -128,7 +128,11 @@ class ButterflyConferenceChannel(
         # Get IntitialInviteeHandles
         for invitee_handle in props.get(CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeHandles', []):
             handle = self._conn_ref().handle(telepathy.HANDLE_TYPE_CONTACT, invitee_handle)
-            if handle is not None and handle not in self._conference_initial_invitees:
+
+            if handle is None or handle.contact is None:
+                raise telepathy.NotAvailable('Contact with handle %u not available' % invitee_handle)
+
+            if handle not in self._conference_initial_invitees:
                 self._conference_initial_invitees.append(handle)
 
         # Get InitialInviteeIDs
@@ -139,7 +143,10 @@ class ButterflyConferenceChannel(
                     handle = h
                     break
 
-            if handle is not None and handle not in self._conference_initial_invitees:
+            if handle is None or handle.contact is None:
+                raise telepathy.NotAvailable('Contact "%s" not available' % invitee_id)
+
+            if handle not in self._conference_initial_invitees:
                 self._conference_initial_invitees.append(handle)
 
         # Actually invite all the initial invitees

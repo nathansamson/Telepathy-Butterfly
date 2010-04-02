@@ -58,10 +58,12 @@ class ButterflyContacts(
                             out_signature='a{ua{sv}}', sender_keyword='sender')
     def GetContactAttributes(self, handles, interfaces, hold, sender):
         #InspectHandle already checks we're connected, the handles and handle type.
+        supported_interfaces = set()
         for interface in interfaces:
-            if interface not in self.attributes:
-                raise telepathy.errors.InvalidArgument(
-                    'Interface %s is not supported by GetContactAttributes' % (interface))
+            if interface in self.attributes:
+                supported_interfaces.add(interface)
+            else:
+                logger.debug("Ignoring unsupported interface %s" % interface)
 
         handle_type = telepathy.HANDLE_TYPE_CONTACT
         ret = {}
@@ -89,8 +91,9 @@ class ButterflyContacts(
 
         # Attributes from the interface org.freedesktop.Telepathy.Connection
         # are always returned, and need not be requested explicitly.
-        interfaces = set(interfaces + [telepathy.CONNECTION])
-        for interface in interfaces:
+        supported_interfaces.add(telepathy.CONNECTION)
+
+        for interface in supported_interfaces:
             interface_attribute = interface + '/' + self.attributes[interface]
             results = functions[interface](handles)
             for handle, value in results:

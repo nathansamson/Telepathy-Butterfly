@@ -27,6 +27,7 @@ import papyon.event
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflySessionHandler
+from butterfly.channel import ButterflyChannel
 
 from telepathy.interfaces import CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP,\
     CHANNEL_TYPE_STREAMED_MEDIA
@@ -38,6 +39,7 @@ logger = logging.getLogger('Butterfly.MediaChannel')
 
 
 class ButterflyMediaChannel(
+        ButterflyChannel,
         telepathy.server.ChannelTypeStreamedMedia,
         telepathy.server.ChannelInterfaceCallState,
         telepathy.server.ChannelInterfaceGroup,
@@ -55,32 +57,13 @@ class ButterflyMediaChannel(
         papyon.event.CallEventInterface.__init__(self, call)
         papyon.event.ContactEventInterface.__init__(self, conn.msn_client)
         papyon.event.MediaSessionEventInterface.__init__(self, call.media_session)
+        ButterflyChannel.__init__(self, conn, props)
 
         self._call = call
         self._handle = handle
 
-        self._implement_property_get(CHANNEL_INTERFACE, {
-                'InitiatorHandle': lambda: dbus.UInt32(self._initiator.id),
-                'InitiatorID': lambda: self._initiator.name
-                })
-
         self._implement_property_get(CHANNEL_INTERFACE_GROUP,
             {'LocalPendingMembers': lambda: self.GetLocalPendingMembersWithInfo() })
-
-        self._add_immutables({
-                'InitiatorHandle': CHANNEL_INTERFACE,
-                'InitiatorID': CHANNEL_INTERFACE,
-                })
-
-        if CHANNEL_INTERFACE + '.InitiatorHandle' in props:
-            self._initiator = conn.handle(telepathy.HANDLE_TYPE_CONTACT,
-                props[CHANNEL_INTERFACE + '.InitiatorHandle'])
-        elif CHANNEL_INTERFACE + '.InitiatorID' in props:
-            self._initiator = ButterflyHandleFactory(conn, 'contact',
-                id=props[CHANNEL_INTERFACE + '.InitiatorHandle'])
-        else:
-            logger.warning('InitiatorID or InitiatorHandle not set on new channel')
-            self._initiator = None
 
         self._session_handler = ButterflySessionHandler(self._conn, self, call.media_session)
 

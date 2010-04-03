@@ -25,6 +25,7 @@ import papyon.event
 
 from butterfly.util.decorator import async
 from butterfly.handle import ButterflyHandleFactory
+from butterfly.channel import ButterflyChannel
 
 __all__ = ['ButterflyContactListChannelFactory']
 
@@ -112,6 +113,7 @@ def ButterflyContactListChannelFactory(connection, manager, handle, props):
 
 
 class ButterflyListChannel(
+        ButterflyChannel,
         telepathy.server.ChannelTypeContactList,
         telepathy.server.ChannelInterfaceGroup,
         papyon.event.AddressBookEventInterface):
@@ -121,6 +123,7 @@ class ButterflyListChannel(
         self._conn_ref = weakref.ref(connection)
         telepathy.server.ChannelTypeContactList.__init__(self, connection, manager, props,
             object_path=object_path)
+        ButterflyChannel.__init__(self, connection, props)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         papyon.event.AddressBookEventInterface.__init__(self, connection.msn_client)
         self._populate(connection)

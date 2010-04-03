@@ -31,12 +31,14 @@ from telepathy._generated.Channel_Interface_Messages import ChannelInterfaceMess
 from telepathy.interfaces import CHANNEL_INTERFACE_MESSAGES
 
 from butterfly.handle import ButterflyHandleFactory
+from butterfly.channel import ButterflyChannel
 
 __all__ = ['ButterflyTextChannel']
 
 logger = logging.getLogger('Butterfly.TextChannel')
 
 class ButterflyTextChannel(
+        ButterflyChannel,
         telepathy.server.ChannelTypeText,
         telepathy.server.ChannelInterfaceChatState,
         ChannelInterfaceMessages,
@@ -54,6 +56,7 @@ class ButterflyTextChannel(
 
         telepathy.server.ChannelTypeText.__init__(self, conn, manager, props,
             object_path=object_path)
+        ButterflyChannel.__init__(self, conn, props)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
         ChannelInterfaceMessages.__init__(self)
         papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)

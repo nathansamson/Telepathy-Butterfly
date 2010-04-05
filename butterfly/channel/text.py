@@ -31,7 +31,6 @@ from telepathy._generated.Channel_Interface_Messages import ChannelInterfaceMess
 from telepathy.interfaces import CHANNEL_INTERFACE_MESSAGES
 
 from butterfly.handle import ButterflyHandleFactory
-from butterfly.util.decorator import async
 
 __all__ = ['ButterflyTextChannel']
 
@@ -141,8 +140,6 @@ class ButterflyTextChannel(
             logger.warning('Tried sending a message with no conversation')
             return False
 
-    # run in an glib's idle so we emit the signal after either Send or SendMessage return
-    @async
     def _signal_text_sent(self, timestamp, message_type, text):
         headers = {'message-sent' : timestamp,
                    'message-type' : message_type
@@ -190,8 +187,12 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'self')
         self.ChatStateChanged(handle, state)
 
-    def Send(self, message_type, text):
+    @dbus.service.method(telepathy.CHANNEL_TYPE_TEXT, in_signature='us', out_signature='',
+                         async_callbacks=('_success', '_error'))
+    def Send(self, message_type, text, _success, _error):
         if self._send_text_message(message_type, text):
+            # The function MUST return before emitting the signals
+            _success()
             timestamp = int(time.time())
             self._signal_text_sent(timestamp, message_type, text)
 
@@ -206,7 +207,9 @@ class ButterflyTextChannel(
         # We don't support pending message
         raise telepathy.InvalidArgument()
 
-    def SendMessage(self, message, flags):
+    @dbus.service.method(telepathy.CHANNEL_INTERFACE_MESSAGES, in_signature='aa{sv}u',
+                         out_signature='s', async_callbacks=('_success', '_error'))
+    def SendMessage(self, message, flags, _success, _error):
         headers = message.pop(0)
         message_type = int(headers['message-type'])
         if message_type != telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
@@ -221,9 +224,9 @@ class ButterflyTextChannel(
 
         if self._send_text_message(message_type, text):
             timestamp = int(time.time())
+            # The function MUST return before emitting the signals
+            _success('')
             self._signal_text_sent(timestamp, message_type, text)
-
-        return ''
 
     def AcknowledgePendingMessages(self, ids):
         for id in ids:

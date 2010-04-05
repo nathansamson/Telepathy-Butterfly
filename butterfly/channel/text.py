@@ -291,7 +291,7 @@ class ButterflyTextChannel(
                 sender.account, sender.network_id)
         logger.info("User %s sent a nudge" % unicode(handle))
 
-    @dbus.service.signal('org.freedesktop.Telepathy.Channel.Interface.Messages', signature='aa{sv}')
+    @dbus.service.signal(telepathy.CHANNEL_INTERFACE_MESSAGES, signature='aa{sv}')
     def MessageReceived(self, message):
         id = message[0]['pending-message-id']
         self._pending_messages2[id] = message

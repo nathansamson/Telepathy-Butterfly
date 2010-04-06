@@ -158,7 +158,7 @@ class ButterflyConnection(telepathy.server.Connection,
         proxies = factory.getProxies('http://gateway.messenger.msn.com/')
 
         # Remove socks proxies that papyon doesn't support.
-        proxies = [p for p in proxies if not proxy.startswith('socks')]
+        proxies = [p for p in proxies if p.startswith('http://') or p == 'direct://']
 
         if proxies:
             self._suggested_proxies = proxies
@@ -180,9 +180,11 @@ class ButterflyConnection(telepathy.server.Connection,
         #  *   - http://[username:password@]proxy:port
         #  *   - socks://[username:password@]proxy:port
         #  *   - direct://
+        #  etc.
         #
-        # We've already removed socks proxies, and dealt with direct://
-        # above, so the only other option is http://.
+        # We've already removed every proxy other than http and
+        # direct, and have dealt with direct, so any other element
+        # will be an HTTP proxy:
 
         proxy = proxy[len('http://'):]
 

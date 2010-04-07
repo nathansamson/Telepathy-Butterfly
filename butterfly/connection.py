@@ -171,7 +171,8 @@ class ButterflyConnection(telepathy.server.Connection,
         proxy = self._suggested_proxies.pop(0)
 
         if proxy == 'direct://':
-            del self._proxies['http']
+            if 'http' in self._proxies:
+                del self._proxies['http']
             return True
 
         # libproxy documentation states:

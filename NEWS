@@ -1,3 +1,21 @@
+telepathy-butterfly-0.5.9 (UNRELEASED)
+======================================
+
+Enhancements:
+
+ * libproxy can now be used to automatically retrieve proxy settings
+   and give these settings to papyon. NOTE: the version of
+   python-libproxy in Ubuntu (0.2.3) has a bug which makes butterfly
+   segfault -- version 0.3.1 is known to work. (fd.o#27121)
+
+Fixes:
+
+Dependencies:
+
+ * Not a hard dependency, but python-libproxy is required if you want
+   automatic proxy configuration to work. See the above note about
+   python-libproxy versions.
+
 telepathy-butterfly-0.5.8 (2010-04-08)
 ======================================
 

@@ -70,11 +70,13 @@ class ButterflyConnection(telepathy.server.Connection,
             'https-proxy-server' : 's',
             'https-proxy-port' : 'q',
             'https-proxy-username' : 's',
-            'https-proxy-password' : 's'
+            'https-proxy-password' : 's',
+            'http-method' : 'b',
             }
     _parameter_defaults = {
             'server' : 'messenger.hotmail.com',
-            'port' : 1863
+            'port' : 1863,
+            'http-method' : False
             }
 
     def __init__(self, manager, parameters):
@@ -82,19 +84,19 @@ class ButterflyConnection(telepathy.server.Connection,
 
         try:
             account = unicode(parameters['account'])
-            server = (parameters['server'].encode('utf-8'), parameters['port'])
+            self._server = (parameters['server'].encode('utf-8'), parameters['port'])
 
             # Build the proxies configurations
-            proxies = {}
+            self._proxies = {}
             proxy = build_proxy_infos(parameters, 'http')
             if proxy is not None:
-                proxies['http'] = proxy
+                self._proxies['http'] = proxy
             proxy = build_proxy_infos(parameters, 'https')
             if proxy is not None:
-                proxies['https'] = proxy
+                self._proxies['https'] = proxy
 
             self._manager = weakref.proxy(manager)
-            self._msn_client = papyon.Client(server, proxies)
+            self._new_client(use_http=parameters['http-method'])
             self._account = (parameters['account'].encode('utf-8'),
                     parameters['password'].encode('utf-8'))
             self._channel_manager = ButterflyChannelManager(self)
@@ -108,10 +110,6 @@ class ButterflyConnection(telepathy.server.Connection,
             ButterflyCapabilities.__init__(self)
             ButterflyContacts.__init__(self)
             ButterflyMailNotification.__init__(self)
-            papyon.event.ClientEventInterface.__init__(self, self._msn_client)
-            papyon.event.InviteEventInterface.__init__(self, self._msn_client)
-            papyon.event.OfflineMessagesEventInterface.__init__(self, self._msn_client)
-
 
             self.set_self_handle(ButterflyHandleFactory(self, 'self'))
 
@@ -126,6 +124,23 @@ class ButterflyConnection(telepathy.server.Connection,
             import traceback
             logger.exception("Failed to create Connection")
             raise
+
+    def _new_client(self, use_http=False):
+        if hasattr(self, '_msn_client') and self._msn_client:
+            self._msn_client.logout()
+            self._msn_client._events_handlers.remove(self)
+
+        if use_http:
+            self._tried_http = True
+            self._msn_client = papyon.Client(self._server, self._proxies,
+                papyon.transport.HTTPPollConnection)
+        else:
+            self._tried_http = False
+            self._msn_client = papyon.Client(self._server, self._proxies)
+
+        papyon.event.ClientEventInterface.__init__(self, self._msn_client)
+        papyon.event.InviteEventInterface.__init__(self, self._msn_client)
+        papyon.event.OfflineMessagesEventInterface.__init__(self, self._msn_client)
 
     @property
     def manager(self):
@@ -292,7 +307,12 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.ClientEventInterface
     def on_client_error(self, type, error):
         if type == papyon.event.ClientErrorType.NETWORK:
-            self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR
+            if self._tried_http is False:
+                logger.info("Failed to connect directly, trying HTTP")
+                self._new_client(use_http=True)
+                self._msn_client.login(*self._account)
+            else:
+                self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR
         elif type == papyon.event.ClientErrorType.AUTHENTICATION:
             self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
         elif type == papyon.event.ClientErrorType.PROTOCOL and \

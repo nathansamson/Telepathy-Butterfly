@@ -1,11 +1,23 @@
-telepathy-butterfly-0.5.8 (UNRELEASED)
+telepathy-butterfly-0.5.8 (2010-04-08)
 ======================================
 
 Enhancements:
 
+ * Implement ContactCapabilities connection interface. (fd.o#27138)
+
+ * Implement Messages text channel interface. (fd.o#27201)
+
+ * Add support for HTTP connections. (fd.o#22508)
+
 Fixes:
 
+ * fd.o#27120: Register new connections with the CM so NewConnection
+   is fired.
+
  * fd.o#27325: Make GetContactAttributes more tolerant. (Will)
+
+ * fd.o#27122: Raise NotAvailable when started with an invalid
+   contact.
 
 telepathy-butterfly-0.5.7 (2010-03-22)
 ======================================

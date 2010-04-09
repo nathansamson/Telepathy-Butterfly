@@ -10,6 +10,12 @@ Enhancements:
 
 Fixes:
 
+ * fd.o#27555: butterfly crashed with KeyError in
+   add_text_capabilities().
+
+ * fd.o#27559: butterfly crashed with AttributeError in
+   on_addressbook_contact_added().
+
 Dependencies:
 
  * Not a hard dependency, but python-libproxy is required if you want

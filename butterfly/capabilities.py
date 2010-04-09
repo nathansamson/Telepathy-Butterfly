@@ -160,7 +160,7 @@ class ButterflyCapabilities(
         cc_ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
         for handle in contacts_handles:
             ctype = telepathy.CHANNEL_TYPE_TEXT
-            if handle in self._caps:
+            if handle in self._caps and ctype in self._caps[handle]:
                 old_gen, old_spec = self._caps[handle][ctype]
             else:
                 old_gen = 0

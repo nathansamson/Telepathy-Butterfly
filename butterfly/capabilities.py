@@ -150,7 +150,7 @@ class ButterflyCapabilities(
         """When we add a contact in our contact list, add the
         capabilities to create text channel to the contact"""
         if contact.is_member(papyon.Membership.FORWARD):
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
+            handle = ButterflyHandleFactory(self, 'contact',
                     contact.account, contact.network_id)
             self.add_text_capabilities([handle])
 

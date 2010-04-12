@@ -101,7 +101,7 @@ class ButterflyCapabilities(
         return ret
 
     def UpdateCapabilities(self, caps):
-        if self._state != telepathy.CONNECTION_STATUS_CONNECTED:
+        if self._status != telepathy.CONNECTION_STATUS_CONNECTED:
             self._update_capabilities_calls.append(caps)
             return
 

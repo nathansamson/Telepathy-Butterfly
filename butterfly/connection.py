@@ -374,9 +374,13 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.ClientEventInterface
     def on_client_error(self, type, error):
         if type == papyon.event.ClientErrorType.NETWORK:
-            # Only move onto the next proxy if we've not already tried HTTP.
-            if self._tried_http is False or \
-                   (self._tried_http is True and self._use_next_proxy()):
+            # Only move onto the next proxy if we've not already tried
+            # HTTP and we're in the connecting state. We don't want to
+            # connect to HTTP if we're already connected and we lose
+            # connectivity (see fd.o#26147).
+            if self._status == telepathy.CONNECTION_STATUS_CONNECTING and \
+                    (self._tried_http is False or \
+                   (self._tried_http is True and self._use_next_proxy())):
                 logger.info("Failed to connect, trying HTTP "
                             "(possibly again with another proxy)")
                 self._new_client(use_http=True)

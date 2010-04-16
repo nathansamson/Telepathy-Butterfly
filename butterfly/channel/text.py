@@ -151,13 +151,16 @@ class ButterflyTextChannel(
         self.Sent(timestamp, message_type, text)
         self.MessageSent(message, 0, '')
 
-    def _signal_text_received(self, id, timestamp, sender, type, flags, text):
+    def _signal_text_received(self, id, timestamp, sender, type, flags, sender_nick, text):
         self.Received(id, timestamp, sender, type, flags, text)
         headers = {'message-received' : timestamp,
                    'pending-message-id' : int(id),
                    'message-sender' : int(sender),
                    'message-type' : type
                   }
+
+        if sender_nick not in (None, ''):
+            headers['sender-nickname'] = sender_nick
 
         body = {'content-type': 'text/plain',
                 'content': text
@@ -280,9 +283,8 @@ class ButterflyTextChannel(
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
-        message = message.content
         logger.info("User %s sent a message" % unicode(handle))
-        self._signal_text_received(id, timestamp, handle, type, 0, message)
+        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, message.content)
         self._recv_id += 1
 
     # papyon.event.ConversationEventInterface

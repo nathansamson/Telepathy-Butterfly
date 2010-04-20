@@ -72,15 +72,15 @@ class ButterflyPresenceMapping(object):
             }
 
     to_presence_type = {
-            ONLINE:     telepathy.constants.CONNECTION_PRESENCE_TYPE_AVAILABLE,
-            AWAY:       telepathy.constants.CONNECTION_PRESENCE_TYPE_AWAY,
-            BUSY:       telepathy.constants.CONNECTION_PRESENCE_TYPE_BUSY,
-            IDLE:       telepathy.constants.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
-            BRB:        telepathy.constants.CONNECTION_PRESENCE_TYPE_AWAY,
-            PHONE:      telepathy.constants.CONNECTION_PRESENCE_TYPE_BUSY,
-            LUNCH:      telepathy.constants.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
-            INVISIBLE:  telepathy.constants.CONNECTION_PRESENCE_TYPE_HIDDEN,
-            OFFLINE:    telepathy.constants.CONNECTION_PRESENCE_TYPE_OFFLINE
+            ONLINE:     dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_AVAILABLE),
+            AWAY:       dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_AWAY),
+            BUSY:       dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_BUSY),
+            IDLE:       dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY),
+            BRB:        dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_AWAY),
+            PHONE:      dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_BUSY),
+            LUNCH:      dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY),
+            INVISIBLE:  dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_HIDDEN),
+            OFFLINE:    dbus.UInt32(telepathy.constants.CONNECTION_PRESENCE_TYPE_OFFLINE)
             }
 
 class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
@@ -213,7 +213,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             self.msn_client.profile.presence = presence
 
     def get_simple_presences(self, contacts):
-        presences = {}
+        presences = dbus.Dictionary(signature='u(uss)')
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             try:
@@ -230,7 +230,8 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
 
             presence_type = ButterflyPresenceMapping.to_presence_type[presence]
 
-            presences[handle] = (presence_type, presence, personal_message)
+            presences[handle] = dbus.Struct((presence_type, presence,
+                personal_message), signature='uss')
         return presences
 
     def get_statuses(self):

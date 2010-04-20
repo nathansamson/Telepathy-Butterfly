@@ -18,6 +18,7 @@
 
 import logging
 
+import dbus
 import telepathy
 import telepathy.constants
 import papyon
@@ -49,7 +50,7 @@ class ButterflyAliasing(
     def GetAliases(self, contacts):
         logger.debug("Called GetAliases")
 
-        result = {}
+        result = dbus.Dictionary(signature='us')
         for contact in contacts:
             result[contact] = self._get_alias(contact)
         return result

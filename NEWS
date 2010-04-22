@@ -16,6 +16,8 @@ Fixes:
  * fd.o#27559: butterfly crashed with AttributeError in
    on_addressbook_contact_added().
 
+ * fd.o #27776: Avatars: implement the properties from spec 0.17.22.
+
 Dependencies:
 
  * Not a hard dependency, but python-libproxy is required if you want

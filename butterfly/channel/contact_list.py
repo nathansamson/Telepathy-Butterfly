@@ -28,6 +28,7 @@ from butterfly.handle import ButterflyHandleFactory
 
 __all__ = ['ButterflyContactListChannelFactory']
 
+logger = logging.getLogger('Butterfly.ContactListChannel')
 
 class HandleMutex(object):
     def __init__(self):
@@ -226,13 +227,59 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
         groups = list(handle.pending_groups)
         handle.pending_groups = set()
         ab = self._conn.msn_client.address_book
+
+        # We redefine these two callbacks for two reasons:
+        #
+        #  1. For failed, we can give a nice warning.
+        #
+        #  2. For both callbacks, it is more than likely that calling
+        #     finished_cb() will unlock the mutex and the publish
+        #     channel underneath's _add function will be called. If we
+        #     keep handle in scope, it won't be disposed and the
+        #     publish channel will have the same handle. This fixes a
+        #     few bugs:
+        #
+        #      I. When the contact doesn't actually exist, calling
+        #         finished_cb after the handle gets disposed means it
+        #         will no longer be in the connection's handle
+        #         dictionary and the publish channel's _add() will
+        #         raise InvalidHandle (see fd.o#27553). This isn't
+        #         actually a problem as the function should return
+        #         anyway but it doesn't get a chance to unlock the
+        #         mutex and it throws an unhandled exception which
+        #         apport users think is crazy.
+        #
+        #     II. Similar to above, but when the contact does
+        #         actually exist then the publish list wants to act
+        #         appropriately. If the handle has already been
+        #         disposed then it'll raise the same exception and
+        #         won't call the appropriate AB method.
+        #
+        #    III. When a contact is actually added, instead of the
+        #         handle already having been disposed of, it stays
+        #         around for a bit so you don't add handle n and then
+        #         MembersChanged gets fired for handle n+1.
+        #
+        # If these cases aren't in fact in play when this is called,
+        # then not only am I surprised, but no damage is done.
+
+        def failed_cb(error_code, *cb_args):
+            logger.warning('Failed to add messenger contact; '
+                           'error code: %s' % error_code)
+            finished_cb()
+            handle
+
+        def done_cb(*cb_args):
+            finished_cb()
+            handle
+
         ab.add_messenger_contact(account,
                 network_id=network,
                 auto_allow=False,
                 invite_message=message.encode('utf-8'),
                 groups=groups,
-                done_cb=(finished_cb,),
-                failed_cb=(finished_cb,))
+                done_cb=(done_cb,),
+                failed_cb=(failed_cb,))
 
     @Lockable(mutex, 'rem_subscribe', 'finished_cb')
     def _remove(self, handle_id, finished_cb):
@@ -297,6 +344,12 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
         contact = handle.contact
         if contact is not None and contact.is_member(papyon.Membership.ALLOW):
+            return True
+
+        # This will occur if the contact doesn't actually exist
+        # (e.g. nobody@example.com).
+        if contact is None:
+            logger.debug('Cannot allow/accept None contact %s' % handle.get_name())
             return True
 
         account = handle.account

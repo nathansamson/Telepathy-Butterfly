@@ -82,6 +82,7 @@ def escape_as_identifier(identifier):
 class ButterflyChannelManager(telepathy.server.ChannelManager):
     __text_channel_id = 1
     __media_channel_id = 1
+    __ft_channel_id = 1
 
     def __init__(self, connection):
         telepathy.server.ChannelManager.__init__(self, connection)
@@ -217,4 +218,8 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 
         logger.debug('New file transfer channel')
 
-        return ButterflyFileTransferChannel(self._conn, self, session, handle, props)
+        path = "FileTransferChannel%d" % self.__ft_channel_id
+        self.__ft_channel_id += 1
+
+        return ButterflyFileTransferChannel(self._conn, self, session, handle,
+            props, object_path=path)

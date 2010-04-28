@@ -102,7 +102,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     @property
     def content_type(self):
-        return "plain/text"
+        return "application/octet-stream"
 
     @property
     def filename(self):

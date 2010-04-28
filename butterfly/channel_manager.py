@@ -29,7 +29,7 @@ from butterfly.channel.group import ButterflyGroupChannel
 from butterfly.channel.im import ButterflyImChannel
 from butterfly.channel.muc import ButterflyMucChannel
 from butterfly.channel.conference import ButterflyConferenceChannel
-from butterfly.channel.filetransfer import ButterflyFileTransferChannel
+from butterfly.channel.file_transfer import ButterflyFileTransferChannel
 from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 

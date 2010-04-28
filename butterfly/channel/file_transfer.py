@@ -72,21 +72,21 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self._filename = session.filename
         self._size = session.size
 
-        session.connect("accepted", self.on_transfer_accepted)
-        session.connect("progressed", self.on_transfer_progressed)
-        session.connect("completed", self.on_transfer_completed)
+        session.connect("accepted", self._transfer_accepted)
+        session.connect("progressed", self._transfer_progressed)
+        session.connect("completed", self._transfer_completed)
 
         dbus_interface = telepathy.CHANNEL_TYPE_FILE_TRANSFER
-        self._implement_property_get(dbus_interface, \
-                {'State' : lambda: dbus.UInt32(self.state),
-                 'ContentType': lambda: self.content_type,
-                 'Filename': lambda: self.filename,
-                 'Size': lambda: dbus.UInt64(self.size),
-                 'Description': lambda: self.description,
-                 'AvailableSocketTypes': lambda: self.socket_types,
-                 'TransferredBytes': lambda: self.transferred,
-                 'InitialOffset': lambda: self.offset
-                 })
+        self._implement_property_get(dbus_interface, {
+                'State' : lambda: dbus.UInt32(self.state),
+                'ContentType': lambda: self.content_type,
+                'Filename': lambda: self.filename,
+                'Size': lambda: dbus.UInt64(self.size),
+                'Description': lambda: self.description,
+                'AvailableSocketTypes': lambda: self.socket_types,
+                'TransferredBytes': lambda: self.transferred,
+                'InitialOffset': lambda: self.offset
+                })
 
         self._add_immutables({
                 'Filename': CHANNEL_TYPE_FILE_TRANSFER,
@@ -94,7 +94,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
                 })
 
         self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
 
     @property
     def state(self):
@@ -118,8 +118,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     @property
     def socket_types(self):
-        return {
-            telepathy.SOCKET_ADDRESS_TYPE_UNIX:
+        return {telepathy.SOCKET_ADDRESS_TYPE_UNIX:
                 [telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST,
                  telepathy.SOCKET_ACCESS_CONTROL_CREDENTIALS]}
 
@@ -147,10 +146,10 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self.socket = self.add_listener()
         self.channel = self.add_io_channel(self.socket)
         self.set_state(telepathy.FILE_TRANSFER_STATE_PENDING,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
         self.InitialOffsetDefined(0)
         self.set_state(telepathy.FILE_TRANSFER_STATE_OPEN,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
         return self.socket.getsockname()
 
     def ProvideFile(self, address_type, access_control, param):
@@ -169,7 +168,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
                               telepathy.FILE_TRANSFER_STATE_COMPLETED):
             self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                           telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_CANCELLED)
+                telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_CANCELLED)
         telepathy.server.ChannelTypeFileTransfer.Close(self)
         self.remove_from_connection()
 
@@ -206,12 +205,12 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         sock.setblocking(False)
         channel = gobject.IOChannel(sock.fileno())
         channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
-        channel.add_watch(gobject.IO_IN, self.on_socket_connected)
+        channel.add_watch(gobject.IO_IN, self._socket_connected)
         channel.add_watch(gobject.IO_HUP | gobject.IO_ERR,
-                self.on_socket_disconnected)
+            self._socket_disconnected)
         return channel
 
-    def on_socket_connected(self, channel, condition):
+    def _socket_connected(self, channel, condition):
         logger.debug("Client socket connected")
         sock = self.socket.accept()[0]
         if self._receiving:
@@ -224,7 +223,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
             self._session.send(buffer)
         self.socket = sock
 
-    def on_socket_disconnected(self, channel, condition):
+    def _socket_disconnected(self, channel, condition):
         logger.debug("Client socket disconnected")
         #self.cleanup()
         #TODO only cancel if the socket is disconnected while listening
@@ -232,22 +231,22 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         #self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
         #               telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
 
-    def on_transfer_accepted(self, session):
+    def _transfer_accepted(self, session):
         logger.debug("Transfer has been accepted")
         self.set_state(telepathy.FILE_TRANSFER_STATE_ACCEPTED,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
         self.set_state(telepathy.FILE_TRANSFER_STATE_OPEN,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
 
-    def on_transfer_progressed(self, session, size):
+    def _transfer_progressed(self, session, size):
         self._transferred += size
         self.TransferredBytesChanged(self._transferred)
 
-    def on_transfer_completed(self, session, data):
+    def _transfer_completed(self, session, data):
         logger.debug("Transfer completed")
         self.cleanup()
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
-                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
 
 class DataBuffer(object):
 
@@ -300,7 +299,6 @@ class DataBuffer(object):
 
     def on_stream_disconnected(self, channel, condition):
         pass
-
 
     def on_stream_received(self, channel, condition):
         logger.info("Received data to send")

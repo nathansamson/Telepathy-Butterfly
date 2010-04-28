@@ -43,6 +43,9 @@ logger = logging.getLogger('Butterfly.FileTransferChannel')
 class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def __init__(self, conn, manager, session, handle, props, object_path=None):
+        telepathy.server.ChannelTypeFileTransfer.__init__(self, conn, manager, props,
+            object_path=object_path)
+
         self._handle = handle
         self._conn_ref = weakref.ref(conn)
         self._state = 0
@@ -51,9 +54,6 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self._receiving = not props[telepathy.CHANNEL + '.Requested']
         self.socket = None
         self._tmpdir = None
-
-        telepathy.server.ChannelTypeFileTransfer.__init__(self, conn, manager, props,
-            object_path=object_path)
 
         # Incoming.
         if session is None:

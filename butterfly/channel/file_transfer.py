@@ -55,6 +55,9 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self.socket = None
         self._tmpdir = None
 
+        self._last_ltb_emitted = 0
+        self._progress_timer = 0
+
         # Incoming.
         if session is None:
             type = telepathy.CHANNEL_TYPE_FILE_TRANSFER
@@ -240,7 +243,42 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def _transfer_progressed(self, session, size):
         self._transferred += size
-        self.TransferredBytesChanged(self._transferred)
+
+        def emit_signal():
+            self.TransferredBytesChanged(self.transferred)
+            self._last_ltb_emitted = time.time()
+            self._progress_timer = 0
+            return False
+
+        # If the transfer has finished send an update right away.
+        if self.transferred >= self.size:
+            emit_signal()
+            return
+
+        # A progress update signal is already scheduled.
+        if self._progress_timer != 0:
+            return
+
+        # Only emit the TransferredBytes signal if it has been one
+        # second since its last emission.
+        interval = time.time() - self._last_ltb_emitted
+        if interval >= 1:
+            emit_signal()
+            return
+
+        # Get it in microseconds.
+        interval /= 1000
+
+        # Protect against clock skew, if the interval is negative the
+        # worst thing that can happen is that we wait an extra second
+        # before emitting the signal.
+        interval = abs(interval)
+
+        if interval > 1000:
+            emit_signal()
+        else:
+            self._progress_timer = gobject.timeout_add(1000 - interval,
+                emit_signal)
 
     def _transfer_completed(self, session, data):
         logger.debug("Transfer completed")

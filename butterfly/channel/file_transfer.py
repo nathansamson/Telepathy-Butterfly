@@ -244,9 +244,9 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def _transfer_completed(self, session, data):
         logger.debug("Transfer completed")
-        self.cleanup()
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
             telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+        self.cleanup()
 
 class DataBuffer(object):
 

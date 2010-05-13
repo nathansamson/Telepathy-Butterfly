@@ -96,7 +96,7 @@ class ButterflyCapabilities(
         ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
         for i in handles:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, i)
-            ret[handle] = self._contact_caps[handle]
+            ret[handle] = dbus.Array(self._contact_caps[handle], signature='(a{sv}as)')
 
         return ret
 

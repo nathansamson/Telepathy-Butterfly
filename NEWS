@@ -1,3 +1,16 @@
+telepathy-butterfly-0.5.10 (2010-05-20)
+=======================================
+
+Enhancements:
+ * Implement friendly names for groups chats (fd.o #25272)
+
+Fixes:
+ * Fix error when getting caps for certain contacts and offline contacts (fd.o #27736)
+ * Remove deprecation warning at start (fd.o #27843)
+ * Set Initator{ID,Handle} for all channels types (fd.o #27445)
+ * Don't connect via HTTP if we lost connection (fd.o #26147)
+ * Fix crash in check_handle when adding a contact (fd.o #27553)
+
 telepathy-butterfly-0.5.9 (2010-04-24)
 ======================================
 

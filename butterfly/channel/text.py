@@ -217,7 +217,7 @@ class ButterflyTextChannel(
                          out_signature='s', async_callbacks=('_success', '_error'))
     def SendMessage(self, message, flags, _success, _error):
         headers = message.pop(0)
-        message_type = int(headers['message-type'])
+        message_type = int(headers.get('message-type', telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL))
         if message_type != telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
                 raise telepathy.NotImplemented("Unhandled message type")
         text = None

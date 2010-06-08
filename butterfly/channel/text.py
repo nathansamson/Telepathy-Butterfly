@@ -243,9 +243,11 @@ class ButterflyTextChannel(
         self.PendingMessagesRemoved(ids)
 
     def ListPendingMessages(self, clear):
-        ids = self._pending_messages2.keys()
-        self._pending_messages2 = {}
-        self.PendingMessagesRemoved(ids)
+        if clear:
+            ids = self._pending_messages2.keys()
+            self._pending_messages2 = {}
+            self.PendingMessagesRemoved(ids)
+
         return telepathy.server.ChannelTypeText.ListPendingMessages(self, clear)
 
     # Redefine GetSelfHandle since we use our own handle

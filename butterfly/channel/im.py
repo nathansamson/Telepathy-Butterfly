@@ -21,6 +21,7 @@
 import logging
 import weakref
 import time
+import re
 
 import dbus
 import telepathy
@@ -178,7 +179,8 @@ class ButterflyImChannel(ButterflyTextChannel):
         id = self._recv_id
         sender = message.sender
         timestamp = time.mktime(message.date.timetuple())
-        text = message.text
+        text = re.sub('\r\n', '\n', message.text)
+        text = re.sub('\r', '\n', text)
 
         # Map the id to the offline message so we can remove it
         # when acked by the client

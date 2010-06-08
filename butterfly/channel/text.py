@@ -22,6 +22,7 @@ import gobject
 import logging
 import weakref
 import time
+import re
 
 import dbus
 import telepathy
@@ -289,7 +290,9 @@ class ButterflyTextChannel(
                 sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         logger.info("User %s sent a message" % unicode(handle))
-        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, message.content)
+        content = re.sub('\r\n', '\n', message.content)
+        content = re.sub('\r', '\n', content)
+        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, content)
         self._recv_id += 1
 
     # papyon.event.ConversationEventInterface

@@ -1,3 +1,18 @@
+telepathy-butterfly-0.5.11 (2010-06-08)
+=======================================
+
+Fixes:
+
+ * fd.o#28354: make sure the correct type gets returned when getting
+   PendingMessages.
+
+ * Don't always remove pending messages when ListPendingMessages is
+   called.
+
+ * Don't assume "message-type" is set on calls to SendMessage.
+
+ * Replace \r\n with \n in incoming messages.
+
 telepathy-butterfly-0.5.10 (2010-05-20)
 =======================================
 

@@ -65,7 +65,7 @@ class ButterflyTextChannel(
             'SupportedContentTypes': lambda: ["text/plain"] ,
             'MessagePartSupportFlags': lambda: 0,
             'DeliveryReportingSupport': lambda: telepathy.DELIVERY_REPORTING_SUPPORT_FLAG_RECEIVE_FAILURES,
-            'PendingMessages': lambda: self._pending_messages2
+            'PendingMessages': lambda: dbus.Array(self._pending_messages2.values(), signature='aa{sv}')
             })
 
         self._add_immutables({
@@ -156,19 +156,19 @@ class ButterflyTextChannel(
 
     def _signal_text_received(self, id, timestamp, sender, type, flags, sender_nick, text):
         self.Received(id, timestamp, sender, type, flags, text)
-        headers = {'message-received' : timestamp,
-                   'pending-message-id' : int(id),
-                   'message-sender' : int(sender),
-                   'message-type' : type
-                  }
+        headers = dbus.Dictionary({dbus.String('message-received') : dbus.UInt64(timestamp),
+                   dbus.String('pending-message-id') : dbus.UInt32(id),
+                   dbus.String('message-sender') : dbus.UInt32(sender),
+                   dbus.String('message-type') : dbus.UInt32(type)
+                  }, signature='sv')
 
         if sender_nick not in (None, ''):
-            headers['sender-nickname'] = sender_nick
+            headers[dbus.String('sender-nickname')] = dbus.String(sender_nick)
 
-        body = {'content-type': 'text/plain',
-                'content': text
-               }
-        message = [headers, body]
+        body = dbus.Dictionary({dbus.String('content-type'): dbus.String('text/plain'),
+                dbus.String('content'): dbus.String(text)
+               }, signature='sv')
+        message = dbus.Array([headers, body], signature='a{sv}')
         self.MessageReceived(message)
 
     def SetChatState(self, state):
@@ -304,5 +304,5 @@ class ButterflyTextChannel(
     @dbus.service.signal(telepathy.CHANNEL_INTERFACE_MESSAGES, signature='aa{sv}')
     def MessageReceived(self, message):
         id = message[0]['pending-message-id']
-        self._pending_messages2[id] = message
+        self._pending_messages2[id] = dbus.Array(message, signature='a{sv}')
 

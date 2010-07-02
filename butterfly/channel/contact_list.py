@@ -97,18 +97,21 @@ def ButterflyContactListChannelFactory(connection, manager, handle, props):
         props[telepathy.CHANNEL_INTERFACE + '.TargetHandleType'],
         props[telepathy.CHANNEL_INTERFACE + '.TargetHandle'])
 
-    if handle.get_name() == 'subscribe':
+    if handle.get_name() == 'stored':
+        raise telepathy.errors.NotImplemented
+    elif handle.get_name() == 'subscribe':
         channel_class = ButterflySubscribeListChannel
     elif handle.get_name() == 'publish':
         channel_class = ButterflyPublishListChannel
     elif handle.get_name() == 'hide':
-        channel_class = ButterflyHideListChannel
+        raise telepathy.errors.NotImplemented
     elif handle.get_name() == 'allow':
-        channel_class = ButterflyAllowListChannel
+        raise telepathy.errors.NotImplemented
     elif handle.get_name() == 'deny':
-        channel_class = ButterflyDenyListChannel
+        raise telepathy.errors.NotImplemented
     else:
-        raise TypeError("Unknown list type : " + handle.get_name())
+        logger.error("Unknown list type : " + handle.get_name())
+        raise telepathy.errors.InvalidHandle
     return channel_class(connection, manager, props)
 
 

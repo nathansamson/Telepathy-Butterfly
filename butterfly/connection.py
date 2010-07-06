@@ -133,7 +133,8 @@ class ButterflyConnection(telepathy.server.Connection,
 
     def _new_client(self, use_http=False):
         if hasattr(self, '_msn_client') and self._msn_client:
-            self._msn_client.logout()
+            if self._msn_client.state != papyon.event.ClientState.CLOSED:
+                self._msn_client.logout()
             self._msn_client._events_handlers.remove(self)
 
         if use_http:
@@ -230,7 +231,8 @@ class ButterflyConnection(telepathy.server.Connection,
     def Disconnect(self):
         logger.info("Disconnecting")
         self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_REQUESTED
-        self._msn_client.logout()
+        if self._msn_client.state != papyon.event.ClientState.CLOSED:
+            self._msn_client.logout()
 
     def GetInterfaces(self):
         # The self._interfaces set is only ever touched in ButterflyConnection.__init__,

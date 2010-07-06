@@ -67,6 +67,23 @@ if __name__ == '__main__':
         manager.quit()
         mainloop.quit()
 
+    # We only want to log to stderr if BUTTERFLY_DEBUG=all is set, but
+    # we want any other logging handlers to work fine (such as the
+    # debug sender one).
+    if os.environ.get('BUTTERFLY_DEBUG', None) != 'all':
+        # This dummy stream will replace sys.stderr.
+        class DummyStream(object):
+            def write(self, s):
+                pass
+
+        # First, replace the original stderr with our new dummy stream.
+        sys.stderr = DummyStream()
+
+        # The root handler has already had the original stderr set on it,
+        # so let's override that.
+        stderr_handler = logging.root.handlers[0]
+        stderr_handler.stream = sys.stderr
+
     if 'BUTTERFLY_PERSIST' not in os.environ:
         def timeout_cb():
             if len(manager._connections) == 0:

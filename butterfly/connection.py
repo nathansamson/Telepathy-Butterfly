@@ -453,6 +453,8 @@ class ButterflyConnection(telepathy.server.Connection,
     # papyon.event.OfflineMessagesEventInterface
     def on_oim_messages_fetched(self, messages):
         for message in messages:
+            if message.sender is None:
+                continue
             # Request butterfly text channel (creation, what happen when it exist)
             sender = message.sender
             logger.info('received offline message from %s : %s' % (sender.account, message.text))

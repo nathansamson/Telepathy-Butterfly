@@ -29,6 +29,7 @@ from butterfly.channel.group import ButterflyGroupChannel
 from butterfly.channel.im import ButterflyImChannel
 from butterfly.channel.muc import ButterflyMucChannel
 from butterfly.channel.conference import ButterflyConferenceChannel
+from butterfly.channel.file_transfer import ButterflyFileTransferChannel
 from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 
@@ -81,6 +82,7 @@ def escape_as_identifier(identifier):
 class ButterflyChannelManager(telepathy.server.ChannelManager):
     __text_channel_id = 1
     __media_channel_id = 1
+    __ft_channel_id = 1
 
     def __init__(self, connection):
         telepathy.server.ChannelManager.__init__(self, connection)
@@ -123,6 +125,20 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 #              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'])
 #            ]
 #        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
+
+        classes = [
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_FILE_TRANSFER,
+              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+              telepathy.CHANNEL_INTERFACE + '.TargetID',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentType',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Filename',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Size',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentHash',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Description',
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Date'])
+            ]
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_FILE_TRANSFER, self._get_ft_channel, classes)
 
     def _get_list_channel(self, props):
         _, surpress_handler, handle = self._get_type_requested_handle(props)
@@ -183,9 +199,27 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
             client = self._conn.msn_client
             call = client.call_manager.create_call(contact)
 
-
         path = "MediaChannel/%d" % self.__media_channel_id
         self.__media_channel_id += 1
 
         return ButterflyMediaChannel(self._conn, self, call, handle, props,
             object_path=path)
+
+    def _get_ft_channel(self, props, session=None):
+        _, surpress_handler, handle = self._get_type_requested_handle(props)
+
+        if handle.get_type() != telepathy.HANDLE_TYPE_CONTACT:
+            raise telepathy.NotImplemented('Only contacts are allowed')
+
+        contact = handle.contact
+
+        if contact.presence == papyon.Presence.OFFLINE:
+            raise telepathy.NotAvailable('Contact not available')
+
+        logger.debug('New file transfer channel')
+
+        path = "FileTransferChannel%d" % self.__ft_channel_id
+        self.__ft_channel_id += 1
+
+        return ButterflyFileTransferChannel(self._conn, self, session, handle,
+            props, object_path=path)

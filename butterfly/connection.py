@@ -467,6 +467,17 @@ class ButterflyConnection(telepathy.server.Connection,
             # Notify it of the message
             channel.offline_message_received(message)
 
+    # papyon.event.InviteEventInterface
+    def on_invite_file_transfer(self, session):
+        logger.debug("File transfer invite")
+        handle = ButterflyHandleFactory(self, 'contact', session.peer.account,
+                session.peer.network_id)
+
+        props = self._generate_props(telepathy.CHANNEL_TYPE_FILE_TRANSFER,
+                handle, False)
+        channel = self._channel_manager.create_channel_for_props(props,
+                signal=True, session=session)
+
     def _advertise_disconnected(self):
         self._manager.disconnected(self)
 

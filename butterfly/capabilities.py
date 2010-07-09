@@ -65,6 +65,18 @@ class ButterflyCapabilities(
           telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio',
           telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'])
 
+    file_transfer_class = \
+        ({telepathy.CHANNEL_INTERFACE + '.ChannelType':
+              telepathy.CHANNEL_TYPE_FILE_TRANSFER,
+          telepathy.CHANNEL_INTERFACE + '.TargetHandleType':
+              dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+         [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+          telepathy.CHANNEL_INTERFACE + '.TargetID',
+          telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Requested',
+          telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Filename',
+          telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Size',
+          telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentType'])
+
 
     def __init__(self):
         telepathy.server.ConnectionInterfaceCapabilities.__init__(self)
@@ -154,31 +166,55 @@ class ButterflyCapabilities(
     # papyon.event.AddressBookEventInterface
     def on_addressbook_contact_added(self, contact):
         """When we add a contact in our contact list, add the
-        capabilities to create text channel to the contact"""
+        default capabilities to the contact"""
         if contact.is_member(papyon.Membership.FORWARD):
             handle = ButterflyHandleFactory(self, 'contact',
                     contact.account, contact.network_id)
-            self.add_text_capabilities([handle])
+            self.add_default_capabilities([handle])
 
-    def add_text_capabilities(self, contacts_handles):
-        """Add the create capability for text channel to these contacts."""
+    def _diff_capabilities(self, handle, ctype, new_gen=None,
+            new_spec=None, added_gen=None, added_spec=None):
+
+        if handle in self._caps and ctype in self._caps[handle]:
+            old_gen, old_spec = self._caps[handle][ctype]
+        else:
+            old_gen = 0
+            old_spec = 0
+
+        if new_gen is None:
+            new_gen = old_gen
+        if new_spec is None:
+            new_spec = old_spec
+        if added_gen:
+            new_gen |= added_gen
+        if added_spec:
+            new_spec |= new_spec
+
+        if old_gen != new_gen or old_spec != new_spec:
+            diff = (int(handle), ctype, old_gen, new_gen, old_spec, new_spec)
+            return diff
+
+        return None
+
+    def add_default_capabilities(self, contacts_handles):
+        """Add the default capabilities to these contacts."""
         ret = []
         cc_ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
         for handle in contacts_handles:
-            ctype = telepathy.CHANNEL_TYPE_TEXT
-            if handle in self._caps and ctype in self._caps[handle]:
-                old_gen, old_spec = self._caps[handle][ctype]
-            else:
-                old_gen = 0
-                old_spec = 0
-            new_gen = old_gen
-            new_gen |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+            new_flag = telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
 
-            diff = (int(handle), ctype, old_gen, new_gen, old_spec, old_spec)
+            ctype = telepathy.CHANNEL_TYPE_TEXT
+            diff = self._diff_capabilities(handle, ctype, added_gen=new_flag)
+            ret.append(diff)
+
+            ctype = telepathy.CHANNEL_TYPE_FILE_TRANSFER
+            diff = self._diff_capabilities(handle, ctype, added_gen=new_flag)
             ret.append(diff)
 
             # ContactCapabilities
-            self._contact_caps.setdefault(handle, []).append(self.text_chat_class)
+            caps = self._contact_caps.setdefault(handle, [])
+            caps.append(self.text_chat_class)
+            caps.append(self.file_transfer_class)
             cc_ret[handle] = self._contact_caps[handle]
 
         self.CapabilitiesChanged(ret)
@@ -190,14 +226,8 @@ class ButterflyCapabilities(
         ctype = telepathy.CHANNEL_TYPE_STREAMED_MEDIA
 
         new_gen, new_spec, rcc = self._get_capabilities(contact)
-        if handle in self._caps:
-            old_gen, old_spec = self._caps[handle][ctype]
-        else:
-            old_gen = 0
-            old_spec = 0
-
-        if old_gen != new_gen or old_spec != new_spec:
-            diff = (int(handle), ctype, old_gen, new_gen, old_spec, new_spec)
+        diff = self._diff_capabilities(handle, ctype, new_gen, new_spec)
+        if diff is not None:
             self.CapabilitiesChanged([diff])
 
         if rcc is None:
@@ -243,7 +273,7 @@ class ButterflyCapabilities(
 
     @async
     def _populate_capabilities(self):
-        """ Add the capability to create text channels to all contacts in our
+        """ Add the default capabilities to all contacts in our
         contacts list."""
         handles = set([self._self_handle])
         for contact in self.msn_client.address_book.contacts:
@@ -251,7 +281,7 @@ class ButterflyCapabilities(
                 handle = ButterflyHandleFactory(self, 'contact',
                         contact.account, contact.network_id)
                 handles.add(handle)
-        self.add_text_capabilities(handles)
+        self.add_default_capabilities(handles)
 
         # These caps were updated before we were online.
         for caps in self._update_capabilities_calls:

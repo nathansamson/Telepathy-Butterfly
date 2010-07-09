@@ -1,3 +1,14 @@
+telepathy-butterfly-0.5.12 (UNRELEASED)
+=======================================
+
+Enhancements:
+
+Fixes:
+
+Dependencies:
+
+ * papyon 0.4.9 is now required.
+
 telepathy-butterfly-0.5.11 (2010-06-08)
 =======================================
 

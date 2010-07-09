@@ -7,6 +7,9 @@ Enhancements:
    switchboard transfers so they will be very slow, but it's a
    start. (fd.o#22507)
 
+ * Only print messages (and tracebacks) to stderr if
+   BUTTERFLY_DEBUG=all. (fd.o#28930)
+
 Fixes:
 
  * fd.o#28431: only try and logout if the client isn't already closed.

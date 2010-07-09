@@ -3,7 +3,18 @@ telepathy-butterfly-0.5.12 (UNRELEASED)
 
 Enhancements:
 
+ * File transfer support has been merged. papyon 0.4.9 only has
+   switchboard transfers so they will be very slow, but it's a
+   start. (fd.o#22507)
+
 Fixes:
+
+ * fd.o#28431: only try and logout if the client isn't already closed.
+
+ * Ensure the list of connections in the connection manager isn't
+   altered during iteration.
+
+ * Don't try and get details of an oim if we aren't given the sender.
 
 Dependencies:
 

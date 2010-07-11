@@ -147,7 +147,7 @@ class ButterflyImChannel(ButterflyTextChannel):
             telepathy.CHANNEL + '.ChannelType': dbus.String(telepathy.CHANNEL_TYPE_TEXT),
             telepathy.CHANNEL + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_NONE),
             CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels': dbus.Array([self._object_path], signature='o'),
-            CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeIDs': dbus.String(handle.get_name()),
+            CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeIDs': dbus.Array([dbus.String(handle.get_name())], signature='s'),
             telepathy.CHANNEL + '.Requested': dbus.Boolean(False)
             }
 

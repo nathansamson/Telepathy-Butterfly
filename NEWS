@@ -1,3 +1,14 @@
+telepathy-butterfly-0.5.13 (UNRELEASED)
+=======================================
+
+Enhancements:
+
+Fixes:
+
+ * fd.o#29004: im channel: InitialInviteeIDs is an as, not s.
+
+Dependencies:
+
 telepathy-butterfly-0.5.12 (2010-07-09)
 =======================================
 

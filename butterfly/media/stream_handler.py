@@ -59,13 +59,18 @@ class ButterflyStreamHandler (
 
         telepathy.server.DBusProperties.__init__(self)
         telepathy.server.MediaStreamHandler.__init__(self, connection._name, path)
-        papyon.event.MediaStreamEventInterface.__init__(self, stream)
 
         self._implement_property_get(telepathy.interfaces.MEDIA_STREAM_HANDLER,
             {'CreatedLocally': lambda: self.created_locally,
              'NATTraversal': lambda: self.nat_traversal,
              'STUNServers': lambda: self.stun_servers,
              'RelayInfo': lambda: self.relay_info})
+
+        if stream._remote_candidates:
+            self.on_remote_candidates_received(stream._remote_candidates)
+        if stream._remote_codecs:
+            self.on_remote_codecs_received(stream._remote_codecs)
+        papyon.event.MediaStreamEventInterface.__init__(self, stream)
 
     @property
     def id(self):

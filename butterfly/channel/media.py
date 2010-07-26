@@ -56,7 +56,6 @@ class ButterflyMediaChannel(
         telepathy.server.ChannelInterfaceMediaSignalling.__init__(self)
         papyon.event.CallEventInterface.__init__(self, call)
         papyon.event.ContactEventInterface.__init__(self, conn.msn_client)
-        papyon.event.MediaSessionEventInterface.__init__(self, call.media_session)
         ButterflyChannel.__init__(self, conn, props)
 
         self._call = call
@@ -98,6 +97,11 @@ class ButterflyMediaChannel(
 
         if types:
             self.RequestStreams(handle, types)
+
+        for stream in call.media_session._streams:
+            self.on_stream_created(stream)
+            self.on_stream_added(stream)
+        papyon.event.MediaSessionEventInterface.__init__(self, call.media_session)
 
     def Close(self):
         logger.info("Channel closed by client")

@@ -76,6 +76,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self._size = session.size
 
         session.connect("accepted", self._transfer_accepted)
+        session.connect("rejected", self._transfer_rejected)
+        session.connect("canceled", self._transfer_canceled)
         session.connect("progressed", self._transfer_progressed)
         session.connect("completed", self._transfer_completed)
 
@@ -240,6 +242,16 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
             telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REQUESTED)
         self.set_state(telepathy.FILE_TRANSFER_STATE_OPEN,
             telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+
+    def _transfer_rejected(self, session):
+        logger.debug("Transfer has been declined")
+        self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REMOTE_STOPPED)
+
+    def _transfer_canceled(self, session):
+        logger.debug("Transfer has been cancelled")
+        self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REMOTE_STOPPED)
 
     def _transfer_progressed(self, session, size):
         self._transferred += size

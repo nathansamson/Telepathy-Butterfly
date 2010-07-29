@@ -154,9 +154,20 @@ class ButterflyConnection(telepathy.server.Connection,
         try:
             import libproxy
         except ImportError:
+            logger.warning("Please install libproxy python bindings to enable proxy support.")
             return
 
         factory = libproxy.ProxyFactory()
+
+        # Get SOCKS proxy if any
+        proxies = factory.getProxies('none://messenger.msn.com:1863')
+        proxies = [p for p in proxies if p.startswith('socks://')]
+        if len(proxies) > 0:
+            type, server, port, user, password = self._parse_proxy(proxies[0])
+            self._proxies['socks'] = \
+                papyon.ProxyInfos(host=server, port=int(port), type=type,
+                    user=user, password=password)
+
         proxies = factory.getProxies('http://gateway.messenger.msn.com/')
 
         # Remove socks proxies that papyon doesn't support.
@@ -177,6 +188,23 @@ class ButterflyConnection(telepathy.server.Connection,
                 del self._proxies['http']
             return True
 
+        # We've already removed every proxy other than http and
+        # direct, and have dealt with direct, so any other element
+        # will be an HTTP proxy:
+
+        type, server, port, user, password = self._parse_proxy(proxy)
+        self._proxies['http'] = \
+            papyon.ProxyInfos(host=server, port=int(port), type=type,
+                user=user, password=password)
+
+        if user:
+            logger.info('Using proxy: http://%s:***@%s:%u' % (user, server, int(port)))
+        else:
+            logger.info('Using proxy: http://%s:%u' % (server, int(port)))
+
+        return True
+
+    def _parse_proxy(self, proxy):
         # libproxy documentation states:
         #
         #  * The format of the returned proxy strings are as follows:
@@ -184,12 +212,10 @@ class ButterflyConnection(telepathy.server.Connection,
         #  *   - socks://[username:password@]proxy:port
         #  *   - direct://
         #  etc.
-        #
-        # We've already removed every proxy other than http and
-        # direct, and have dealt with direct, so any other element
-        # will be an HTTP proxy:
 
-        proxy = proxy[len('http://'):]
+        index = proxy.find("://")
+        ptype = proxy[0:index]
+        proxy = proxy[index + 3:]
 
         # Get username and password out.
         if '@' in proxy:
@@ -200,16 +226,7 @@ class ButterflyConnection(telepathy.server.Connection,
 
         server, port = proxy.split(':')
 
-        self._proxies['http'] = \
-            papyon.ProxyInfos(host=server, port=int(port), type='http',
-                user=user, password=password)
-
-        if user:
-            logger.info('Using proxy: http://%s:***@%s:%u' % (user, server, int(port)))
-        else:
-            logger.info('Using proxy: http://%s:%u' % (server, int(port)))
-
-        return True
+        return ptype, server, port, user, password
 
     @property
     def manager(self):

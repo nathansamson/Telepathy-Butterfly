@@ -83,6 +83,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         handles.append(session.connect("completed", self._transfer_completed))
         self._handles = handles
 
+        self._sources = []
+
         dbus_interface = telepathy.CHANNEL_TYPE_FILE_TRANSFER
         self._implement_property_get(dbus_interface, {
                 'State' : lambda: dbus.UInt32(self.state),
@@ -215,14 +217,18 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         sock.setblocking(False)
         channel = gobject.IOChannel(sock.fileno())
         channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
-        channel.add_watch(gobject.IO_IN, self._socket_connected)
-        channel.add_watch(gobject.IO_HUP | gobject.IO_ERR,
-            self._socket_disconnected)
+        self._sources.append(channel.add_watch(gobject.IO_IN,
+            self._socket_connected))
+        self._sources.append(channel.add_watch(gobject.IO_HUP | gobject.IO_ERR,
+            self._socket_disconnected))
         return channel
 
     def _socket_connected(self, channel, condition):
         logger.debug("Client socket connected")
         sock = self.socket.accept()[0]
+        for source in self._sources:
+            gobject.source_remove(source)
+        channel.close()
         if self._receiving:
             buffer = DataBuffer(sock)
             self._session.set_receive_data_buffer(buffer, self.size)
@@ -235,6 +241,9 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def _socket_disconnected(self, channel, condition):
         logger.debug("Client socket disconnected")
+        for source in self._sources:
+            gobject.source_remove(source)
+        channel.close()
         #self.cleanup()
         #TODO only cancel if the socket is disconnected while listening
         #self._session.cancel()

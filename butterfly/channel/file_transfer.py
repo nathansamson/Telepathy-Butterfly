@@ -173,22 +173,22 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
     def Close(self):
         logger.debug("Close")
-        self.cleanup()
-        if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                              telepathy.FILE_TRANSFER_STATE_COMPLETED):
-            self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_CANCELLED)
-        telepathy.server.ChannelTypeFileTransfer.Close(self)
-        self.remove_from_connection()
 
-    def cleanup(self):
         if self._receiving and self.state == telepathy.FILE_TRANSFER_STATE_PENDING:
             self._session.reject()
-
-        if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
+        elif self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
                               telepathy.FILE_TRANSFER_STATE_COMPLETED):
             self._session.cancel()
 
+        if self.state != telepathy.FILE_TRANSFER_STATE_COMPLETED:
+            self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_STOPPED)
+
+        telepathy.server.ChannelTypeFileTransfer.Close(self)
+        self.cleanup()
+        self.remove_from_connection()
+
+    def cleanup(self):
         if self.socket:
             self.socket.close()
             self.socket = None

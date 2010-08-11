@@ -268,6 +268,12 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
             telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_REMOTE_STOPPED)
 
+    def _transfer_completed(self, session, data):
+        logger.debug("Transfer completed")
+        self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
+            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
+        self.cleanup()
+
     def _transfer_progressed(self, session, size):
         self._transferred += size
 
@@ -307,12 +313,6 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
             self._progress_timer = gobject.timeout_add(1000 - interval,
                 emit_signal)
 
-    def _transfer_completed(self, session, data):
-        logger.debug("Transfer completed")
-        self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
-            telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
-        self.cleanup()
-
 class DataBuffer(object):
 
     def __init__(self, socket, size=0):
@@ -320,7 +320,6 @@ class DataBuffer(object):
         self._size = size
         self._offset = 0
         self._buffer = ""
-        #self.add_channel()
 
     def seek(self, offset, position):
         if position == 0:
@@ -347,26 +346,3 @@ class DataBuffer(object):
         self._size += len(data)
         self._offset += len(data)
         self._socket.send(data)
-
-    def add_channel(self):
-        sock = self._socket
-        sock.setblocking(False)
-        channel = gobject.IOChannel(sock.fileno())
-        channel.set_encoding(None)
-        channel.set_buffered(False)
-        channel.set_flags(channel.get_flags() | gobject.IO_FLAG_NONBLOCK)
-        channel.add_watch(gobject.IO_HUP | gobject.IO_ERR, self.on_error)
-        channel.add_watch(gobject.IO_IN | gobject.IO_PRI, self.on_stream_received)
-        self.channel = channel
-
-    def on_error(self, channel, condition):
-        logger.error("DataBuffer %s" % condition)
-
-    def on_stream_disconnected(self, channel, condition):
-        pass
-
-    def on_stream_received(self, channel, condition):
-        logger.info("Received data to send")
-        data = channel.read(1024)
-        print data
-        #self._session.send_chunk(data)

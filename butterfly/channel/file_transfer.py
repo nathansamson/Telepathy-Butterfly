@@ -174,12 +174,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
     def Close(self):
         logger.debug("Close")
 
-        if self._receiving and self.state == telepathy.FILE_TRANSFER_STATE_PENDING:
-            self._session.reject()
-        elif self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                              telepathy.FILE_TRANSFER_STATE_COMPLETED):
-            self._session.cancel()
-
+        self.cancel()
         if self.state != telepathy.FILE_TRANSFER_STATE_COMPLETED:
             self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
                 telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_STOPPED)
@@ -187,6 +182,13 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         telepathy.server.ChannelTypeFileTransfer.Close(self)
         self.cleanup()
         self.remove_from_connection()
+
+    def cancel(self):
+        if self._receiving and self.state == telepathy.FILE_TRANSFER_STATE_PENDING:
+            self._session.reject()
+        elif self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                              telepathy.FILE_TRANSFER_STATE_COMPLETED):
+            self._session.cancel()
 
     def cleanup(self):
         if self.socket:
@@ -244,11 +246,10 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         for source in self._sources:
             gobject.source_remove(source)
         channel.close()
-        #self.cleanup()
-        #TODO only cancel if the socket is disconnected while listening
-        #self._session.cancel()
-        #self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
-        #               telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
+
+        self.cancel()
+        self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                       telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_ERROR)
 
     def _transfer_accepted(self, session):
         logger.debug("Transfer has been accepted")

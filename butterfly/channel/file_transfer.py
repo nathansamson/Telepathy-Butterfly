@@ -75,11 +75,13 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         self._filename = session.filename
         self._size = session.size
 
-        session.connect("accepted", self._transfer_accepted)
-        session.connect("rejected", self._transfer_rejected)
-        session.connect("canceled", self._transfer_canceled)
-        session.connect("progressed", self._transfer_progressed)
-        session.connect("completed", self._transfer_completed)
+        handles = []
+        handles.append(session.connect("accepted", self._transfer_accepted))
+        handles.append(session.connect("rejected", self._transfer_rejected))
+        handles.append(session.connect("canceled", self._transfer_canceled))
+        handles.append(session.connect("progressed", self._transfer_progressed))
+        handles.append(session.connect("completed", self._transfer_completed))
+        self._handles = handles
 
         dbus_interface = telepathy.CHANNEL_TYPE_FILE_TRANSFER
         self._implement_property_get(dbus_interface, {
@@ -192,6 +194,9 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         if self._tmpdir:
             shutil.rmtree(self._tmpdir)
             self._tmpdir = None
+
+        for handle in self._handles:
+            self._session.disconnect(handle)
 
     def GetSelfHandle(self):
         return self._conn.GetSelfHandle()

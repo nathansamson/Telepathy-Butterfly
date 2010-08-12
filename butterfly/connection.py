@@ -420,29 +420,27 @@ class ButterflyConnection(telepathy.server.Connection,
 
     # papyon.event.InviteEventInterface
     def on_invite_conference(self, call):
-        logger.debug("Call invite, ignoring it")
-        #logger.debug("Call invite")
-        #handle = ButterflyHandleFactory(self, 'contact', call.peer.account,
-                #call.peer.network_id)
+        logger.debug("Call invite")
+        handle = ButterflyHandleFactory(self, 'contact', call.peer.account,
+                call.peer.network_id)
 
-        #props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-                #handle, False, initiator_handle=handle)
+        props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+                handle, False, initiator_handle=handle)
 
-        #channel = self._channel_manager.channel_for_props(props,
-                #signal=True, call=call)
+        channel = self._channel_manager.channel_for_props(props,
+                signal=True, call=call)
 
     # papyon.event.InviteEventInterface
     def on_invite_webcam(self, session, producer):
         direction = (producer and "send") or "receive"
-        logger.debug("Invitation to %s webcam, ignoring it" % direction)
-        #logger.debug("Invitation to %s webcam" % direction)
+        logger.debug("Invitation to %s webcam" % direction)
 
-        #handle = ButterflyHandleFactory(self, 'contact', session.peer.account,
-                #session.peer.network_id)
-        #props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-                #handle, False, initiator_handle=handle)
-        #channel = self._channel_manager.channel_for_props(props, signal=True,
-                #call=session)
+        handle = ButterflyHandleFactory(self, 'contact', session.peer.account,
+                session.peer.network_id)
+        props = self._generate_props(telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+                handle, False, initiator_handle=handle)
+        channel = self._channel_manager.channel_for_props(props, signal=True,
+                call=session)
 
     # papyon.event.OfflineMessagesEventInterface
     def on_oim_messages_received(self, messages):

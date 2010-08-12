@@ -89,14 +89,14 @@ class ButterflyCapabilities(
         self._update_capabilities_calls = []
 
     def AdvertiseCapabilities(self, add, remove):
-        #for caps, specs in add:
-            #if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
-                #if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
-                    #self._self_handle.profile.client_id.has_webcam = True
-                    #self._self_handle.profile.client_id.supports_rtc_video = True
-        #for caps in remove:
-            #if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
-                #self._self_handle.profile.client_id.has_webcam = False
+        for caps, specs in add:
+            if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
+                if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
+                    self._self_handle.profile.client_id.has_webcam = True
+                    self._self_handle.profile.client_id.supports_rtc_video = True
+        for caps in remove:
+            if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
+                self._self_handle.profile.client_id.has_webcam = False
 
         return telepathy.server.ConnectionInterfaceCapabilities.\
             AdvertiseCapabilities(self, add, remove)
@@ -122,9 +122,6 @@ class ButterflyCapabilities(
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:
             self._update_capabilities_calls.append(caps)
             return
-
-        # butterfly voip is disabled, so
-        return
 
         # We only care about voip.
         for client, classes, capabilities in caps:
@@ -257,17 +254,17 @@ class ButterflyCapabilities(
         rcc = None
 
         caps = contact.client_capabilities
-        #if caps.supports_sip_invite:
-            #gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
-            #gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
-            #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
-            #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
+        if caps.supports_sip_invite:
+            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
+            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
+            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
 
-            #if caps.has_webcam:
-                #spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
-                #rcc = self.av_chat_class
-            #else:
-                #rcc = self.audio_chat_class
+            if caps.has_webcam:
+                spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
+                rcc = self.av_chat_class
+            else:
+                rcc = self.audio_chat_class
 
         return gen_caps, spec_caps, rcc
 

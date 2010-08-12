@@ -116,15 +116,15 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
             ]
         self.implement_channel_classes(telepathy.CHANNEL_TYPE_CONTACT_LIST, self._get_list_channel, classes)
 
-#        classes = [
-#            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-#              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
-#             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
-#              telepathy.CHANNEL_INTERFACE + '.TargetID',
-#              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio',
-#              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'])
-#            ]
-#        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
+        classes = [
+            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
+              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
+             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
+              telepathy.CHANNEL_INTERFACE + '.TargetID',
+              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio',
+              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'])
+            ]
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
 
         classes = [
             ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_FILE_TRANSFER,

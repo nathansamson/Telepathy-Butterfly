@@ -117,6 +117,14 @@ class ButterflyTextChannel(
         else:
             return set()
 
+    def _get_handle(self, account, network_id):
+        profile = self._conn_ref().msn_client.profile
+        if account == profile.account and network_id == profile.network_id:
+            return ButterflyHandleFactory(self._conn_ref(), 'self')
+        else:
+            return ButterflyHandleFactory(self._conn_ref(), 'contact',
+                account, network_id)
+
     def _send_typing_notification(self):
         # No need to emit ChatStateChanged in this method becuase it will not
         # have changed from composing otherwise this source will have been
@@ -265,8 +273,7 @@ class ButterflyTextChannel(
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_typing(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._get_handle(contact.account, contact.network_id)
         logger.info("User %s is typing" % unicode(handle))
 
         # Remove any previous timeout.
@@ -283,11 +290,20 @@ class ButterflyTextChannel(
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
     # papyon.event.ConversationEventInterface
+    def on_conversation_message_sent(self, message):
+        id = self._recv_id
+        timestamp = int(time.time())
+        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
+        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
+        message = message.content
+        self._signal_text_received(id, timestamp, handle, type, 0, message)
+        self._recv_id += 1
+
+    # papyon.event.ConversationEventInterface
     def on_conversation_message_received(self, sender, message):
         id = self._recv_id
         timestamp = int(time.time())
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                sender.account, sender.network_id)
+        handle = self._get_handle(sender.account, sender.network_id)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         logger.info("User %s sent a message" % unicode(handle))
         content = re.sub('\r\n', '\n', message.content)
@@ -300,8 +316,7 @@ class ButterflyTextChannel(
         # We used to use (MESSAGE_TYPE_ACTION, "nudge") to send nudges, and our own
         # "$contact sent you a nudge" string when receiving, but that's not very nice.
         # We should implement this properly at some point. See fd.o#24699.
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                sender.account, sender.network_id)
+        handle = self._get_handle(sender.account, sender.network_id)
         logger.info("User %s sent a nudge" % unicode(handle))
 
     @dbus.service.signal(telepathy.CHANNEL_INTERFACE_MESSAGES, signature='aa{sv}')

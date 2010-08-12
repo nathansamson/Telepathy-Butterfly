@@ -9,6 +9,8 @@ Fixes:
 
 Dependencies:
 
+ * papyon 0.5.0 is now required.
+
 telepathy-butterfly-0.5.12 (2010-07-09)
 =======================================
 

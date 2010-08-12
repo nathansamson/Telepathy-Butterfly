@@ -35,8 +35,8 @@ if telepathy.version < (0, 15, 17):
     sys.exit(1)
 
 import papyon
-if papyon.version < (0, 4, 9):
-    print >> sys.stderr, 'Critical: papyon >= 0.4.9 required. Exiting.'
+if papyon.version < (0, 5, 0):
+    print >> sys.stderr, 'Critical: papyon >= 0.5.0 required. Exiting.'
     sys.exit(1)
 
 

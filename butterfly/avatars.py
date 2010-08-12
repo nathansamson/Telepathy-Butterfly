@@ -94,14 +94,13 @@ class ButterflyAvatars(\
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
             if handle == self.GetSelfHandle():
-                msn_object = self.msn_client.profile.msn_object
-                self._msn_object_retrieved(msn_object, handle)
+                contact = self.msn_client.profile
             else:
                 contact = handle.contact
-                if contact is not None:
-                    msn_object = contact.msn_object
-                    self.msn_client.msn_object_store.request(msn_object,
-                            (self._msn_object_retrieved, handle), peer=contact)
+            if contact is not None:
+                msn_object = contact.msn_object
+                self.msn_client.msn_object_store.request(msn_object,
+                        (self._msn_object_retrieved, handle), peer=contact)
 
     def SetAvatar(self, avatar, mime_type):
         self._avatar_known = True

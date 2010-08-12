@@ -140,10 +140,11 @@ class ButterflyConnection(telepathy.server.Connection,
         if use_http:
             self._tried_http = True
             self._msn_client = papyon.Client(self._server, self._proxies,
-                papyon.transport.HTTPPollConnection)
+                papyon.transport.HTTPPollConnection, 18)
         else:
             self._tried_http = False
-            self._msn_client = papyon.Client(self._server, self._proxies)
+            self._msn_client = papyon.Client(self._server, self._proxies,
+                version=18)
 
         papyon.event.ClientEventInterface.__init__(self, self._msn_client)
         papyon.event.InviteEventInterface.__init__(self, self._msn_client)

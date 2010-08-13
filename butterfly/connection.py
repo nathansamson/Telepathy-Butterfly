@@ -86,25 +86,27 @@ class ButterflyConnection(telepathy.server.Connection,
             account = unicode(parameters['account'])
             self._server = (parameters['server'].encode('utf-8'), parameters['port'])
 
-            # Build the proxies configurations
             self._proxies = {}
+            self._direct_proxies = [None]
+            self._http_proxies = [None]
+            self._default_http_proxy = None
+            self._default_https_proxy = None
+
+            # Build the proxies configurations
+            self._try_http = parameters['http-method']
             proxy = build_proxy_infos(parameters, 'http')
             if proxy is not None:
-                self._proxies['http'] = proxy
+                self._http_proxies = [proxy]
+                self._default_http_proxy = proxy
             proxy = build_proxy_infos(parameters, 'https')
             if proxy is not None:
-                self._proxies['https'] = proxy
+                self._default_https_proxy = proxy
 
-            self._suggested_proxies = []
-
-            # If the HTTP proxy parameters have been set, don't try any
-            # others proxies automatically.
-            if 'http' not in self._proxies:
-                self._fill_suggested_proxies()
-                self._use_next_proxy()
+            self._fill_suggested_proxies()
+            self._use_next_proxy()
 
             self._manager = weakref.proxy(manager)
-            self._new_client(use_http=parameters['http-method'])
+            self._new_client(use_http=self._try_http)
             self._account = (parameters['account'].encode('utf-8'),
                     parameters['password'].encode('utf-8'))
             self._channel_manager = ButterflyChannelManager(self)
@@ -159,48 +161,51 @@ class ButterflyConnection(telepathy.server.Connection,
 
         factory = libproxy.ProxyFactory()
 
-        # Get SOCKS proxy if any
+        # Get DirectConnection proxies
         proxies = factory.getProxies('none://messenger.msn.com:1863')
-        proxies = [p for p in proxies if p.startswith('socks://')]
-        if len(proxies) > 0:
-            type, server, port, user, password = self._parse_proxy(proxies[0])
-            self._proxies['socks'] = \
-                papyon.ProxyInfos(host=server, port=int(port), type=type,
-                    user=user, password=password)
+        proxies = [self._parse_proxy(p) for p in proxies]
+        self._direct_proxies = proxies
 
-        proxies = factory.getProxies('http://gateway.messenger.msn.com/')
+        # Get HTTP proxies (if not already set by a parameter)
+        if not self._default_http_proxy:
+            proxies = factory.getProxies('http://gateway.messenger.msn.com/')
+            proxies = [self._parse_proxy(p) for p in proxies]
+            self._http_proxies = proxies
+            if len(proxies) > 0:
+                self._default_http_proxy = proxies[0]
 
-        # Remove socks proxies that papyon doesn't support.
-        proxies = [p for p in proxies if p.startswith('http://') or p == 'direct://']
-
-        if proxies:
-            self._suggested_proxies = proxies
+        # Get HTTPS proxies (if not already set by a parameter)
+        if not self._default_https_proxy:
+            proxies = factory.getProxies('https://rsi.hotmail.com/rsi/rsi.asmx')
+            proxies = [self._parse_proxy(p) for p in proxies]
+            if len(proxies) > 0:
+                self._default_https_proxy = proxies[0]
 
     def _use_next_proxy(self):
-        if not self._suggested_proxies:
+        if not self._try_http and self._direct_proxies:
+            direct_proxy = self._direct_proxies.pop(0)
+            http_proxy   = self._default_http_proxy
+            https_proxy  = self._default_https_proxy
+        elif self._http_proxies:
+            self._try_http = True
+            direct_proxy = None
+            http_proxy   = self._http_proxies.pop(0)
+            https_proxy  = self._default_https_proxy
+        else:
             return False
 
-        # Use the first one.
-        proxy = self._suggested_proxies.pop(0)
+        self._proxies['direct'] = direct_proxy
+        self._proxies['http']   = http_proxy
+        self._proxies['https']  = https_proxy
 
-        if proxy == 'direct://':
-            if 'http' in self._proxies:
-                del self._proxies['http']
-            return True
-
-        # We've already removed every proxy other than http and
-        # direct, and have dealt with direct, so any other element
-        # will be an HTTP proxy:
-
-        type, server, port, user, password = self._parse_proxy(proxy)
-        self._proxies['http'] = \
-            papyon.ProxyInfos(host=server, port=int(port), type=type,
-                user=user, password=password)
-
-        if user:
-            logger.info('Using proxy: http://%s:***@%s:%u' % (user, server, int(port)))
-        else:
-            logger.info('Using proxy: http://%s:%u' % (server, int(port)))
+        # Clean proxies (remove None)
+        for conn_type in ('direct', 'http', 'https'):
+            if conn_type not in self._proxies:
+                pass
+            proxy = self._proxies[conn_type]
+            if proxy is None:
+                del self._proxies[conn_type]
+            logger.info('Using %s proxy: %s' % (conn_type, proxy))
 
         return True
 
@@ -213,6 +218,9 @@ class ButterflyConnection(telepathy.server.Connection,
         #  *   - direct://
         #  etc.
 
+        if proxy is None or proxy == "direct://":
+            return None
+
         index = proxy.find("://")
         ptype = proxy[0:index]
         proxy = proxy[index + 3:]
@@ -224,9 +232,11 @@ class ButterflyConnection(telepathy.server.Connection,
         else:
             user = password = None
 
-        server, port = proxy.split(':')
+        if ':' in proxy:
+            server, port = proxy.split(':')
 
-        return ptype, server, port, user, password
+        return papyon.ProxyInfos(host=server, port=int(port), type=ptype,
+                user=user, password=password)
 
     @property
     def manager(self):
@@ -399,11 +409,10 @@ class ButterflyConnection(telepathy.server.Connection,
             # connect to HTTP if we're already connected and we lose
             # connectivity (see fd.o#26147).
             if self._status == telepathy.CONNECTION_STATUS_CONNECTING and \
-                    (self._tried_http is False or \
-                   (self._tried_http is True and self._use_next_proxy())):
+                    self._use_next_proxy():
                 logger.info("Failed to connect, trying HTTP "
                             "(possibly again with another proxy)")
-                self._new_client(use_http=True)
+                self._new_client(use_http=self._try_http)
                 self._msn_client.login(*self._account)
             else:
                 self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_NETWORK_ERROR

@@ -1,11 +1,16 @@
-telepathy-butterfly-0.5.13 (UNRELEASED)
+telepathy-butterfly-0.5.13 (2010-08-12)
 =======================================
 
 Enhancements:
 
+ * Video-conference support has been re-enabled
+ * Multiple Points of Presence support
+
 Fixes:
 
  * fd.o#29004: im channel: InitialInviteeIDs is an as, not s.
+ * fd.o#29015: failed to cancel incoming FT
+ * fd.o#28462: failed to connect through proxy
 
 Dependencies:
 

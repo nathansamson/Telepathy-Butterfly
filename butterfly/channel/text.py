@@ -172,6 +172,7 @@ class ButterflyTextChannel(
                   }, signature='sv')
 
         if sender_nick not in (None, ''):
+            sender_nick = unicode(sender_nick, "utf-8")
             headers[dbus.String('sender-nickname')] = dbus.String(sender_nick)
 
         body = dbus.Dictionary({dbus.String('content-type'): dbus.String('text/plain'),

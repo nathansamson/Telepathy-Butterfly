@@ -291,16 +291,6 @@ class ButterflyTextChannel(
         self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_COMPOSING)
 
     # papyon.event.ConversationEventInterface
-    def on_conversation_message_sent(self, message):
-        id = self._recv_id
-        timestamp = int(time.time())
-        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
-        type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
-        message = message.content
-        self._signal_text_received(id, timestamp, handle, type, 0, message)
-        self._recv_id += 1
-
-    # papyon.event.ConversationEventInterface
     def on_conversation_message_received(self, sender, message):
         id = self._recv_id
         timestamp = int(time.time())

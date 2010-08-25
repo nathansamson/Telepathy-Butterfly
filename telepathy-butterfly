@@ -25,6 +25,8 @@ import os
 import sys
 import logging
 
+version = (0, 5, 13)
+
 if sys.version_info < (2, 5):
     print >> sys.stderr, 'Critical: python >= 2.5 required. Exiting.'
     sys.exit(1)
@@ -103,6 +105,12 @@ if __name__ == '__main__':
     except dbus.exceptions.NameExistsException:
         logger.warning('Failed to acquire bus name, connection manager already running?')
         sys.exit(1)
+
+    def v2str(version):
+        return ".".join(map(lambda x: str(x), version))
+    logger.info("Starting butterfly %s: telepathy-python %s, papyon %s" %
+            (v2str(version), v2str(telepathy.version), v2str(papyon.version)))
+
 
     mainloop = gobject.MainLoop(is_running=True)
     gobject.threads_init()

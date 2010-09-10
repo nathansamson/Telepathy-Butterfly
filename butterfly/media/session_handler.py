@@ -107,6 +107,9 @@ class ButterflySessionHandler (telepathy.server.MediaSessionHandler):
         return handler
 
     def NewStream(self, stream=None, handler=None):
+        if handler is None and stream is None:
+            logger.error("A stream or a handler must be given to NewStream")
+            return
         if handler is None:
             handler = self.FindStream(stream)
         if not self._ready:

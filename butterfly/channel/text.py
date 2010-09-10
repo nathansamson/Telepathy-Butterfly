@@ -126,7 +126,7 @@ class ButterflyTextChannel(
                 account, network_id)
 
     def _send_typing_notification(self):
-        # No need to emit ChatStateChanged in this method becuase it will not
+        # No need to emit ChatStateChanged in this method because it will not
         # have changed from composing otherwise this source will have been
         # removed.
 

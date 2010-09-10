@@ -170,6 +170,7 @@ class ButterflyMediaChannel(
 
     #papyon.event.call.CallEventInterface
     def on_call_accepted(self):
+        logger.info("Call accepted")
         self.on_call_answered(telepathy.MEDIA_STREAM_DIRECTION_BIDIRECTIONAL, 0)
 
     #papyon.event.call.CallEventInterface
@@ -179,6 +180,8 @@ class ButterflyMediaChannel(
     def on_call_answered(self, direction, pending_send):
         for handler in self._session_handler.ListStreams():
             handler.set_direction(direction, pending_send)
+            logger.info("Direction changed to %i, %i" % (direction,
+                pending_send))
             self.StreamDirectionChanged(handler.id, direction, pending_send)
 
     #papyon.event.call.CallEventInterface

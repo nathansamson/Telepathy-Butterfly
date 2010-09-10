@@ -157,13 +157,20 @@ class ButterflyImChannel(ButterflyTextChannel):
         logger.info('Created new MUC channel to replace this 1-1 one: %s' % \
             new_channel._object_path)
 
+    # papyon.event.ConversationEventInterface
+    def on_conversation_closed(self):
+        logger.info('Conversation closed')
+        self._offline_contact = self._initial_handle.contact
+        self._offline_handle = self._initial_handle
+        self._conversation = None
+
     # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):
         handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
                 contact.account, contact.network_id)
         # Recreate a conversation if our contact join
         if self._offline_contact == contact and contact.presence != papyon.Presence.OFFLINE:
-            logger.info('Contact %s connected, inviting him to the text channel' % unicode(contact))
+            logger.info('Contact %s connected, inviting him to the text channel' % unicode(handle))
             client = self._conn_ref().msn_client
             self._conversation = papyon.Conversation(client, [contact])
             papyon.event.ConversationEventInterface.__init__(self, self._conversation)

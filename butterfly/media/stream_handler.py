@@ -142,8 +142,6 @@ class ButterflyStreamHandler (
         is_webcam = (self._session.type is MediaSessionType.WEBCAM_SEND or
                      self._session.type is MediaSessionType.WEBCAM_RECV)
 
-        if self._remote_candidates:
-            self.SetRemoteCandidateList(self._remote_candidates)
         if self._remote_codecs:
             self.SetRemoteCodecs(self._remote_codecs)
 
@@ -154,6 +152,10 @@ class ButterflyStreamHandler (
 
         if self.created_locally or is_webcam:
             self.SetLocalCodecs(codecs)
+
+    def send_candidates(self):
+        if self._remote_candidates and not self.created_locally:
+            self.SetRemoteCandidateList(self._remote_candidates)
 
     def StreamState(self, state):
         logger.info("Stream %i state changed to %i" % (self._id, state))

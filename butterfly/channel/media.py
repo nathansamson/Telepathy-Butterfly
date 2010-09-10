@@ -161,6 +161,8 @@ class ButterflyMediaChannel(
             if handle == int(self.GetSelfHandle()):
                 if self.GetSelfHandle() in self._local_pending:
                     self._call.accept()
+                    for handler in self._session_handler.ListStreams():
+                        handler.send_candidates()
 
     def RemoveMembers(self, handles, message):
         logger.info("Remove members %r: %s" % (handles, message))

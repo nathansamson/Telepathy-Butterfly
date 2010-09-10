@@ -1,3 +1,12 @@
+telepathy-butterfly-0.5.14 (2010-09-10)
+=======================================
+
+Fixes:
+
+ * fd.o#24338: only set remote candidates after acception the invitation
+ * Fix handling of conversations when contact goes offline (needs papyon 0.5.1)
+ * Fix detection of capabilities
+
 telepathy-butterfly-0.5.13 (2010-08-12)
 =======================================
 

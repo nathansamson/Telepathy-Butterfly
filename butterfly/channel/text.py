@@ -310,6 +310,15 @@ class ButterflyTextChannel(
         handle = self._get_handle(sender.account, sender.network_id)
         logger.info("User %s sent a nudge" % unicode(handle))
 
+    # papyon.event.ConversationEventInterface
+    def on_conversation_error(self, error_type, error):
+        logger.warning("Conversation error %s %s" % (str(error_type),
+            str(error)))
+        if error_type == papyon.event.ConversationErrorType.MESSAGE:
+            timestamp = int(time.time())
+            self.SendError(telepathy.CHANNEL_TEXT_SEND_ERROR_UNKNOWN, timestamp,
+                    telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, "")
+
     @dbus.service.signal(telepathy.CHANNEL_INTERFACE_MESSAGES, signature='aa{sv}')
     def MessageReceived(self, message):
         id = message[0]['pending-message-id']

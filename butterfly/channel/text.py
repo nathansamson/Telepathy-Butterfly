@@ -60,7 +60,7 @@ class ButterflyTextChannel(
         ButterflyChannel.__init__(self, conn, props)
         telepathy.server.ChannelInterfaceChatState.__init__(self)
         ChannelInterfaceMessages.__init__(self)
-        papyon.event.ConversationEventInterface.__init__(self, conn.msn_client)
+        papyon.event.ContactEventInterface.__init__(self, conn.msn_client)
 
         self._implement_property_get(CHANNEL_INTERFACE_MESSAGES, {
             'SupportedContentTypes': lambda: ["text/plain"] ,

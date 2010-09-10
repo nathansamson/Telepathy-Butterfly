@@ -131,12 +131,15 @@ class ButterflyCapabilities(
                 if channel_class[telepathy.CHANNEL_INTERFACE + '.ChannelType'] == \
                         telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
                     video = True
-                    self._video_clients.append(client)
-                else:
-                    # *Did* it used to support video?
-                    if client in self._video_clients:
-                        self._video_clients.remove(client)
+                    break
 
+            if video and client not in self._video_clients:
+                self._video_clients.append(client)
+            elif not video and client in self._video_clients:
+                # *Did* it used to support video?
+                self._video_clients.remove(client)
+
+        video = (len(self._video_clients) > 0)
         changed = False
 
         # We've got no more clients that support video; remove the cap.
@@ -145,7 +148,8 @@ class ButterflyCapabilities(
             changed = True
 
         # We want video.
-        if video and not self._self_handle.profile.client_id.has_webcam:
+        if video and (not self._self_handle.profile.client_id.has_webcam or
+           not self._self_handle.profile.client_id.supports_rtc_video):
             self._self_handle.profile.client_id.has_webcam = True
             self._self_handle.profile.client_id.supports_rtc_video = True
             changed = True

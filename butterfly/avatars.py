@@ -127,8 +127,11 @@ class ButterflyAvatars(\
             avatar_token = contact.msn_object._data_sha.encode("hex")
         else:
             avatar_token = ""
-        handle = ButterflyHandleFactory(self, 'contact',
-                contact.account, contact.network_id)
+        if contact is self.msn_client.profile:
+            handle = ButterflyHandleFactory(self, 'self')
+        else:
+            handle = ButterflyHandleFactory(self, 'contact',
+                    contact.account, contact.network_id)
         self.AvatarUpdated(handle, avatar_token)
 
     # papyon.event.ProfileEventInterface

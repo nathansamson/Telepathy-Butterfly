@@ -63,9 +63,6 @@ class ButterflyMailNotification(
         logger.debug("Initialized")
         telepathy.server.DBusProperties.__init__(self)
         ConnectionInterfaceMailNotification.__init__(self)
-        # FIXME MSN Account is not always attached to an e-mail account. The
-        # tp-python generator should allow sub-class initialisation without
-        # adding the interface to the list. (see bug #26044)
         self._interfaces.remove(CONN_IFACE_MAIL_NOTIFICATION)
         papyon.event.MailboxEventInterface.__init__(self, self.msn_client)
 

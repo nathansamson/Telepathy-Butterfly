@@ -46,6 +46,8 @@ class ButterflyStreamHandler (
         self._interfaces = set()
         self._callbacks = {}
 
+        self._ready = False
+        self._accepted = False
         self._state = telepathy.MEDIA_STREAM_STATE_CONNECTING
         self._direction = stream.direction
         if self._stream.created_locally:
@@ -101,6 +103,10 @@ class ButterflyStreamHandler (
         return self._stream.created_locally
 
     @property
+    def ready_for_candidates(self):
+        return self._ready and (self._stream.created_locally or self._accepted)
+
+    @property
     def nat_traversal(self):
         if self._session.type is MediaSessionType.SIP:
             return "wlm-8.5"
@@ -139,11 +145,14 @@ class ButterflyStreamHandler (
 
     def Ready(self, codecs):
         logger.info("Stream %i is ready" % self._id)
+        self._ready = True
         is_webcam = (self._session.type is MediaSessionType.WEBCAM_SEND or
                      self._session.type is MediaSessionType.WEBCAM_RECV)
 
         if self._remote_codecs:
             self.SetRemoteCodecs(self._remote_codecs)
+        if self._remote_candidates and self.ready_for_candidates:
+            self.SetRemoteCandidateList(self._remote_candidates)
 
         self.SetStreamPlaying(self._direction &
                 telepathy.MEDIA_STREAM_DIRECTION_RECEIVE)
@@ -154,7 +163,8 @@ class ButterflyStreamHandler (
             self.SetLocalCodecs(codecs)
 
     def send_candidates(self):
-        if self._remote_candidates and not self.created_locally:
+        self._accepted = True
+        if self._remote_candidates and self.ready_for_candidates:
             self.SetRemoteCandidateList(self._remote_candidates)
 
     def StreamState(self, state):
@@ -204,7 +214,7 @@ class ButterflyStreamHandler (
     def on_remote_candidates_received(self, candidates):
         list = self.convert_media_candidates(candidates)
         self._remote_candidates = list
-        if self._stream.created_locally:
+        if list and self.ready_for_candidates:
             self.SetRemoteCandidateList(list)
 
     #papyon.event.MediaStreamEventInterface

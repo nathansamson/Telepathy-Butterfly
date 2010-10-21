@@ -53,7 +53,7 @@ from butterfly.util.decorator import async
 
 logger = logging.getLogger('Butterfly')
 
-IDLE_TIMEOUT = 5000
+IDLE_TIMEOUT = 5
 PROCESS_NAME = 'telepathy-butterfly'
 
 if __name__ == '__main__':
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 logger.info('No connection received - quitting')
                 quit()
             return False
-        gobject.timeout_add(IDLE_TIMEOUT, timeout_cb)
+        gobject.timeout_add_seconds(IDLE_TIMEOUT, timeout_cb)
         shutdown_callback = quit
     else:
         shutdown_callback = None

@@ -80,7 +80,7 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
                 self._shutdown()
             return False
         result = telepathy.server.ConnectionManager.disconnected(self, conn)
-        gobject.timeout_add(5000, shutdown)
+        gobject.timeout_add_seconds(5, shutdown)
 
     def quit(self):
         "Terminates all connections. Must be called upon quit"

@@ -318,7 +318,8 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         ButterflyListChannel.__init__(self, connection, manager, props,
             object_path='RosterChannel/List/publish')
         papyon.event.ContactEventInterface.__init__(self, connection.msn_client)
-        self.GroupFlagsChanged(0, 0)
+        self.GroupFlagsChanged(telepathy.CHANNEL_GROUP_FLAG_CAN_ADD |
+                telepathy.CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
 
     def AddMembers(self, contacts, message):
         for handle_id in contacts:

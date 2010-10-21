@@ -104,7 +104,8 @@ class ButterflyMediaChannel(
 
     def Close(self):
         logger.info("Channel closed by client")
-        self._call.end()
+        if self._call:
+            self._call.end()
 
     def GetSessionHandlers(self):
         return [(self._session_handler, self._session_handler.subtype)]
@@ -123,6 +124,11 @@ class ButterflyMediaChannel(
             self._handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle)
 
         streams = dbus.Array([], signature="a(uuuuuu)")
+
+        if self._call is None:
+            logger.warning("Call has already been closed")
+            return streams
+
         for type in types:
             handler = self._session_handler.CreateStream(type, 3)
             handler.connect("state-changed", self.on_stream_state_changed)
@@ -188,6 +194,7 @@ class ButterflyMediaChannel(
     #papyon.event.call.CallEventInterface
     def on_call_ended(self):
         logger.info("Call has ended")
+        self._call = None
         telepathy.server.ChannelTypeStreamedMedia.Close(self)
         self._session_handler.remove_from_connection()
 
@@ -218,7 +225,7 @@ class ButterflyMediaChannel(
 
     #papyon.event.media.ContactEventInterface
     def on_contact_presence_changed(self, contact):
-        if contact == self._call.peer and \
+        if self._call is not None and contact == self._call.peer and \
            contact.presence == papyon.Presence.OFFLINE:
             logger.info("%s is now offline, closing channel" % contact)
             self.Close()
@@ -228,7 +235,8 @@ class ButterflyMediaChannel(
         self.StreamError(handler.id, error, message)
         # TODO: properly remove the stream without ending the whole
         # call unless it was the last stream of the session.
-        self._call.end()
+        if self._call is not None:
+            self._call.end()
 
     #StreamHandler event
     def on_stream_state_changed(self, handler, state):

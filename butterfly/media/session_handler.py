@@ -25,7 +25,6 @@ import papyon
 import papyon.event
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflyStreamHandler
 from butterfly.media.constants import *
 from papyon.media.constants import *

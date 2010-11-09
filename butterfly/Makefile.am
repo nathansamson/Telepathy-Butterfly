@@ -13,4 +13,5 @@ butterfly_PYTHON = \
 	connection_manager.py \
 	contacts.py \
 	handle.py \
-	mail_notification.py
+	mail_notification.py \
+	protocol.py

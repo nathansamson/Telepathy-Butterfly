@@ -51,36 +51,9 @@ class ButterflyConnection(telepathy.server.Connection,
         papyon.event.InviteEventInterface,
         papyon.event.OfflineMessagesEventInterface):
 
-    _secret_parameters = set([
-            'password',
-            'http-proxy-password',
-            'https-proxy-password'
-            ])
-    _mandatory_parameters = {
-            'account' : 's',
-            'password' : 's'
-            }
-    _optional_parameters = {
-            'server' : 's',
-            'port' : 'q',
-            'http-proxy-server' : 's',
-            'http-proxy-port' : 'q',
-            'http-proxy-username' : 's',
-            'http-proxy-password' : 's',
-            'https-proxy-server' : 's',
-            'https-proxy-port' : 'q',
-            'https-proxy-username' : 's',
-            'https-proxy-password' : 's',
-            'http-method' : 'b',
-            }
-    _parameter_defaults = {
-            'server' : 'messenger.hotmail.com',
-            'port' : 1863,
-            'http-method' : False
-            }
 
-    def __init__(self, manager, parameters):
-        self.check_parameters(parameters)
+    def __init__(self, protocol, manager, parameters):
+        protocol.check_parameters(parameters)
 
         try:
             account = unicode(parameters['account'])
@@ -109,10 +82,11 @@ class ButterflyConnection(telepathy.server.Connection,
             self._new_client(use_http=self._try_http)
             self._account = (parameters['account'].encode('utf-8'),
                     parameters['password'].encode('utf-8'))
-            self._channel_manager = ButterflyChannelManager(self)
+            self._channel_manager = ButterflyChannelManager(self, protocol)
 
             # Call parent initializers
-            telepathy.server.Connection.__init__(self, 'msn', account, 'butterfly')
+            telepathy.server.Connection.__init__(self, 'msn', account,
+                    'butterfly', protocol)
             telepathy.server.ConnectionInterfaceRequests.__init__(self)
             ButterflyPresence.__init__(self)
             ButterflyAliasing.__init__(self)

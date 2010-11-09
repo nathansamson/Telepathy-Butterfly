@@ -21,7 +21,7 @@ import gobject
 import dbus
 import logging
 
-from butterfly.connection import ButterflyConnection
+from butterfly.protocol import ButterflyProtocol
 
 __all__ = ['ButterflyConnectionManager']
 
@@ -37,41 +37,10 @@ class ButterflyConnectionManager(telepathy.server.ConnectionManager):
         "Initializer"
         telepathy.server.ConnectionManager.__init__(self, 'butterfly')
 
-        self._protos['msn'] = ButterflyConnection
+        self._implement_protocol('msn', ButterflyProtocol)
+
         self._shutdown = shutdown_func
         logger.info("Connection manager created")
-
-    def GetParameters(self, proto):
-        "Returns the mandatory and optional parameters for the given proto."
-        if proto not in self._protos:
-            raise telepathy.NotImplemented('unknown protocol %s' % proto)
-
-        result = []
-        connection_class = self._protos[proto]
-        secret_parameters = connection_class._secret_parameters
-        mandatory_parameters = connection_class._mandatory_parameters
-        optional_parameters = connection_class._optional_parameters
-        default_parameters = connection_class._parameter_defaults
-
-        for parameter_name, parameter_type in mandatory_parameters.iteritems():
-            flags = telepathy.CONN_MGR_PARAM_FLAG_REQUIRED
-            if parameter_name in secret_parameters:
-                flags |= telepathy.CONN_MGR_PARAM_FLAG_SECRET
-            param = (parameter_name, flags,  parameter_type, '')
-            result.append(param)
-
-        for parameter_name, parameter_type in optional_parameters.iteritems():
-            flags = 0
-            default = ''
-            if parameter_name in secret_parameters:
-                flags |= telepathy.CONN_MGR_PARAM_FLAG_SECRET
-            if parameter_name in default_parameters:
-                flags |= telepathy.CONN_MGR_PARAM_FLAG_HAS_DEFAULT
-                default = default_parameters[parameter_name]
-            param = (parameter_name, flags, parameter_type, default)
-            result.append(param)
-
-        return result
 
     def disconnected(self, conn):
         def shutdown():

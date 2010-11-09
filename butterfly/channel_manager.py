@@ -82,61 +82,15 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
     __media_channel_id = 1
     __ft_channel_id = 1
 
-    def __init__(self, connection):
+    def __init__(self, connection, protocol):
         telepathy.server.ChannelManager.__init__(self, connection)
 
-        classes = [
-            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
-              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
-             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
-              telepathy.CHANNEL_INTERFACE + '.TargetID']),
+        self.set_requestable_channel_classes(protocol.requestable_channels)
 
-            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_TEXT,
-              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_NONE)},
-             [CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels',
-              CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeHandles',
-              CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeIDs',
-              CHANNEL_INTERFACE_CONFERENCE + '.InitialMessage',
-              CHANNEL_INTERFACE_CONFERENCE + '.SupportsNonMerges'])
-            ]
-        self.implement_channel_classes(telepathy.CHANNEL_TYPE_TEXT, self._get_text_channel, classes)
-
-        classes = [
-            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_CONTACT_LIST,
-              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_GROUP)},
-             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
-              telepathy.CHANNEL_INTERFACE + '.TargetID']),
-
-            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_CONTACT_LIST,
-              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_LIST)},
-             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
-              telepathy.CHANNEL_INTERFACE + '.TargetID'])
-            ]
-        self.implement_channel_classes(telepathy.CHANNEL_TYPE_CONTACT_LIST, self._get_list_channel, classes)
-
-        classes = [
-            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_STREAMED_MEDIA,
-              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
-             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
-              telepathy.CHANNEL_INTERFACE + '.TargetID',
-              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialAudio',
-              telepathy.CHANNEL_TYPE_STREAMED_MEDIA + '.InitialVideo'])
-            ]
-        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel, classes)
-
-        classes = [
-            ({telepathy.CHANNEL_INTERFACE + '.ChannelType': telepathy.CHANNEL_TYPE_FILE_TRANSFER,
-              telepathy.CHANNEL_INTERFACE + '.TargetHandleType': dbus.UInt32(telepathy.HANDLE_TYPE_CONTACT)},
-             [telepathy.CHANNEL_INTERFACE + '.TargetHandle',
-              telepathy.CHANNEL_INTERFACE + '.TargetID',
-              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentType',
-              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Filename',
-              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Size',
-              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.ContentHash',
-              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Description',
-              telepathy.CHANNEL_TYPE_FILE_TRANSFER + '.Date'])
-            ]
-        self.implement_channel_classes(telepathy.CHANNEL_TYPE_FILE_TRANSFER, self._get_ft_channel, classes)
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_TEXT, self._get_text_channel)
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_CONTACT_LIST, self._get_list_channel)
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_STREAMED_MEDIA, self._get_media_channel)
+        self.implement_channel_classes(telepathy.CHANNEL_TYPE_FILE_TRANSFER, self._get_ft_channel)
 
     def _get_list_channel(self, props):
         _, surpress_handler, handle = self._get_type_requested_handle(props)

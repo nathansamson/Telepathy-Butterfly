@@ -93,9 +93,10 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         papyon.event.ContactEventInterface.__init__(self, self.msn_client)
         papyon.event.ProfileEventInterface.__init__(self, self.msn_client)
 
-        dbus_interface = 'org.freedesktop.Telepathy.Connection.Interface.SimplePresence'
-
-        self._implement_property_get(dbus_interface, {'Statuses' : self.get_statuses})
+        self._implement_property_get(
+            telepathy.CONNECTION_INTERFACE_SIMPLE_PRESENCE, {
+                'Statuses' : lambda: self._protocol.statuses
+            })
 
 
     def GetStatuses(self):
@@ -226,39 +227,6 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
             presences[handle] = dbus.Struct((presence_type, presence,
                 personal_message), signature='uss')
         return presences
-
-    def get_statuses(self):
-        # you get one of these for each status
-        # {name:(Type, May_Set_On_Self, Can_Have_Message}
-        return dbus.Dictionary({
-            ButterflyPresenceMapping.ONLINE:(
-                telepathy.CONNECTION_PRESENCE_TYPE_AVAILABLE,
-                True, True),
-            ButterflyPresenceMapping.AWAY:(
-                telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
-                True, True),
-            ButterflyPresenceMapping.BUSY:(
-                telepathy.CONNECTION_PRESENCE_TYPE_BUSY,
-                True, True),
-            ButterflyPresenceMapping.IDLE:(
-                telepathy.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
-                True, True),
-            ButterflyPresenceMapping.BRB:(
-                telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
-                True, True),
-            ButterflyPresenceMapping.PHONE:(
-                telepathy.CONNECTION_PRESENCE_TYPE_AWAY,
-                True, True),
-            ButterflyPresenceMapping.LUNCH:(
-                telepathy.CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
-                True, True),
-            ButterflyPresenceMapping.INVISIBLE:(
-                telepathy.CONNECTION_PRESENCE_TYPE_HIDDEN,
-                True, False),
-            ButterflyPresenceMapping.OFFLINE:(
-                telepathy.CONNECTION_PRESENCE_TYPE_OFFLINE,
-                True, False)
-        }, signature='s(ubb)')
 
     # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):

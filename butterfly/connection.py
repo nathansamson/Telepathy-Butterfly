@@ -261,6 +261,15 @@ class ButterflyConnection(telepathy.server.Connection,
         self.__disconnect_reason = telepathy.CONNECTION_STATUS_REASON_REQUESTED
         if self._msn_client.state != papyon.event.ClientState.CLOSED:
             self._msn_client.logout()
+        else:
+            self._disconnected()
+
+    def _disconnected(self):
+        logger.info("Disconnected")
+        self.StatusChanged(telepathy.CONNECTION_STATUS_DISCONNECTED,
+                self.__disconnect_reason)
+        self._channel_manager.close()
+        self._manager.disconnected(self)
 
     def GetInterfaces(self):
         # The self._interfaces set is only ever touched in ButterflyConnection.__init__,
@@ -395,11 +404,7 @@ class ButterflyConnection(telepathy.server.Connection,
                         self._client.profile.presence,
                         self._client.profile.personal_message)
         elif state == papyon.event.ClientState.CLOSED:
-            self.StatusChanged(telepathy.CONNECTION_STATUS_DISCONNECTED,
-                    self.__disconnect_reason)
-            #FIXME
-            self._channel_manager.close()
-            self._advertise_disconnected()
+            self._disconnected()
 
     # papyon.event.ClientEventInterface
     def on_client_error(self, type, error):
@@ -502,9 +507,6 @@ class ButterflyConnection(telepathy.server.Connection,
                 handle, False)
         channel = self._channel_manager.create_channel_for_props(props,
                 signal=True, session=session)
-
-    def _advertise_disconnected(self):
-        self._manager.disconnected(self)
 
 
 def build_proxy_infos(parameters, proxy_type='http'):

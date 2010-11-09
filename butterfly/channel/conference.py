@@ -137,11 +137,7 @@ class ButterflyConferenceChannel(
 
         # Get InitialInviteeIDs
         for invitee_id in props.get(CHANNEL_INTERFACE_CONFERENCE + '.InitialInviteeIDs', []):
-            handle = None
-            for h in self._conn_ref()._handles.itervalues():
-                if h.get_name() == invitee_id:
-                    handle = h
-                    break
+            handle = self._conn_ref().ensure_handle(telepathy.HANDLE_TYPE_CONTACT, invitee_id)
 
             if handle is None or handle.contact is None:
                 raise telepathy.NotAvailable('Contact "%s" not available' % invitee_id)

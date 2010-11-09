@@ -25,7 +25,6 @@ import papyon
 import papyon.event
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.media import ButterflySessionHandler
 from butterfly.channel import ButterflyChannel
 
@@ -157,9 +156,9 @@ class ButterflyMediaChannel(
     def AddMembers(self, handles, message):
         logger.info("Add members %r: %s" % (handles, message))
         for handle in handles:
-            print handle, self.GetSelfHandle()
-            if handle == int(self.GetSelfHandle()):
-                if self.GetSelfHandle() in self._local_pending:
+            print handle, int(self._conn.self_handle)
+            if handle == int(self._conn.self_handle):
+                if self._conn.self_handle in self._local_pending:
                     self._call.accept()
                     for handler in self._session_handler.ListStreams():
                         handler.send_candidates()
@@ -242,11 +241,11 @@ class ButterflyMediaChannel(
         remote_pending = []
 
         if self._call.incoming:
-            local_pending.append(self._conn.GetSelfHandle())
+            local_pending.append(self._conn.self_handle)
             added.append(self._handle)
         else:
             remote_pending.append(self._handle)
-            added.append(self._conn.GetSelfHandle())
+            added.append(self._conn.self_handle)
 
         self.MembersChanged('', added, [], local_pending, remote_pending,
                 0, telepathy.CHANNEL_GROUP_CHANGE_REASON_NONE)

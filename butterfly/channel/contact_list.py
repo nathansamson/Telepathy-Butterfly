@@ -24,7 +24,6 @@ import papyon
 import papyon.event
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.channel import ButterflyChannel
 
 __all__ = ['ButterflyContactListChannelFactory']
@@ -142,8 +141,7 @@ class ButterflyListChannel(
 
         ad, lp, rp = self._filter_contact(contact)
         if ad or lp or rp:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+            handle = self._conn.ensure_contact_handle(contact)
             if ad: added.add(handle)
             if lp: local_pending.add(handle)
             if rp: remote_pending.add(handle)
@@ -153,8 +151,7 @@ class ButterflyListChannel(
 
     # papyon.event.AddressBookEventInterface
     def on_addressbook_contact_deleted(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         ad, lp, rp = self._filter_contact(contact)
         if self._contains_handle(handle) and not ad:
             self.MembersChanged('', (), [handle], (), (), 0,
@@ -177,8 +174,7 @@ class ButterflyListChannel(
         for contact in connection.msn_client.address_book.contacts:
             ad, lp, rp = self._filter_contact(contact)
             if ad or lp or rp:
-                handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                        contact.account, contact.network_id)
+                handle = self._conn.ensure_contact_handle(contact)
                 if ad: added.add(handle)
                 if lp: local_pending.add(handle)
                 if rp: remote_pending.add(handle)
@@ -299,8 +295,7 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
 
     # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         if contact.is_member(papyon.Membership.FORWARD):
             self.MembersChanged('', [handle], (), (), (), 0,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED)
@@ -334,8 +329,7 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         for contact in self._conn.msn_client.address_book.contacts:
             if not contact.is_member(papyon.Membership.PENDING):
                 continue
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                    contact.account, contact.network_id)
+            handle = self._conn.ensure_contact_handle(contact)
             result.append((handle, handle,
                     telepathy.CHANNEL_GROUP_CHANGE_REASON_INVITED,
                     contact.attributes.get('invite_message', '')))
@@ -385,8 +379,7 @@ class ButterflyPublishListChannel(ButterflyListChannel,
 
     # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         if self._contains_handle(handle):
             if contact.is_member(papyon.Membership.PENDING):
                 # Nothing worth our attention

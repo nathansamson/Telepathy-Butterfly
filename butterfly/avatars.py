@@ -26,7 +26,6 @@ import papyon
 import papyon.event
 import papyon.util.string_io as StringIO
 
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.util.decorator import async
 
 __all__ = ['ButterflyAvatars']
@@ -74,10 +73,7 @@ class ButterflyAvatars(\
         result = {}
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            if handle == self.GetSelfHandle():
-                contact = handle.profile
-            else:
-                contact = handle.contact
+            contact = handle.contact
 
             if contact is not None:
                 msn_object = contact.msn_object
@@ -93,7 +89,7 @@ class ButterflyAvatars(\
     def RequestAvatars(self, contacts):
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            if handle == self.GetSelfHandle():
+            if handle == self._self_handle:
                 contact = self.msn_client.profile
             else:
                 contact = handle.contact
@@ -127,11 +123,7 @@ class ButterflyAvatars(\
             avatar_token = contact.msn_object._data_sha.encode("hex")
         else:
             avatar_token = ""
-        if contact is self.msn_client.profile:
-            handle = ButterflyHandleFactory(self, 'self')
-        else:
-            handle = ButterflyHandleFactory(self, 'contact',
-                    contact.account, contact.network_id)
+        handle = self.ensure_contact_handle(contact)
         self.AvatarUpdated(handle, avatar_token)
 
     # papyon.event.ProfileEventInterface
@@ -140,7 +132,7 @@ class ButterflyAvatars(\
         if msn_object is not None:
             avatar_token = msn_object._data_sha.encode("hex")
             logger.info("Self avatar changed to %s" % avatar_token)
-            handle = ButterflyHandleFactory(self, 'self')
+            handle = self._self_handle
             self.AvatarUpdated(handle, avatar_token)
 
     @async

@@ -27,7 +27,6 @@ from telepathy._generated.Connection_Interface_Contact_Capabilities \
      import ConnectionInterfaceContactCapabilities
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 
 __all__ = ['ButterflyCapabilities']
 
@@ -92,11 +91,11 @@ class ButterflyCapabilities(
         for caps, specs in add:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
                 if specs & telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO:
-                    self._self_handle.profile.client_id.has_webcam = True
-                    self._self_handle.profile.client_id.supports_rtc_video = True
+                    self._msn_client.profile.client_id.has_webcam = True
+                    self._msn_client.profile.client_id.supports_rtc_video = True
         for caps in remove:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
-                self._self_handle.profile.client_id.has_webcam = False
+                self._msn_client.profile.client_id.has_webcam = False
 
         return telepathy.server.ConnectionInterfaceCapabilities.\
             AdvertiseCapabilities(self, add, remove)
@@ -144,14 +143,14 @@ class ButterflyCapabilities(
 
         # We've got no more clients that support video; remove the cap.
         if not video and not self._video_clients:
-            self._self_handle.profile.client_id.has_webcam = False
+            self._msn_client.profile.client_id.has_webcam = False
             changed = True
 
         # We want video.
-        if video and (not self._self_handle.profile.client_id.has_webcam or
-           not self._self_handle.profile.client_id.supports_rtc_video):
-            self._self_handle.profile.client_id.has_webcam = True
-            self._self_handle.profile.client_id.supports_rtc_video = True
+        if video and (not self._msn_client.profile.client_id.has_webcam or
+           not self._msn_client.profile.client_id.supports_rtc_video):
+            self._msn_client.profile.client_id.has_webcam = True
+            self._msn_client.profile.client_id.supports_rtc_video = True
             changed = True
 
         # Signal.
@@ -169,9 +168,9 @@ class ButterflyCapabilities(
         """When we add a contact in our contact list, add the
         default capabilities to the contact"""
         if contact.is_member(papyon.Membership.FORWARD):
-            handle = ButterflyHandleFactory(self, 'contact',
-                    contact.account, contact.network_id)
-            self.add_default_capabilities([handle])
+            handle = self.ensure_contact_handle(contact)
+            self._add_default_capabilities([handle])
+
 
     def _diff_capabilities(self, handle, ctype, new_gen=None,
             new_spec=None, added_gen=None, added_spec=None):
@@ -222,8 +221,7 @@ class ButterflyCapabilities(
         self.ContactCapabilitiesChanged(cc_ret)
 
     def _update_capabilities(self, contact):
-        handle = ButterflyHandleFactory(self, 'contact',
-                contact.account, contact.network_id)
+        handle = self.ensure_contact_handle(contact)
         ctype = telepathy.CHANNEL_TYPE_STREAMED_MEDIA
 
         new_gen, new_spec, rcc = self._get_capabilities(contact)
@@ -279,8 +277,7 @@ class ButterflyCapabilities(
         handles = set([self._self_handle])
         for contact in self.msn_client.address_book.contacts:
             if contact.is_member(papyon.Membership.FORWARD):
-                handle = ButterflyHandleFactory(self, 'contact',
-                        contact.account, contact.network_id)
+                handle = self.ensure_contact_handle(contact)
                 handles.add(handle)
         self._add_default_capabilities(handles)
 

@@ -36,8 +36,8 @@ class ButterflyChannel(object):
 
         # otherwise use InitiatorID.
         elif telepathy.CHANNEL_INTERFACE + '.InitiatorID' in props:
-            self._initiator = ButterflyHandleFactory(conn, 'contact',
-                id=props[telepathy.CHANNEL_INTERFACE + '.InitiatorID'])
+            self._initiator = conn.ensure_handle(telepathy.HANDLE_TYPE_CONTACT,
+                props[telepathy.CHANNEL_INTERFACE + '.InitiatorID'])
 
         # If we don't have either of the above but we requested the channel,
         # then we're the initiator.

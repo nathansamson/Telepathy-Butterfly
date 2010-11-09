@@ -25,7 +25,6 @@ import papyon
 from papyon.service.description.AB.constants import \
     ContactGeneral, ContactAnnotations
 
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.util.decorator import async
 
 __all__ = ['ButterflyAliasing']
@@ -60,7 +59,7 @@ class ButterflyAliasing(
     def SetAliases(self, aliases):
         for handle_id, alias in aliases.iteritems():
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            if handle != ButterflyHandleFactory(self, 'self'):
+            if handle != self._self_handle:
                 if alias == handle.name:
                     alias = u""
                 contact = handle.contact
@@ -82,7 +81,7 @@ class ButterflyAliasing(
             else:
                 self.msn_client.profile.display_name = alias.encode('utf-8')
                 logger.info("Self alias changed to '%s'" % alias)
-                self.AliasesChanged(((ButterflyHandleFactory(self, 'self'), alias), ))
+                self.AliasesChanged(((self._self_handle, alias), ))
 
     # papyon.event.ContactEventInterface
     def on_contact_display_name_changed(self, contact):
@@ -98,8 +97,7 @@ class ButterflyAliasing(
 
     # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):
-        handle = ButterflyHandleFactory(self, 'contact',
-                contact.account, contact.network_id)
+        handle = self.ensure_contact_handle(contact)
         if contact.is_member(papyon.Membership.FORWARD):
             alias = handle.pending_alias
             if alias is not None:
@@ -117,7 +115,7 @@ class ButterflyAliasing(
     def _get_alias(self, handle_id):
         """Get the alias from one handle id"""
         handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-        if handle == ButterflyHandleFactory(self, 'self'):
+        if handle == self._self_handle:
             display_name = self.msn_client.profile.display_name
             if display_name == "":
                 display_name = handle.get_name().split('@', 1)[0]
@@ -141,13 +139,10 @@ class ButterflyAliasing(
     def _contact_alias_changed(self, contact):
         alias = None
 
-        if contact.account != self.msn_client.profile.account:
-            handle = ButterflyHandleFactory(self, 'contact',
-                contact.account, contact.network_id)
+        handle = self.ensure_contact_handle(contact)
+        if handle != self._self_handle:
             alias = contact.infos.get(ContactGeneral.ANNOTATIONS, {}).\
                 get(ContactAnnotations.NICKNAME, None)
-        else:
-            handle = ButterflyHandleFactory(self, 'self')
 
         if alias == "" or alias is None:
             alias = contact.display_name

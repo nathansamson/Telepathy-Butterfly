@@ -25,7 +25,6 @@ import papyon
 import papyon.event
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.channel.text import ButterflyTextChannel
 
 __all__ = ['ButterflyMucChannel']
@@ -55,15 +54,14 @@ class ButterflyMucChannel(
 
     def RemoveMembers(self, contacts, message):
         # Group interface, only removing ourself is supported
-        if int(self.GetSelfHandle()) in contacts:
+        if int(self._conn.self_handle) in contacts:
             self.Close()
         else :
             raise telepathy.PermissionDenied
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         logger.info("User %s joined" % unicode(handle))
 
         if handle not in self._members:
@@ -72,8 +70,7 @@ class ButterflyMucChannel(
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_left(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         logger.info("User %s left" % unicode(handle))
 
         self.MembersChanged('', [], [handle], [], [],
@@ -88,11 +85,10 @@ class ButterflyMucChannel(
     @async
     def __add_initial_participants(self):
         handles = []
-        handles.append(self._conn.GetSelfHandle())
+        handles.append(self._conn.self_handle)
         if self._conversation:
             for participant in self._conversation.participants:
-                handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                        participant.account, participant.network_id)
+                handle = self._conn.ensure_contact_handle(contact)
                 handles.append(handle)
 
         if handles:

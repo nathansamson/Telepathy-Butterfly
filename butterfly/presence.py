@@ -28,7 +28,6 @@ import telepathy.constants
 import telepathy.errors
 import papyon
 
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.util.decorator import async
 
 __all__ = ['ButterflyPresence']
@@ -166,10 +165,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         presences = {}
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            try:
-                contact = handle.contact
-            except AttributeError:
-                contact = handle.profile
+            contact = handle.contact
 
             if contact is not None:
                 presence = ButterflyPresenceMapping.to_telepathy[contact.presence]
@@ -216,10 +212,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
         presences = dbus.Dictionary(signature='u(uss)')
         for handle_id in contacts:
             handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
-            try:
-                contact = handle.contact
-            except AttributeError:
-                contact = handle.profile
+            contact = handle.contact
 
             if contact is not None:
                 presence = ButterflyPresenceMapping.to_telepathy[contact.presence]
@@ -269,8 +262,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
 
     # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):
-        handle = ButterflyHandleFactory(self, 'contact',
-                contact.account, contact.network_id)
+        handle = self.ensure_contact_handle(contact)
         logger.info("Contact %s presence changed to '%s'" % (unicode(handle),
             contact.presence))
         self._presence_changed(handle, contact.presence, contact.personal_message)
@@ -281,7 +273,7 @@ class ButterflyPresence(telepathy.server.ConnectionInterfacePresence,
     # papyon.event.ProfileEventInterface
     def on_profile_presence_changed(self):
         profile = self.msn_client.profile
-        self._presence_changed(ButterflyHandleFactory(self, 'self'),
+        self._presence_changed(self._self_handle,
                 profile.presence, profile.personal_message)
 
     # papyon.event.ProfileEventInterface

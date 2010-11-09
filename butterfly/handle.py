@@ -29,37 +29,16 @@ logger = logging.getLogger('Butterfly.Handle')
 network_to_extension = {papyon.NetworkID.EXTERNAL: "#yahoo"}
 
 
-def ButterflyHandleFactory(connection, type, *args):
-    mapping = {'self': ButterflySelfHandle,
-               'contact': ButterflyContactHandle,
-               'list': ButterflyListHandle,
-               'group': ButterflyGroupHandle}
-    handle = mapping[type](connection, *args)
-    connection._handles[handle.get_type(), handle.get_id()] = handle
+def ButterflyHandleFactory(connection, type, id, name, **kwargs):
+    mapping = {telepathy.HANDLE_TYPE_CONTACT: ButterflyContactHandle,
+               telepathy.HANDLE_TYPE_LIST: ButterflyListHandle,
+               telepathy.HANDLE_TYPE_GROUP: ButterflyGroupHandle}
+    handle = mapping[type](connection, id, name, **kwargs)
+    connection._handles[handle.type, handle.id] = handle
     return handle
 
 
-class ButterflyHandleMeta(type):
-    def __call__(cls, connection, *args):
-        obj, newly_created = cls.__new__(cls, connection, *args)
-        if newly_created:
-            obj.__init__(connection, connection.get_handle_id(), *args)
-            logger.info("New Handle %s" % unicode(obj))
-        return obj 
-
-
 class ButterflyHandle(telepathy.server.Handle):
-    __metaclass__ = ButterflyHandleMeta
-
-    instances = weakref.WeakValueDictionary()
-    def __new__(cls, connection, *args):
-        key = (cls, connection._account[0], args)
-        if key not in cls.instances.keys():
-            instance = object.__new__(cls)
-            cls.instances[key] = instance # TRICKY: instances is a weakdict
-            return instance, True
-        return cls.instances[key], False
-
     def __init__(self, connection, id, handle_type, name):
         telepathy.server.Handle.__init__(self, id, handle_type, name)
         self._conn = weakref.proxy(connection)
@@ -73,30 +52,25 @@ class ButterflyHandle(telepathy.server.Handle):
         return "<Butterfly%sHandle id=%u name='%s'>" % \
             (type_str, self.id, self.name)
 
-    id = property(telepathy.server.Handle.get_id)
-    type = property(telepathy.server.Handle.get_type)
-    name = property(telepathy.server.Handle.get_name)
-
-
-class ButterflySelfHandle(ButterflyHandle):
-    instance = None
-
-    def __init__(self, connection, id):
-        handle_type = telepathy.HANDLE_TYPE_CONTACT
-        handle_name = connection._account[0]
-        self._connection = connection
-        ButterflyHandle.__init__(self, connection, id, handle_type, handle_name)
-
-    @property
-    def profile(self):
-        return self._connection.msn_client.profile
-
 
 class ButterflyContactHandle(ButterflyHandle):
-    def __init__(self, connection, id, contact_account, contact_network):
-        extension = network_to_extension.get(contact_network, "")
+    def __init__(self, connection, id, contact_name, contact=None):
         handle_type = telepathy.HANDLE_TYPE_CONTACT
-        handle_name = contact_account + extension
+        handle_name = contact_name
+        self._contact = contact
+
+        if contact is None:
+            contact_account = contact_name.lower()
+            contact_network = papyon.NetworkID.MSN
+            for network, extension in network_to_extension.items():
+                if contact_name.endswith(extension):
+                    contact_account = contact_name[0:-len(extension)]
+                    contact_network = network
+                    break
+        else:
+            contact_account = contact.account
+            contact_network = contact.network_id
+
         self.account = contact_account
         self.network = contact_network
         self.pending_groups = set()
@@ -105,8 +79,14 @@ class ButterflyContactHandle(ButterflyHandle):
 
     @property
     def contact(self):
-        return self._conn.msn_client.address_book.search_contact(self.account,
-                self.network)
+        if self._contact is None:
+            if self.account == self._conn._msn_client.profile.account.lower() and \
+                    self.network == papyon.NetworkID.MSN:
+                self._contact = self._conn.msn_client.profile
+            else:
+                self._contact = self._conn.msn_client.address_book.search_contact(
+                        self.account, self.network)
+        return self._contact
 
 
 class ButterflyListHandle(ButterflyHandle):
@@ -129,4 +109,3 @@ class ButterflyGroupHandle(ButterflyHandle):
             if group.name.decode("utf-8").lower() == self.name.lower():
                 return group
         return None
-

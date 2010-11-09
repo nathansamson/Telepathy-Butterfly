@@ -31,7 +31,6 @@ import papyon.event
 import socket
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 
 from telepathy.interfaces import CHANNEL_TYPE_FILE_TRANSFER
 

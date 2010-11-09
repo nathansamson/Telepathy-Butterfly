@@ -24,7 +24,6 @@ import papyon
 import papyon.event
 
 from butterfly.util.decorator import async
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.channel.contact_list import ButterflyListChannel
 
 __all__ = ['ButterflyGroupChannel']
@@ -132,8 +131,7 @@ class ButterflyGroupChannel(ButterflyListChannel,
     def on_addressbook_group_contact_added(self, group, contact):
         group_name = group.name.decode("utf-8")
         if group_name == self._handle.name:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                    contact.account, contact.network_id)
+            handle = self._conn.ensure_contact_handle(contact)
 
             added = set()
             added.add(handle)
@@ -147,8 +145,7 @@ class ButterflyGroupChannel(ButterflyListChannel,
     def on_addressbook_group_contact_deleted(self, group, contact):
         group_name = group.name.decode("utf-8")
         if group_name == self._handle.name:
-            handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                    contact.account, contact.network_id)
+            handle = self._conn.ensure_contact_handle(contact)
 
             removed = set()
             removed.add(handle)

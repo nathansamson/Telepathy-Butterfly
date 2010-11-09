@@ -28,7 +28,6 @@ import telepathy
 import papyon
 import papyon.event
 
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.channel.text import ButterflyTextChannel
 
 from butterfly.Channel_Interface_Conference import CHANNEL_INTERFACE_CONFERENCE
@@ -136,8 +135,7 @@ class ButterflyImChannel(ButterflyTextChannel):
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_joined(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         logger.info("User %s joined" % unicode(handle))
 
         if self._initial_handle == handle:
@@ -166,8 +164,7 @@ class ButterflyImChannel(ButterflyTextChannel):
 
     # papyon.event.ContactEventInterface
     def on_contact_presence_changed(self, contact):
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         # Recreate a conversation if our contact join
         if self._offline_contact == contact and contact.presence != papyon.Presence.OFFLINE:
             logger.info('Contact %s connected, inviting him to the text channel' % unicode(handle))
@@ -193,8 +190,7 @@ class ButterflyImChannel(ButterflyTextChannel):
         # when acked by the client
         self._pending_offline_messages[id] = message
 
-        handle = ButterflyHandleFactory(self._conn_ref(), 'contact',
-                sender.account, sender.network_id)
+        handle = self._conn.ensure_contact_handle(sender)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         logger.info("User %r sent a offline message" % handle)
         self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, text)

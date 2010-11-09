@@ -31,7 +31,6 @@ import papyon.event
 from telepathy._generated.Channel_Interface_Messages import ChannelInterfaceMessages
 from telepathy.interfaces import CHANNEL_INTERFACE_MESSAGES
 
-from butterfly.handle import ButterflyHandleFactory
 from butterfly.channel import ButterflyChannel
 
 __all__ = ['ButterflyTextChannel']
@@ -81,11 +80,10 @@ class ButterflyTextChannel(
 
     def _remove_typing_timeouts(self):
         # Remove any timeouts we had running.
-        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
-
         if self._send_typing_notification_timeout != 0:
             gobject.source_remove(self._send_typing_notification_timeout)
             self._send_typing_notification_timeout = 0
+            handle = self._conn.self_handle
             self.ChatStateChanged(handle, telepathy.CHANNEL_CHAT_STATE_ACTIVE)
 
         for handle, tag in self._typing_notifications.items():
@@ -116,14 +114,6 @@ class ButterflyTextChannel(
             return self._conversation.participants
         else:
             return set()
-
-    def _get_handle(self, account, network_id):
-        profile = self._conn_ref().msn_client.profile
-        if account == profile.account and network_id == profile.network_id:
-            return ButterflyHandleFactory(self._conn_ref(), 'self')
-        else:
-            return ButterflyHandleFactory(self._conn_ref(), 'contact',
-                account, network_id)
 
     def _send_typing_notification(self):
         # No need to emit ChatStateChanged in this method because it will not
@@ -200,8 +190,7 @@ class ButterflyTextChannel(
                     gobject.source_remove(self._send_typing_notification_timeout)
                     self._send_typing_notification_timeout = 0
 
-        handle = ButterflyHandleFactory(self._conn_ref(), 'self')
-        self.ChatStateChanged(handle, state)
+        self.ChatStateChanged(self._conn.GetSelfHandle(), state)
 
     @dbus.service.method(telepathy.CHANNEL_TYPE_TEXT, in_signature='us', out_signature='',
                          async_callbacks=('_success', '_error'))
@@ -263,7 +252,7 @@ class ButterflyTextChannel(
     # Redefine GetSelfHandle since we use our own handle
     #  as Butterfly doesn't have channel specific handles
     def GetSelfHandle(self):
-        return self._conn_ref().GetSelfHandle()
+        return self._conn.GetSelfHandle()
 
     def _contact_typing_notification_timeout(self, handle):
         # Contact hasn't sent a typing notification for ten seconds. He or she
@@ -274,7 +263,7 @@ class ButterflyTextChannel(
 
     # papyon.event.ConversationEventInterface
     def on_conversation_user_typing(self, contact):
-        handle = self._get_handle(contact.account, contact.network_id)
+        handle = self._conn.ensure_contact_handle(contact)
         logger.info("User %s is typing" % unicode(handle))
 
         # Remove any previous timeout.
@@ -294,7 +283,7 @@ class ButterflyTextChannel(
     def on_conversation_message_received(self, sender, message):
         id = self._recv_id
         timestamp = int(time.time())
-        handle = self._get_handle(sender.account, sender.network_id)
+        handle = self._conn.ensure_contact_handle(sender)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         logger.info("User %s sent a message" % unicode(handle))
         content = re.sub('\r\n', '\n', message.content)
@@ -307,7 +296,7 @@ class ButterflyTextChannel(
         # We used to use (MESSAGE_TYPE_ACTION, "nudge") to send nudges, and our own
         # "$contact sent you a nudge" string when receiving, but that's not very nice.
         # We should implement this properly at some point. See fd.o#24699.
-        handle = self._get_handle(sender.account, sender.network_id)
+        handle = self._conn.ensure_contact_handle(sender)
         logger.info("User %s sent a nudge" % unicode(handle))
 
     # papyon.event.ConversationEventInterface
@@ -323,4 +312,3 @@ class ButterflyTextChannel(
     def MessageReceived(self, message):
         id = message[0]['pending-message-id']
         self._pending_messages2[id] = dbus.Array(message, signature='a{sv}')
-

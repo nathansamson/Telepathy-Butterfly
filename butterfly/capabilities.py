@@ -197,7 +197,7 @@ class ButterflyCapabilities(
 
         return None
 
-    def add_default_capabilities(self, contacts_handles):
+    def _add_default_capabilities(self, contacts_handles):
         """Add the default capabilities to these contacts."""
         ret = []
         cc_ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
@@ -282,7 +282,7 @@ class ButterflyCapabilities(
                 handle = ButterflyHandleFactory(self, 'contact',
                         contact.account, contact.network_id)
                 handles.add(handle)
-        self.add_default_capabilities(handles)
+        self._add_default_capabilities(handles)
 
         # These caps were updated before we were online.
         for caps in self._update_capabilities_calls:

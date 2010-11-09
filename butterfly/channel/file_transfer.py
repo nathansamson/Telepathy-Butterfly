@@ -178,8 +178,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
             self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
                 telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_STOPPED)
 
-        telepathy.server.ChannelTypeFileTransfer.Close(self)
         self.cleanup()
+        telepathy.server.ChannelTypeFileTransfer.Close(self)
 
     def cancel(self):
         if self._receiving and self.state == telepathy.FILE_TRANSFER_STATE_PENDING:

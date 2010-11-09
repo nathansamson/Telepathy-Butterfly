@@ -33,8 +33,6 @@ from butterfly.channel.file_transfer import ButterflyFileTransferChannel
 from butterfly.channel.media import ButterflyMediaChannel
 from butterfly.handle import ButterflyHandleFactory
 
-from butterfly.Channel_Interface_Conference import CHANNEL_INTERFACE_CONFERENCE
-
 __all__ = ['ButterflyChannelManager']
 
 logger = logging.getLogger('Butterfly.ChannelManager')
@@ -168,7 +166,7 @@ class ButterflyChannelManager(telepathy.server.ChannelManager):
 
         # MUC which has been upgraded from a 1-1 chat
         elif handle.get_type() == telepathy.HANDLE_TYPE_NONE \
-                and CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' in props:
+                and telepathy.CHANNEL_INTERFACE_CONFERENCE + '.InitialChannels' in props:
             channel = ButterflyConferenceChannel(self._conn, self, conversation, props,
                 object_path=path)
 

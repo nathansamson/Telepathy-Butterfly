@@ -4,7 +4,6 @@ butterflydir = $(pythondir)/butterfly
 butterfly_PYTHON = \
 	aliasing.py \
 	capabilities.py \
-	Channel_Interface_Conference.py \
 	Connection_Interface_Mail_Notification.py \
 	connection.py \
 	debug.py \

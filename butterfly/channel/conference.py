@@ -26,7 +26,6 @@ import papyon
 import papyon.event
 
 from butterfly.channel.muc import ButterflyMucChannel
-from butterfly.Channel_Interface_Conference import *
 
 __all__ = ['ButterflyConferenceChannel']
 
@@ -34,11 +33,11 @@ logger = logging.getLogger('Butterfly.ConferenceChannel')
 
 class ButterflyConferenceChannel(
         ButterflyMucChannel,
-        ChannelInterfaceConference):
+        telepathy.server.ChannelInterfaceConference):
 
     def __init__(self, conn, manager, conversation, props, object_path=None):
         ButterflyMucChannel.__init__(self, conn, manager, conversation, props, object_path)
-        ChannelInterfaceConference.__init__(self)
+        telepathy.server.ChannelInterfaceConference.__init__(self)
 
         _, _, handle = manager._get_type_requested_handle(props)
 
@@ -60,36 +59,6 @@ class ButterflyConferenceChannel(
 
         # Invite contacts in InitialInvitee{IDs,Handles}
         self._invite_initial_invitees(props, ic)
-
-        # D-Bus properties for conference interface
-        self._implement_property_get(CHANNEL_INTERFACE_CONFERENCE, {
-            'Channels':
-                lambda: dbus.Array(self._conference_channels, signature='o'),
-            'InitialChannels':
-                lambda: dbus.Array(self._conference_initial_channels,
-                                   signature='o'),
-            'InitialInviteeHandles':
-                lambda: dbus.Array(
-                    [h.get_id() for h in self._conference_initial_invitees],
-                    signature='u'),
-            'InitialInviteeIDs':
-                lambda: dbus.Array(
-                    [h.get_name() for h in self._conference_initial_invitees],
-                    signature='s'),
-            'InvitationMessage':
-                lambda: dbus.String(''),
-            'SupportsNonMerges':
-                lambda: dbus.Boolean(True)
-            })
-
-        # Immutable conference properties
-        self._add_immutables({
-                'InitialChannels': CHANNEL_INTERFACE_CONFERENCE,
-                'InitialInviteeIDs': CHANNEL_INTERFACE_CONFERENCE,
-                'InitialInviteeHandles': CHANNEL_INTERFACE_CONFERENCE,
-                'InvitationMessage': CHANNEL_INTERFACE_CONFERENCE,
-                'SupportsNonMerges': CHANNEL_INTERFACE_CONFERENCE
-                })
 
     def _get_initial_channels(self, props):
         logger.info('Getting channels from InitialChannels')

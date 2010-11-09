@@ -206,7 +206,6 @@ class ButterflyTextChannel(
             self._conversation.leave()
         self._remove_typing_timeouts()
         telepathy.server.ChannelTypeText.Close(self)
-        self.remove_from_connection()
 
     def GetPendingMessageContent(self, message_id, parts):
         # We don't support pending message

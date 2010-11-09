@@ -17,7 +17,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 from base64 import b64encode, b64decode
-from butterfly.Connection_Interface_Mail_Notification import ConnectionInterfaceMailNotification
 from string import join
 import dbus.service
 import logging
@@ -31,10 +30,6 @@ __all__ = ['ButterflyMailNotification']
 
 logger = logging.getLogger('Butterfly.MailNotification')
 
-
-# Interface name
-CONN_IFACE_MAIL_NOTIFICATION = \
-    'org.freedesktop.Telepathy.Connection.Interface.MailNotification.DRAFT'
 
 # Mail_Notification_Flags (bitfield/set of flags, 0 for none)
 MAIL_NOTIFICATION_FLAG_SUPPORTS_UNREAD_MAIL_COUNT = 1
@@ -56,17 +51,17 @@ LAST_MAIL_TYPE = 1
 
 class ButterflyMailNotification(
         telepathy.server.DBusProperties,
-        ConnectionInterfaceMailNotification,
+        telepathy.server.ConnectionInterfaceMailNotification,
         papyon.event.MailboxEventInterface):
 
     def __init__(self):
         logger.debug("Initialized")
         telepathy.server.DBusProperties.__init__(self)
-        ConnectionInterfaceMailNotification.__init__(self)
-        self._interfaces.remove(CONN_IFACE_MAIL_NOTIFICATION)
+        telepathy.server.ConnectionInterfaceMailNotification.__init__(self)
+        self._interfaces.remove(telepathy.CONNECTION_INTERFACE_MAIL_NOTIFICATION)
         papyon.event.MailboxEventInterface.__init__(self, self.msn_client)
 
-        self._implement_property_get(CONN_IFACE_MAIL_NOTIFICATION,
+        self._implement_property_get(telepathy.CONNECTION_INTERFACE_MAIL_NOTIFICATION,
             {'MailNotificationFlags': lambda: self.mail_notification_flags,
              'UnreadMailCount': lambda: self.unread_mail_count,
              'MailAddress': lambda: self.mail_address})
@@ -79,7 +74,7 @@ class ButterflyMailNotification(
         Account support e-mail notification (see 'EmailEnabled' feild in
         client profile)."""
 
-        self._interfaces.add(CONN_IFACE_MAIL_NOTIFICATION)
+        self._interfaces.add(telepathy.CONNECTION_INTERFACE_MAIL_NOTIFICATION)
 
 
     @property
@@ -109,7 +104,7 @@ class ButterflyMailNotification(
         pass
 
 
-    @dbus.service.method(CONN_IFACE_MAIL_NOTIFICATION,
+    @dbus.service.method(telepathy.CONNECTION_INTERFACE_MAIL_NOTIFICATION,
             in_signature='', out_signature='(sua(ss))',
             async_callbacks=('_success', '_error'))
     def RequestInboxURL(self, _success, _error):

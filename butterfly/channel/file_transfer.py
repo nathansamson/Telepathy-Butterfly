@@ -199,6 +199,8 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
 
         for handle in self._handles:
             self._session.disconnect(handle)
+        self._handles = []
+        self._session = None
 
     def GetSelfHandle(self):
         return self._conn.GetSelfHandle()

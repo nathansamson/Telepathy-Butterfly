@@ -23,9 +23,6 @@ import telepathy
 import papyon
 import papyon.event
 
-from telepathy._generated.Connection_Interface_Contact_Capabilities \
-     import ConnectionInterfaceContactCapabilities
-
 from butterfly.util.decorator import async
 
 __all__ = ['ButterflyCapabilities']
@@ -34,7 +31,7 @@ logger = logging.getLogger('Butterfly.Capabilities')
 
 class ButterflyCapabilities(
         telepathy.server.ConnectionInterfaceCapabilities,
-        ConnectionInterfaceContactCapabilities,
+        telepathy.server.ConnectionInterfaceContactCapabilities,
         papyon.event.ContactEventInterface):
 
     text_chat_class = \
@@ -79,11 +76,9 @@ class ButterflyCapabilities(
 
     def __init__(self):
         telepathy.server.ConnectionInterfaceCapabilities.__init__(self)
-        ConnectionInterfaceContactCapabilities.__init__(self)
+        telepathy.server.ConnectionInterfaceContactCapabilities.__init__(self)
         papyon.event.ContactEventInterface.__init__(self, self.msn_client)
 
-        # handle -> list(RCC)
-        self._contact_caps = {}
         self._video_clients = []
         self._update_capabilities_calls = []
 
@@ -99,23 +94,6 @@ class ButterflyCapabilities(
 
         return telepathy.server.ConnectionInterfaceCapabilities.\
             AdvertiseCapabilities(self, add, remove)
-
-    def GetContactCapabilities(self, handles):
-        if 0 in handles:
-            raise telepathy.InvalidHandle('Contact handle list contains zero')
-
-        ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
-        for i in handles:
-            handle = self.handle(telepathy.HANDLE_TYPE_CONTACT, i)
-            # If the handle has no contact capabilities yet then it
-            # won't be in the dict. It's fair to return an empty list
-            # here for its contact caps.
-            if handle in self._contact_caps:
-		ret[handle] = dbus.Array(self._contact_caps[handle], signature='(a{sv}as)')
-            else:
-                ret[handle] = dbus.Array([], signature='(a{sv}as)')
-
-        return ret
 
     def UpdateCapabilities(self, caps):
         if self._status != telepathy.CONNECTION_STATUS_CONNECTED:

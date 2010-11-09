@@ -190,12 +190,6 @@ class ButterflyCapabilities(
         if rcc in self._contact_caps[handle]:
             return
 
-        if self.audio_chat_class in self._contact_caps[handle]:
-            self._contact_caps[handle].remove(self.audio_chat_class)
-
-        if self.audio_chat_class in self._contact_caps[handle]:
-            self._contact_caps[handle].remove(self.audio_chat_class)
-
         self._contact_caps[handle].append(rcc)
 
         ret = dbus.Dictionary({handle: self._contact_caps[handle]},

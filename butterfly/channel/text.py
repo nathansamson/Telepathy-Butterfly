@@ -204,6 +204,7 @@ class ButterflyTextChannel(
     def Close(self):
         if self._conversation is not None:
             self._conversation.leave()
+            self._conversation = None
         self._remove_typing_timeouts()
         telepathy.server.ChannelTypeText.Close(self)
 

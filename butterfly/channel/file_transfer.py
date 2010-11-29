@@ -305,7 +305,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         # Protect against clock skew, if the interval is negative the
         # worst thing that can happen is that we wait an extra second
         # before emitting the signal.
-        interval = abs(interval)
+        interval = int(abs(interval))
 
         if interval > 1000:
             emit_signal()

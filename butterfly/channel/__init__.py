@@ -55,7 +55,7 @@ class ButterflyChannel(object):
                     'InitiatorID': lambda: self._initiator.name
                     })
 
-            self._add_immutables({
+            self._add_immutable_properties({
                     'InitiatorHandle': telepathy.CHANNEL_INTERFACE,
                     'InitiatorID': telepathy.CHANNEL_INTERFACE,
                     })

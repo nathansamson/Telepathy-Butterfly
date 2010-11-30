@@ -220,9 +220,11 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
     @Lockable(mutex, 'add_subscribe', 'finished_cb')
     def _add(self, handle_id, message, finished_cb):
         handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
+        if handle is self._conn.GetSelfHandle():
+            return True # don't add ourself
         if handle.contact is not None and \
            handle.contact.is_member(papyon.Membership.FORWARD):
-            return True
+            return True # contact already there
 
         account = handle.account
         network = handle.network
@@ -287,8 +289,11 @@ class ButterflySubscribeListChannel(ButterflyListChannel,
     def _remove(self, handle_id, finished_cb):
         handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
         contact = handle.contact
+        if handle is self._conn.GetSelfHandle():
+            return True # don't try to remove ourself
         if contact is None or not contact.is_member(papyon.Membership.FORWARD):
-            return True
+            return True # contact not in address book
+
         ab = self._conn.msn_client.address_book
         ab.delete_contact(contact, done_cb=(finished_cb,),
                 failed_cb=(finished_cb,))
@@ -344,14 +349,13 @@ class ButterflyPublishListChannel(ButterflyListChannel,
     def _add(self, handle_id, message, finished_cb):
         handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
         contact = handle.contact
+        if handle is self._conn.GetSelfHandle():
+            return True # don't add ourself
         if contact is not None and contact.is_member(papyon.Membership.ALLOW):
-            return True
-
-        # This will occur if the contact doesn't actually exist
-        # (e.g. nobody@example.com).
+            return True # contact is already allowed
         if contact is None:
             logger.debug('Cannot allow/accept None contact %s' % handle.get_name())
-            return True
+            return True # contact doesn't actually exist
 
         account = handle.account
         network = handle.network
@@ -368,6 +372,8 @@ class ButterflyPublishListChannel(ButterflyListChannel,
         handle = self._conn.handle(telepathy.HANDLE_TYPE_CONTACT, handle_id)
         contact = handle.contact
         ab = self._conn.msn_client.address_book
+        if handle is self._conn.GetSelfHandle():
+            return True # don't try to remove ourself
         if contact.is_member(papyon.Membership.PENDING):
             ab.decline_contact_invitation(contact, False, done_cb=(finished_cb,),
                     failed_cb=(finished_cb,))
@@ -375,7 +381,7 @@ class ButterflyPublishListChannel(ButterflyListChannel,
             ab.disallow_contact(contact, done_cb=(finished_cb,),
                     failed_cb=(finished_cb,))
         else:
-            return True
+            return True # contact is neither pending or allowed
 
     # papyon.event.ContactEventInterface
     def on_contact_memberships_changed(self, contact):

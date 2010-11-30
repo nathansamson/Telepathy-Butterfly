@@ -82,6 +82,71 @@ class ButterflyCapabilities(
         self._video_clients = []
         self._update_capabilities_calls = []
 
+
+    ### Events handling ------------------------------------------------------
+
+    # papyon.event.ContactEventInterface
+    def on_contact_client_capabilities_changed(self, contact):
+        handle = self.ensure_contact_handle(contact)
+        if handle == self._self_handle:
+            return # don't update our own capabilities using server ones
+        self._update_capabilities(handle)
+        self._update_contact_capabilities([handle])
+
+    # papyon.event.AddressBookEventInterface
+    def on_addressbook_contact_added(self, contact):
+        """When we add a contact in our contact list, add the
+        default capabilities to the contact"""
+        if contact.is_member(papyon.Membership.FORWARD):
+            handle = self.ensure_contact_handle(contact)
+            self._add_default_capabilities([handle])
+            self._update_contact_capabilities([handle])
+
+
+    ### Capabilities interface -----------------------------------------------
+
+    def _get_capabilities(self, contact):
+        gen_caps = 0
+        spec_caps = 0
+        caps = contact.client_capabilities
+
+        if caps.supports_sip_invite:
+            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
+            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
+            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
+            if caps.has_webcam:
+                spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
+
+        return gen_caps, spec_caps
+
+    def _add_default_capabilities(self, handles):
+        """Add the default capabilities to these contacts."""
+        ret = []
+        for handle in handles:
+            new_flag = telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+
+            ctype = telepathy.CHANNEL_TYPE_TEXT
+            diff = self._diff_capabilities(handle, ctype, added_gen=new_flag)
+            ret.append(diff)
+
+            ctype = telepathy.CHANNEL_TYPE_FILE_TRANSFER
+            diff = self._diff_capabilities(handle, ctype, added_gen=new_flag)
+            ret.append(diff)
+
+        self.CapabilitiesChanged(ret)
+
+    def _update_capabilities(self, handle):
+        ctype = telepathy.CHANNEL_TYPE_STREAMED_MEDIA
+
+        new_gen, new_spec = self._get_capabilities(handle.contact)
+        diff = self._diff_capabilities(handle, ctype, new_gen, new_spec)
+        if diff is not None:
+            self.CapabilitiesChanged([diff])
+
+
+    ### ContactCapabilities interface ----------------------------------------
+
     def AdvertiseCapabilities(self, add, remove):
         for caps, specs in add:
             if caps == telepathy.CHANNEL_TYPE_STREAMED_MEDIA:
@@ -137,85 +202,30 @@ class ButterflyCapabilities(
                 signature='ua(a{sv}as)')
             self.ContactCapabilitiesChanged(updated)
 
-    # papyon.event.ContactEventInterface
-    def on_contact_client_capabilities_changed(self, contact):
-        self._update_capabilities(contact)
+    def _get_contact_capabilities(self, contact):
+        contact_caps = []
+        caps = contact.client_capabilities
 
-    # papyon.event.AddressBookEventInterface
-    def on_addressbook_contact_added(self, contact):
-        """When we add a contact in our contact list, add the
-        default capabilities to the contact"""
-        if contact.is_member(papyon.Membership.FORWARD):
-            handle = self.ensure_contact_handle(contact)
-            self._add_default_capabilities([handle])
+        contact_caps.append(self.text_chat_class)
+        contact_caps.append(self.file_transfer_class)
+        if caps.supports_sip_invite:
+            if caps.has_webcam:
+                contact_caps.append(self.av_chat_class)
+            else:
+                contact_caps.append(self.audio_chat_class)
 
-    def _add_default_capabilities(self, contacts_handles):
-        """Add the default capabilities to these contacts."""
-        ret = []
-        cc_ret = dbus.Dictionary({}, signature='ua(a{sv}as)')
-        for handle in contacts_handles:
-            new_flag = telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
+        return contact_caps
 
-            ctype = telepathy.CHANNEL_TYPE_TEXT
-            diff = self._diff_capabilities(handle, ctype, added_gen=new_flag)
-            ret.append(diff)
-
-            ctype = telepathy.CHANNEL_TYPE_FILE_TRANSFER
-            diff = self._diff_capabilities(handle, ctype, added_gen=new_flag)
-            ret.append(diff)
-
-            # ContactCapabilities
-            caps = self._contact_caps.setdefault(handle, [])
-            caps.append(self.text_chat_class)
-            caps.append(self.file_transfer_class)
-            cc_ret[handle] = self._contact_caps[handle]
-
-        self.CapabilitiesChanged(ret)
-        self.ContactCapabilitiesChanged(cc_ret)
-
-    def _update_capabilities(self, contact):
-        handle = self.ensure_contact_handle(contact)
-        ctype = telepathy.CHANNEL_TYPE_STREAMED_MEDIA
-
-        new_gen, new_spec, rcc = self._get_capabilities(contact)
-        diff = self._diff_capabilities(handle, ctype, new_gen, new_spec)
-        if diff is not None:
-            self.CapabilitiesChanged([diff])
-
-        if rcc is None:
-            return
-
-        self._contact_caps.setdefault(handle, [])
-
-        if rcc in self._contact_caps[handle]:
-            return
-
-        self._contact_caps[handle].append(rcc)
-
-        ret = dbus.Dictionary({handle: self._contact_caps[handle]},
-            signature='ua(a{sv}as)')
+    def _update_contact_capabilities(self, handles):
+        caps = {}
+        for handle in handles:
+            caps[handle] = self._get_contact_capabilities(handle.contact)
+            self._contact_caps[handle] = caps[handle] # update global dict
+        ret = dbus.Dictionary(caps, signature='ua(a{sv}as)')
         self.ContactCapabilitiesChanged(ret)
 
-    def _get_capabilities(self, contact):
-        gen_caps = 0
-        spec_caps = 0
 
-        rcc = None
-
-        caps = contact.client_capabilities
-        if caps.supports_sip_invite:
-            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_CREATE
-            gen_caps |= telepathy.CONNECTION_CAPABILITY_FLAG_INVITE
-            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_AUDIO
-            spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_NAT_TRAVERSAL_STUN
-
-            if caps.has_webcam:
-                spec_caps |= telepathy.CHANNEL_MEDIA_CAPABILITY_VIDEO
-                rcc = self.av_chat_class
-            else:
-                rcc = self.audio_chat_class
-
-        return gen_caps, spec_caps, rcc
+    ### Initialization -------------------------------------------------------
 
     @async
     def _populate_capabilities(self):
@@ -227,6 +237,7 @@ class ButterflyCapabilities(
                 handle = self.ensure_contact_handle(contact)
                 handles.add(handle)
         self._add_default_capabilities(handles)
+        self._update_contact_capabilities(handles)
 
         # These caps were updated before we were online.
         for caps in self._update_capabilities_calls:

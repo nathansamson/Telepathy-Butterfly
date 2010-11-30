@@ -303,8 +303,9 @@ class ButterflyStreamHandler (
             base_port = port
         elif ttype == telepathy.MEDIA_STREAM_TRANSPORT_TYPE_RELAY:
             ttype = "relay"
-            base_addr = None
-            base_port = None
+            local_ip = self._conn.msn_client.local_ip
+            base_addr = local_ip
+            base_port = port
 
         return MediaCandidate(id, component_id, proto, priority,
                 username, password, ttype, ip, port, base_addr, base_port)

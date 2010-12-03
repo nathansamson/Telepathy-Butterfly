@@ -99,6 +99,7 @@ class ButterflyMediaChannel(
 
         for stream in call.media_session._streams:
             self.on_stream_created(stream)
+        for stream in call.media_session.streams:
             self.on_stream_added(stream)
         papyon.event.MediaSessionEventInterface.__init__(self, call.media_session)
 

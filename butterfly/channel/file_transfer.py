@@ -80,6 +80,7 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         handles.append(session.connect("canceled", self._transfer_canceled))
         handles.append(session.connect("progressed", self._transfer_progressed))
         handles.append(session.connect("completed", self._transfer_completed))
+        handles.append(session.connect("disposed", self._transfer_disposed))
         self._handles = handles
 
         self._sources = []
@@ -173,12 +174,16 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
     def Close(self):
         logger.debug("Close")
 
-        self.cancel()
-        if self.state != telepathy.FILE_TRANSFER_STATE_COMPLETED:
-            self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
-                telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_STOPPED)
+        try:
+            self.cancel()
+            if self.state != telepathy.FILE_TRANSFER_STATE_COMPLETED:
+                self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                    telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_STOPPED)
 
-        self.cleanup()
+            self.cleanup()
+        except:
+            pass
+
         telepathy.server.ChannelTypeFileTransfer.Close(self)
 
     def cancel(self):
@@ -272,7 +277,13 @@ class ButterflyFileTransferChannel(telepathy.server.ChannelTypeFileTransfer):
         logger.debug("Transfer completed")
         self.set_state(telepathy.FILE_TRANSFER_STATE_COMPLETED,
             telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_NONE)
-        self.cleanup()
+
+    def _transfer_disposed(self, session):
+        if self.state not in (telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                              telepathy.FILE_TRANSFER_STATE_COMPLETED):
+            logger.debug("Transfer has been disposed before completion")
+            self.set_state(telepathy.FILE_TRANSFER_STATE_CANCELLED,
+                telepathy.FILE_TRANSFER_STATE_CHANGE_REASON_LOCAL_STOPPED)
 
     def _transfer_progressed(self, session, size):
         self._transferred += size

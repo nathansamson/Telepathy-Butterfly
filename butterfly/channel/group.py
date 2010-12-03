@@ -107,6 +107,8 @@ class ButterflyGroupChannel(ButterflyListChannel,
         logger.debug("Deleting group %s" % self._handle.name)
         ab = self._conn.msn_client.address_book
         group = self._handle.group
+        if len(ab.contacts.search_by_groups(group)) == 0:
+            raise telepathy.NotAvailable("Can't delete non-empty group")
         ab.delete_group(group)
 
     def _filter_contact(self, contact):

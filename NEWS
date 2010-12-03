@@ -1,3 +1,22 @@
+telepathy-butterfly-0.5.15 (2010-12-03)
+=======================================
+
+Dependencies:
+ * telepathy-python 0.15.19
+ * papyon 0.5.3
+
+Enhancements:
+
+ * Implement Protocol interface
+ * Remove undrafted interfaces (moved to tp-python)
+
+Fixes:
+
+ * Normalize and ensure handles per connection
+ * Fix detection of A/V capabilities (downgrade)
+ * Add proper flags to contact publish list
+ * Misc fixes to media and file transfer channels
+
 telepathy-butterfly-0.5.14 (2010-09-10)
 =======================================
 

@@ -30,8 +30,6 @@ import papyon.event
 
 from butterfly.channel.text import ButterflyTextChannel
 
-from butterfly.Channel_Interface_Conference import CHANNEL_INTERFACE_CONFERENCE
-
 __all__ = ['ButterflyImChannel']
 
 logger = logging.getLogger('Butterfly.ImChannel')

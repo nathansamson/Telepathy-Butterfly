@@ -31,6 +31,8 @@ __all__ = ['ButterflyConferenceChannel']
 
 logger = logging.getLogger('Butterfly.ConferenceChannel')
 
+from telepathy.interfaces import CHANNEL_INTERFACE_CONFERENCE
+
 class ButterflyConferenceChannel(
         ButterflyMucChannel,
         telepathy.server.ChannelInterfaceConference):

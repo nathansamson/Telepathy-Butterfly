@@ -34,6 +34,8 @@ __all__ = ['ButterflyImChannel']
 
 logger = logging.getLogger('Butterfly.ImChannel')
 
+from telepathy.interfaces import CHANNEL_INTERFACE_CONFERENCE
+
 class ButterflyImChannel(ButterflyTextChannel):
 
     def __init__(self, conn, manager, conversation, props, object_path=None):

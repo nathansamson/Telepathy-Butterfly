@@ -193,9 +193,8 @@ class ButterflyImChannel(ButterflyTextChannel):
         handle = self._conn.ensure_contact_handle(sender)
         type = telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         logger.info("User %r sent a offline message" % handle)
-        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, text)
-
         self._recv_id += 1
+        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, text)
 
     def attach_conversation(self, conversation):
         # @conversation a papyon.ConversationInterface

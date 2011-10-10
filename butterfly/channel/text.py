@@ -288,8 +288,8 @@ class ButterflyTextChannel(
         logger.info("User %s sent a message" % unicode(handle))
         content = re.sub('\r\n', '\n', message.content)
         content = re.sub('\r', '\n', content)
-        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, content)
         self._recv_id += 1
+        self._signal_text_received(id, timestamp, handle, type, 0, message.display_name, content)
 
     # papyon.event.ConversationEventInterface
     def on_conversation_nudge_received(self, sender):
